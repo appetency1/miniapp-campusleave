@@ -1,0 +1,203 @@
+{
+  "neutral": [
+    {
+      "key": "50",
+      "oklch": "oklch(98.5% 0.006 72)",
+      "hex": "#FDF9F6"
+    },
+    {
+      "key": "100",
+      "oklch": "oklch(96.2% 0.008 72)",
+      "hex": "#F6F2ED"
+    },
+    {
+      "key": "200",
+      "oklch": "oklch(93.0% 0.01 72)",
+      "hex": "#ECE7E1"
+    },
+    {
+      "key": "300",
+      "oklch": "oklch(88.0% 0.012 72)",
+      "hex": "#DDD6CF"
+    },
+    {
+      "key": "400",
+      "oklch": "oklch(78.0% 0.014 72)",
+      "hex": "#BDB6AE"
+    },
+    {
+      "key": "500",
+      "oklch": "oklch(66.0% 0.014 72)",
+      "hex": "#989189"
+    },
+    {
+      "key": "600",
+      "oklch": "oklch(54.0% 0.016 72)",
+      "hex": "#756D65"
+    },
+    {
+      "key": "700",
+      "oklch": "oklch(42.0% 0.018 72)",
+      "hex": "#534C43"
+    },
+    {
+      "key": "800",
+      "oklch": "oklch(30.0% 0.01 72)",
+      "hex": "#312D28"
+    },
+    {
+      "key": "900",
+      "oklch": "oklch(20.0% 0.007 72)",
+      "hex": "#181613"
+    }
+  ],
+  "brand": [
+    {
+      "key": "50",
+      "oklch": "oklch(96.6% 0.016 42)",
+      "hex": "#FEF1EC"
+    },
+    {
+      "key": "100",
+      "oklch": "oklch(92.8% 0.036 42)",
+      "hex": "#FDE0D5"
+    },
+    {
+      "key": "200",
+      "oklch": "oklch(86.2% 0.062 42)",
+      "hex": "#F6C5B2"
+    },
+    {
+      "key": "500",
+      "oklch": "oklch(56.0% 0.105 42)",
+      "hex": "#A75E41"
+    },
+    {
+      "key": "600",
+      "oklch": "oklch(46.2% 0.098 42)",
+      "hex": "#854429"
+    },
+    {
+      "key": "700",
+      "oklch": "oklch(36.0% 0.08 42)",
+      "hex": "#5F2D18"
+    }
+  ],
+  "accent": [
+    {
+      "key": "50",
+      "oklch": "oklch(94.5% 0.03 22)",
+      "hex": "#FFE5E4"
+    },
+    {
+      "key": "500",
+      "oklch": "oklch(58.0% 0.15 22)",
+      "hex": "#C34F51"
+    },
+    {
+      "key": "600",
+      "oklch": "oklch(50.0% 0.145 22)",
+      "hex": "#A6383C"
+    }
+  ],
+  "semantic": {
+    "success": [
+      {
+        "key": "soft",
+        "oklch": "oklch(93.5% 0.03 152)",
+        "hex": "#DCF0E0"
+      },
+      {
+        "key": "solid",
+        "oklch": "oklch(52.0% 0.09 152)",
+        "hex": "#3D784F"
+      }
+    ],
+    "warning": [
+      {
+        "key": "soft",
+        "oklch": "oklch(94.8% 0.045 84)",
+        "hex": "#FCECCC"
+      },
+      {
+        "key": "solid",
+        "oklch": "oklch(64.0% 0.115 78)",
+        "hex": "#B2822D"
+      }
+    ],
+    "danger": [
+      {
+        "key": "soft",
+        "oklch": "oklch(94.5% 0.03 24)",
+        "hex": "#FFE6E3"
+      },
+      {
+        "key": "solid",
+        "oklch": "oklch(52.0% 0.15 24)",
+        "hex": "#AF3C3C"
+      }
+    ],
+    "info": [
+      {
+        "key": "soft",
+        "oklch": "oklch(94.2% 0.022 238)",
+        "hex": "#DFEEF9"
+      },
+      {
+        "key": "solid",
+        "oklch": "oklch(52.0% 0.07 238)",
+        "hex": "#406F8D"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "正文 / 页面底",
+      "ratio": 17.25,
+      "need": 4.5,
+      "pass_": true
+    },
+    {
+      "name": "正文 / 卡片",
+      "ratio": 18.06,
+      "need": 4.5,
+      "pass_": true
+    },
+    {
+      "name": "次要文字 / 卡片",
+      "ratio": 5.08,
+      "need": 4.5,
+      "pass_": true
+    },
+    {
+      "name": "辅助文字 / 卡片",
+      "ratio": 3.11,
+      "need": 3.0,
+      "pass_": true
+    },
+    {
+      "name": "白字 / 主按钮",
+      "ratio": 7.35,
+      "need": 4.5,
+      "pass_": true
+    },
+    {
+      "name": "白字 / 强调按钮",
+      "ratio": 6.46,
+      "need": 4.5,
+      "pass_": true
+    },
+    {
+      "name": "正文 / 身份卡",
+      "ratio": 14.44,
+      "need": 4.5,
+      "pass_": true
+    },
+    {
+      "name": "身份卡说明 / 身份卡",
+      "ratio": 6.77,
+      "need": 3.0,
+      "pass_": true
+    }
+  ]
+}

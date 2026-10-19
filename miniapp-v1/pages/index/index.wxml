@@ -1,0 +1,93 @@
+<!-- pages/index/index.wxml —— 旗舰首页（全出血校园实拍 hero + 上浮状态卡） -->
+<view class="home">
+
+  <!-- hero：图片绝对定位铺满，底部苔墨绿渐隐过渡到宣纸米白 -->
+  <view class="home__hero">
+    <image class="home__hero-img" src="/assets/hero-campus.jpg" mode="aspectFill"></image>
+    <view class="home__veil"></view>
+
+    <!-- 自定义导航：仅适配状态栏高度，右侧留白避开微信胶囊 -->
+    <view class="home__nav" style="padding-top:{{statusBarHeight}}px">
+      <text class="home__brand">校园请假</text>
+    </view>
+
+    <!-- 照片上的问候 -->
+    <view class="home__greet">
+      <text class="t-display home__hi">早安，{{student.name}}</text>
+      <text class="t-meta home__sub">{{meta.dateText}} · {{meta.weather}} · {{student.className}}</text>
+    </view>
+  </view>
+
+  <view class="home__main">
+
+    <!-- 状态卡：负上边距上浮，圆角压住 hero 底边 -->
+    <view wx:if="{{focus}}" class="card card--lift home__focus reveal" style="--d:.06s">
+      <view class="home__focus-head">
+        <view class="chips">
+          <view class="chip {{scene === 'OFF_CAMPUS' ? 'chip--on' : ''}}" data-scene="OFF_CAMPUS" bindtap="onScene">
+            <text>离校</text>
+          </view>
+          <view class="chip {{scene === 'ON_CAMPUS' ? 'chip--on' : ''}}" data-scene="ON_CAMPUS" bindtap="onScene">
+            <text>校内</text>
+          </view>
+        </view>
+        <view class="pill pill--{{focus.pillKind}} pill--breath">
+          <view class="pill__dot"></view>
+          <text>{{focus.statusLabel}}</text>
+        </view>
+      </view>
+
+      <text class="t-cap home__cap">距销假截止</text>
+      <text class="t-num home__count">{{countdown}}</text>
+      <text class="t-meta home__meta">{{focus.type}} · {{focus.period}} · {{focus.destination}}</text>
+
+      <view class="home__acts">
+        <button class="btn btn--primary" hover-class="home__pressed" bindtap="onPrimary">{{scene === 'OFF_CAMPUS' ? '返校定位销假' : '确认结束'}}</button>
+        <button class="btn btn--ghost btn--sm" hover-class="home__pressed" bindtap="onExtend">申请续假</button>
+      </view>
+    </view>
+
+    <!-- 记录区 -->
+    <view class="home__section">
+      <view class="home__sec-head">
+        <text class="t-h2">请假记录</text>
+      </view>
+
+      <view class="chips home__filter">
+        <view wx:for="{{filters}}" wx:key="key" class="chip {{filter === item.key ? 'chip--on' : ''}}" data-key="{{item.key}}" bindtap="onFilter">
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+
+      <!-- 首帧骨架 -->
+      <view wx:if="{{loading}}" class="home__list">
+        <view wx:for="{{[0, 1, 2]}}" wx:key="*this" class="row">
+          <view class="row__main">
+            <view class="skel home__skel-line"></view>
+            <view class="skel home__skel-line home__skel-line--sm"></view>
+          </view>
+          <view class="skel home__skel-pill"></view>
+        </view>
+      </view>
+
+      <view wx:elif="{{shown.length}}" class="home__list">
+        <view wx:for="{{shown}}" wx:key="id" class="row reveal" style="--d:{{item.d}}" hover-class="home__row-hover" data-id="{{item.id}}" bindtap="onItem">
+          <view class="row__main">
+            <view class="row__title">{{item.type}} · {{item.sceneText}}</view>
+            <view class="row__sub">{{item.period}} · {{item.statusLabel}}</view>
+          </view>
+          <view class="pill pill--{{item.pillKind}}">
+            <view class="pill__dot"></view>
+            <text>{{item.statusLabel}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="empty">
+        <view class="empty__mark"></view>
+        <view class="empty__title">暂无相关记录</view>
+        <view class="empty__desc">换个筛选条件看看</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusLeave · 设计系统 V1.0</title>
+<style>
+/* ============================================================
+   CampusLeave Design System — single file showcase
+   纸感底 / 墨蓝主色 / 描边分层 / 克制动效
+   ============================================================ */
+
+/* ---------- 1. reset ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body,h1,h2,h3,h4,p,ol,ul,figure{margin:0;padding:0}
+ol,ul{list-style:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+img,svg{display:block;max-width:100%}
+::selection{background:#2563C9;color:#fff}
+
+/* ---------- 2. tokens ---------- */
+:root{
+  /* 纸与墨 */
+  --paper:#FBFAF7;
+  --paper-2:#F5F3EC;
+  --surface:#FFFFFF;
+  --ink:#15202E;
+  --ink-2:#55606F;
+  --ink-3:#7A7468;
+  --line:#E7E3D9;
+  --line-2:#D8D3C6;
+
+  /* 品牌 */
+  --blue-50:#EFF4FD;
+  --blue-100:#DCE8FA;
+  --blue-200:#BBD2F5;
+  --blue-300:#8FB3EC;
+  --blue-400:#5E8FE0;
+  --blue-500:#2563C9;
+  --blue-600:#1F55AD;
+  --blue-700:#194089;
+  --blue-800:#14336B;
+  --blue-900:#0F264F;
+
+  /* 语义 */
+  --teal-600:#0B7A6B; --teal-50:#E6F4F1; --teal-700:#085C51;
+  --amber-600:#9A5B0B; --amber-50:#FDF3E3;
+  --red-600:#B23A28; --red-50:#FBECE9;
+  --sage-600:#4F6B5D; --sage-50:#EEF3F0;
+
+  /* 字号 */
+  --fs-display:40px; --lh-display:44px;
+  --fs-h1:28px; --lh-h1:34px;
+  --fs-h2:20px; --lh-h2:28px;
+  --fs-h3:17px; --lh-h3:24px;
+  --fs-body:15px; --lh-body:26px;
+  --fs-small:13px; --lh-small:20px;
+  --fs-micro:11px; --lh-micro:16px;
+
+  /* 间距 */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px;
+  --sp-12:48px; --sp-16:64px; --sp-20:80px;
+
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:20px;
+  --shadow-1:0 2px 8px rgba(21,32,46,.06);
+  --shadow-2:0 12px 32px rgba(21,32,46,.10);
+
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono","Roboto Mono",Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif;
+
+  --max:1120px;
+}
+
+/* 三套主题：同一结构，只换品牌色阶 */
+[data-theme="teal"]{
+  --blue-50:#E9F5F2; --blue-100:#D2EBE5; --blue-200:#A8D9CF; --blue-300:#74C0B1;
+  --blue-400:#3FA391; --blue-500:#0E7C6B; --blue-600:#0B6659; --blue-700:#085247;
+  --blue-800:#063F37; --blue-900:#042B26;
+}
+[data-theme="clay"]{
+  --blue-50:#FAF0E6; --blue-100:#F3DDC7; --blue-200:#E7BE9B; --blue-300:#D69868;
+  --blue-400:#BE7440; --blue-500:#8F4A1C; --blue-600:#783D16; --blue-700:#613011;
+  --blue-800:#4A240C; --blue-900:#331807;
+}
+
+/* ---------- 3. base ---------- */
+body{
+  font-family:var(--sans);
+  font-size:var(--fs-body);
+  line-height:var(--lh-body);
+  color:var(--ink);
+  background:var(--paper);
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(to right,rgba(21,32,46,.035) 1px,transparent 1px),
+                   linear-gradient(to bottom,rgba(21,32,46,.035) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- 4. topbar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(251,250,247,.92);
+  backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar__in{
+  max-width:var(--max);margin:0 auto;padding:0 clamp(20px,4vw,40px);
+  height:60px;display:flex;align-items:center;justify-content:space-between;gap:24px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.01em}
+.brand svg{width:22px;height:22px;stroke:#2563C9;stroke-width:1.7;fill:none}
+.brand em{
+  font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  color:var(--ink-3);border:1px solid var(--line-2);border-radius:4px;padding:2px 5px;
+}
+.topnav{display:flex;gap:22px;font-size:13px;color:var(--ink-2)}
+.topnav a{position:relative;padding:4px 0;transition:color .18s cubic-bezier(.2,0,0,1)}
+.topnav a:hover{color:var(--ink)}
+.topnav a::after{
+  content:"";position:absolute;left:0;right:0;bottom:-2px;height:1.5px;
+  background:var(--blue-500);transform:scaleX(0);transform-origin:left;
+  transition:transform .22s cubic-bezier(.32,.72,0,1);
+}
+.topnav a:hover::after{transform:scaleX(1)}
+
+/* ---------- 5. shell ---------- */
+.shell{
+  max-width:var(--max);margin:0 auto;padding:0 clamp(20px,4vw,40px);
+  display:grid;grid-template-columns:172px minmax(0,1fr);gap:clamp(24px,4vw,56px);
+}
+.toc{position:sticky;top:60px;align-self:start;padding:56px 0 40px}
+.toc__label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  color:var(--ink-3);margin-bottom:14px;
+}
+.toc ol{display:flex;flex-direction:column;gap:2px}
+.toc a{
+  display:flex;gap:10px;align-items:baseline;
+  padding:7px 0;font-size:13px;color:var(--ink-2);
+  border-left:1px solid transparent;
+  transition:color .18s,border-color .18s,padding-left .18s;
+}
+.toc a i{
+  font-style:normal;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+  transition:color .18s;
+}
+.toc a:hover{color:var(--ink)}
+.toc a.is-on{color:var(--blue-600);border-left-color:var(--blue-500);padding-left:10px}
+.toc a.is-on i{color:var(--blue-500)}
+.toc__foot{
+  margin-top:28px;padding-top:16px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;line-height:1.9;color:var(--ink-3);
+}
+
+main{padding-bottom:120px;min-width:0}
+
+/* ---------- 6. cover ---------- */
+.cover{
+  padding:72px 0 88px;border-bottom:1px solid var(--line);
+  display:grid;grid-template-columns:minmax(0,1fr) 335px;
+  gap:clamp(24px,4vw,56px);align-items:start;
+}
+.cover__main{min-width:0}
+.cover__panel{position:relative;padding-top:4px}
+.cover__panel .app-card{
+  box-shadow:0 28px 56px -22px rgba(21,32,46,.24);
+  border:1px solid var(--line);
+}
+.cover__panel-note{
+  margin-top:14px;text-align:right;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-3);
+}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  color:var(--blue-600);margin-bottom:28px;
+}
+.display{
+  font-size:clamp(52px,8.4vw,96px);
+  line-height:.94;letter-spacing:-.045em;font-weight:700;
+  color:var(--ink);
+}
+.display span{display:block}
+.display span:last-child{color:var(--blue-500)}
+.cover__body{
+  margin-top:32px;max-width:46ch;font-size:16px;line-height:1.75;color:var(--ink-2);
+}
+.cover__body b{color:var(--ink);font-weight:600}
+.cover__spec{
+  margin-top:44px;display:grid;grid-template-columns:1fr 1fr;
+  border-top:1px solid var(--line);
+}
+.cover__spec div{
+  padding:14px 20px 0 0;
+}
+.cover__spec div:nth-child(n+3){padding-top:16px}
+.cover__spec dt{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);margin-bottom:4px}
+.cover__spec dd{font-size:14px;font-weight:600}
+
+/* ---------- 7. section frame ---------- */
+.sec{padding:clamp(64px,9vw,104px) 0 0}
+.sec-head{display:flex;gap:clamp(16px,3vw,32px);align-items:flex-start;margin-bottom:clamp(32px,5vw,52px)}
+.sec-no{
+  font-family:var(--mono);font-size:clamp(40px,6vw,64px);line-height:.9;font-weight:700;
+  color:transparent;-webkit-text-stroke:1.3px #C6C0AE;
+  flex:none;margin-top:2px;
+}
+.sec-head h2{font-size:var(--fs-h1);line-height:var(--lh-h1);font-weight:680;letter-spacing:-.02em}
+.sec-head p{margin-top:8px;color:var(--ink-2);max-width:52ch;font-size:14px}
+.sec-head em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+.block{margin-bottom:clamp(40px,6vw,64px)}
+.block__head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding-bottom:12px;margin-bottom:20px;border-bottom:1px solid var(--line);
+}
+.block__head h3{font-size:var(--fs-h3);font-weight:620;letter-spacing:-.01em}
+.block__head span{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+/* ---------- 8. type scale ---------- */
+.type-list{border-top:1px solid var(--line)}
+.type-row{
+  display:grid;grid-template-columns:minmax(0,1fr) 186px;
+  gap:24px;align-items:end;
+  padding:20px 0;border-bottom:1px solid var(--line);
+  transition:background .18s;
+}
+.type-row:hover{background:linear-gradient(90deg,rgba(37,99,201,.035),transparent 70%)}
+.type-demo{
+  font-size:var(--fs);line-height:var(--lh);font-weight:var(--fw);
+  letter-spacing:var(--ls,0);color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.type-demo small{font-size:inherit;font-weight:inherit;color:var(--ink-3)}
+.type-meta{text-align:right;font-family:var(--mono);font-size:10px;line-height:1.7;color:var(--ink-3)}
+.type-meta b{display:block;font-size:11px;color:var(--ink);letter-spacing:.04em;margin-bottom:2px}
+.type-meta em{display:block;font-style:normal;color:var(--ink-2)}
+.prose-demo{
+  margin-top:20px;padding:22px 24px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-lg);max-width:62ch;
+}
+.prose-demo p{font-size:15px;line-height:26px;color:var(--ink-2)}
+.prose-demo p+p{margin-top:10px}
+.prose-demo b{color:var(--ink);font-weight:600}
+.nums{
+  margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.nums__card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:16px 18px;
+}
+.nums__card h4{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-3);margin-bottom:10px}
+.nums__card li{font-size:15px;line-height:24px;font-variant-numeric:tabular-nums}
+.nums__card.is-bad li{font-variant-numeric:proportional-nums;color:var(--ink-2)}
+.tag-ok,.tag-bad{
+  display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  padding:2px 5px;border-radius:3px;margin-left:6px;vertical-align:1px;
+}
+.tag-ok{background:var(--teal-50);color:var(--teal-600)}
+.tag-bad{background:var(--red-50);color:var(--red-600)}
+
+/* ---------- 9. color ---------- */
+.ramp{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.ramp .sw{
+  aspect-ratio:1/1.35;border-radius:8px;border:1px solid rgba(21,32,46,.06);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:8px 6px;text-align:left;
+  transition:transform .18s cubic-bezier(.32,.72,0,1),box-shadow .18s;
+}
+.ramp .sw:hover{transform:translateY(-3px);box-shadow:var(--shadow-1)}
+.ramp .sw b{font-family:var(--mono);font-size:10px;letter-spacing:.04em;opacity:.92}
+.ramp .sw span{font-family:var(--mono);font-size:9px;opacity:.68;margin-top:1px}
+.ramp .sw.is-light{color:#15202E}
+.ramp .sw.is-dark{color:#fff}
+
+/* 主题切换 */
+.theme-bar{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:14px 16px;margin-bottom:22px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+}
+.theme-bar>span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
+.theme-opts{display:flex;gap:6px;flex-wrap:wrap}
+.theme-opt{
+  display:flex;align-items:center;gap:7px;height:32px;padding:0 11px;
+  border-radius:7px;font-size:12px;color:var(--ink-2);
+  border:1px solid transparent;transition:border-color .16s,background .16s;
+}
+.theme-opt:hover{background:var(--paper-2)}
+.theme-opt i{width:13px;height:13px;border-radius:50%;background:var(--dot);box-shadow:inset 0 0 0 1px rgba(21,32,46,.12)}
+.theme-opt.is-on{border-color:var(--line-2);background:var(--paper-2);color:var(--ink);font-weight:600}
+.theme-bar .hint{margin-left:auto}
+
+/* 字号切换 */
+.type-tools{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.type-tools>span{font-size:11px;color:var(--ink-3)}
+.seg--sm{padding:2px}
+.seg--sm button{height:26px;padding:0 11px;font-size:12px;font-variant-numeric:tabular-nums}
+
+.sem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:22px}
+.sem{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px 14px 12px;
+}
+.sem__name{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;margin-bottom:10px}
+.sem__dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.sem__row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.sem code{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.sem .chip{
+  font-size:11px;font-weight:600;padding:3px 7px;border-radius:5px;
+  background:var(--tint);color:var(--c);
+}
+
+.neutral{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-top:12px}
+.neutral div{
+  height:44px;border-radius:6px;border:1px solid rgba(21,32,46,.06);
+  display:flex;align-items:flex-end;padding:4px;font-family:var(--mono);font-size:8px;
+}
+
+.state-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.state-table th{
+  text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  color:var(--ink-3);font-weight:400;padding:0 12px 8px 0;border-bottom:1px solid var(--line);
+}
+.state-table td{padding:10px 12px 10px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+.state-table td:first-child{color:var(--ink);font-weight:600}
+.state-table code{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+
+/* ---------- 10. space ---------- */
+.sp-scale{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.sp-item{text-align:center}
+.sp-item i{
+  display:block;height:40px;background:var(--blue-100);
+  border:1px solid var(--blue-200);border-radius:3px;margin:0 auto 6px;
+}
+.sp-item span{font-family:var(--mono);font-size:9px;color:var(--ink-3)}
+.radius-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.radius-row div{
+  width:64px;height:64px;background:var(--surface);border:1px solid var(--line-2);
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;
+  font-family:var(--mono);font-size:9px;color:var(--ink-3);
+}
+.shadow-row{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}
+.shadow-row div{
+  width:150px;height:78px;background:var(--surface);border-radius:var(--r-md);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;color:var(--ink-3);
+}
+
+/* ---------- 11. buttons ---------- */
+.btn{
+  --h:44px;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:var(--h);padding:0 18px;border-radius:var(--r-md);
+  font-size:14px;font-weight:600;letter-spacing:.01em;
+  border:1px solid transparent;
+  transition:background .18s cubic-bezier(.2,0,0,1),color .18s,border-color .18s,transform .12s;
+  white-space:nowrap;
+}
+.btn:active{transform:translateY(1px)}
+.btn--primary{background:var(--blue-500);color:#fff}
+.btn--primary:hover{background:var(--blue-600)}
+.btn--primary:active{background:var(--blue-700)}
+.btn--secondary{background:var(--blue-50);color:var(--blue-700)}
+.btn--secondary:hover{background:var(--blue-100)}
+.btn--ghost{background:var(--surface);border-color:var(--line-2);color:var(--ink)}
+.btn--ghost:hover{background:var(--paper-2)}
+.btn--text{color:var(--blue-600);padding:0 8px}
+.btn--text:hover{background:var(--blue-50)}
+.btn--danger{background:var(--red-600);color:#fff}
+.btn--danger:hover{background:#9B2F1F}
+.btn--danger-ghost{background:var(--surface);border-color:#E3B4AC;color:var(--red-600)}
+.btn--danger-ghost:hover{background:var(--red-50)}
+.btn[disabled],.btn.is-disabled{
+  background:var(--paper-2);color:#A9A498;border-color:transparent;cursor:not-allowed;
+}
+.btn--sm{--h:36px;font-size:13px;padding:0 14px;border-radius:8px}
+.btn--lg{--h:50px;font-size:15px;padding:0 24px}
+.btn.is-loading{color:transparent;pointer-events:none;position:relative}
+.btn.is-loading::after{
+  content:"";position:absolute;width:18px;height:18px;border-radius:50%;
+  border:1.8px solid rgba(255,255,255,.35);border-top-color:#fff;
+  animation:spin .7s linear infinite;
+}
+.btn--ghost.is-loading::after,.btn--text.is-loading::after{
+  border-color:rgba(21,32,46,.18);border-top-color:var(--ink);
+}
+.btn--secondary.is-loading::after{border-color:rgba(31,85,173,.22);border-top-color:#1F55AD}
+
+/* 状态展示用（静态模拟 hover / active） */
+.btn--primary.is-hover{background:var(--blue-600)}
+.btn--primary.is-active{background:var(--blue-700)}
+.btn--secondary.is-hover{background:var(--blue-100)}
+.btn--secondary.is-active{background:var(--blue-200)}
+.btn--ghost.is-hover{background:var(--paper-2)}
+.btn--ghost.is-active{background:var(--line)}
+.btn--text.is-hover{background:var(--blue-50)}
+.btn--text.is-active{background:var(--blue-100)}
+.btn--danger.is-hover{background:#9B2F1F}
+.btn--danger.is-active{background:#83261A}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.matrix{
+  display:grid;grid-template-columns:88px repeat(5,minmax(0,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-md);
+  overflow:hidden;
+}
+.matrix>div{background:var(--surface);padding:16px 12px;display:flex;align-items:center;justify-content:center;min-height:74px}
+.matrix>div:nth-child(-n+6){background:var(--paper-2);min-height:36px;padding:8px 12px;
+  font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.04em}
+.matrix>div.mx-label{justify-content:flex-start;font-size:12px;color:var(--ink-2);font-weight:600}
+.matrix .btn{width:100%;font-size:13px;padding:0 10px}
+.matrix-hint{display:none;margin-top:10px;font-size:11px;color:var(--ink-3);text-align:center}
+
+/* ---------- 12. badges ---------- */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  height:22px;padding:0 8px;border-radius:6px;
+  font-size:11px;font-weight:600;letter-spacing:.02em;white-space:nowrap;
+}
+.badge--pending{background:var(--amber-50);color:var(--amber-600)}
+.badge--approved{background:var(--teal-50);color:var(--teal-600)}
+.badge--progress{background:var(--blue-50);color:var(--blue-700)}
+.badge--done{background:var(--sage-50);color:var(--sage-600)}
+.badge--rejected{background:var(--red-50);color:var(--red-600)}
+.badge--withdrawn{background:var(--paper-2);color:#6B675C}
+.badge--cancelled{background:var(--paper-2);color:#8A8578}
+.badge--overdue{
+  background:transparent;border:1px solid var(--red-600);color:var(--red-600);
+  padding:0 7px 0 6px;
+}
+.badge--overdue svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8}
+.badge--ext{height:18px;border-radius:4px;padding:0 5px;font-size:10px}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge-mat{
+  margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;
+}
+.badge-mat div{
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.badge-mat code{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+
+/* ---------- 13. app card ---------- */
+.card-stage{
+  background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:clamp(16px,3vw,28px);display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;
+}
+.app-card{
+  width:335px;max-width:100%;background:var(--surface);border-radius:var(--r-lg);
+  padding:16px;position:relative;border:1px solid transparent;
+  transition:background .18s,border-color .18s;
+}
+.app-card:hover{border-color:var(--line-2);background:#FEFEFD}
+.app-card.is-overdue{padding-left:18px}
+.app-card.is-overdue::before{
+  content:"";position:absolute;left:8px;top:16px;bottom:16px;width:2px;
+  background:var(--red-600);border-radius:2px;
+}
+.app-card__top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.scene{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
+.scene i{width:6px;height:6px;border-radius:50%;background:var(--blue-500)}
+.scene.is-on i{background:var(--teal-600)}
+.scene b{color:var(--ink);font-weight:600}
+.app-card__time{
+  margin-top:8px;font-size:17px;line-height:24px;font-weight:650;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;
+}
+.app-card__time span{display:block}
+.tl{display:flex;align-items:flex-start;margin-top:16px;gap:0}
+.tl li{flex:1;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.tl li::before{
+  content:"";position:absolute;top:3px;left:0;right:0;height:1.5px;background:var(--line);
+}
+.tl li:first-child::before{left:3px}
+.tl li:last-child::before{right:calc(100% - 7px)}
+.tl li i{
+  width:7px;height:7px;border-radius:50%;background:var(--surface);
+  border:1.5px solid var(--line-2);position:relative;z-index:1;
+}
+.tl li.is-done::before{background:var(--blue-500)}
+.tl li.is-done i{background:var(--blue-500);border-color:var(--blue-500)}
+.tl li.is-now i{width:9px;height:9px;margin-top:-1px;background:var(--blue-500);border-color:var(--blue-500);
+  box-shadow:0 0 0 4px rgba(37,99,201,.14)}
+.tl li span{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.app-card__note{margin-top:12px;font-size:12px;line-height:18px;color:var(--ink-3)}
+
+/* ---------- 14. form ---------- */
+.form-stage{
+  background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:clamp(16px,3vw,28px);display:grid;gap:22px;
+}
+.field-label{font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:8px;display:flex;gap:5px;align-items:center}
+.field-label i{width:5px;height:5px;border-radius:50%;background:var(--red-600)}
+.scene-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scene-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:13px;text-align:left;position:relative;
+  transition:border-color .18s,background .18s,box-shadow .18s;
+}
+.scene-card:hover{border-color:var(--blue-300)}
+.scene-card svg{width:24px;height:24px;stroke:var(--blue-500);fill:none;stroke-width:1.6;margin-bottom:10px}
+.scene-card b{display:block;font-size:14px;font-weight:650}
+.scene-card span{display:block;font-size:11px;color:var(--ink-3);margin-top:5px}
+.scene-card.is-on{border-color:var(--blue-500);background:var(--blue-50);box-shadow:0 0 0 1px var(--blue-500) inset}
+.scene-card.is-on::after{
+  content:"";position:absolute;top:11px;right:11px;width:16px;height:16px;border-radius:50%;
+  background:var(--blue-500);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.4l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size:100%;
+}
+.seg{display:inline-flex;background:var(--paper-2);border-radius:8px;padding:3px;gap:2px}
+.seg button{
+  height:32px;padding:0 16px;border-radius:6px;font-size:13px;color:var(--ink-2);
+  transition:background .16s,color .16s,box-shadow .16s;
+}
+.seg button.is-on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(21,32,46,.08)}
+.seg button:hover:not(.is-on){color:var(--ink)}
+.row-field{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  overflow:hidden;
+}
+.row-field>div{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  height:52px;padding:0 14px;font-size:14px;
+}
+.row-field>div+div{border-top:1px solid var(--line)}
+.row-field label{color:var(--ink-2);font-size:13px}
+.row-field b{font-weight:600;font-variant-numeric:tabular-nums}
+.row-field .ph{color:#A9A498}
+.row-field .chev{width:15px;height:15px;stroke:#B0AA9C;fill:none;stroke-width:1.8}
+.row-field.is-focus{box-shadow:0 0 0 1.5px var(--blue-500) inset;border-color:transparent}
+.row-field.is-error{box-shadow:0 0 0 1.5px var(--red-600) inset;border-color:transparent}
+.err-msg{font-size:11px;color:var(--red-600);margin-top:6px}
+.ta{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:12px 14px;min-height:88px;font-size:14px;line-height:22px;color:var(--ink-2);
+  position:relative;
+}
+.ta.is-focus{box-shadow:0 0 0 1.5px var(--blue-500) inset;border-color:transparent}
+.ta .count{
+  position:absolute;right:12px;bottom:9px;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+}
+.upload{display:flex;gap:10px}
+.upload .up{
+  width:76px;height:76px;border-radius:var(--r-md);border:1px dashed var(--line-2);
+  display:flex;align-items:center;justify-content:center;color:#B0AA9C;
+  transition:border-color .18s,color .18s,background .18s;
+}
+.upload .up:hover{border-color:var(--blue-400);color:var(--blue-500);background:var(--blue-50)}
+.upload .up svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6}
+.upload .thumb{
+  width:76px;height:76px;border-radius:var(--r-md);border:1px solid var(--line);
+  background:linear-gradient(135deg,#F1EFE7,#E6E2D4);position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.upload .thumb svg{width:26px;height:26px;stroke:#9C9687;fill:none;stroke-width:1.4}
+.upload .thumb b{
+  position:absolute;right:5px;top:5px;width:16px;height:16px;border-radius:50%;
+  background:rgba(21,32,46,.55);color:#fff;font-size:10px;font-weight:400;
+  display:flex;align-items:center;justify-content:center;
+}
+.switch{width:48px;height:28px;border-radius:999px;background:#D8D3C6;position:relative;transition:background .2s cubic-bezier(.2,0,0,1);flex:none}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(21,32,46,.22);
+  transition:transform .2s cubic-bezier(.2,0,0,1);
+}
+.switch.is-on{background:var(--blue-500)}
+.switch.is-on::after{transform:translateX(20px)}
+
+/* ---------- 15. feedback ---------- */
+.fb-stage{
+  background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:clamp(16px,3vw,28px);display:grid;gap:20px;
+}
+.toast{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(21,32,46,.93);color:#fff;border-radius:var(--r-md);
+  padding:10px 14px;font-size:13px;font-weight:500;box-shadow:var(--shadow-2);
+  max-width:280px;
+}
+.toast svg{width:15px;height:15px;stroke:#7FD8C6;fill:none;stroke-width:2}
+.dialog{
+  width:300px;max-width:100%;background:var(--surface);border-radius:var(--r-xl);
+  overflow:hidden;box-shadow:var(--shadow-2);
+}
+.dialog__t{padding:22px 20px 8px;text-align:center;font-size:16px;font-weight:650}
+.dialog__b{padding:0 24px 20px;text-align:center;font-size:13px;line-height:21px;color:var(--ink-2)}
+.dialog__f{display:flex;border-top:1px solid var(--line)}
+.dialog__f button{flex:1;height:50px;font-size:14px;color:var(--ink-2);transition:background .16s}
+.dialog__f button:hover{background:var(--paper-2)}
+.dialog__f button+button{border-left:1px solid var(--line);color:var(--blue-600);font-weight:600}
+.tabbar-demo{
+  width:335px;max-width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);display:flex;padding:6px 0 8px;
+}
+.tabbar-demo button{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:10px;color:#6B675C;position:relative;padding:4px 0;
+  transition:color .18s;
+}
+.tabbar-demo button:hover{color:var(--ink)}
+.tabbar-demo button.is-on{color:var(--blue-500)}
+.tabbar-demo svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6}
+.tabbar-demo .pill{
+  position:absolute;top:0;right:calc(50% - 18px);min-width:15px;height:15px;padding:0 4px;
+  border-radius:8px;background:var(--red-600);color:#fff;font-size:9px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;
+}
+.actionbar-demo{
+  width:335px;max-width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);padding:10px 12px 12px;display:flex;gap:8px;
+}
+.actionbar-demo .btn{flex:1}
+.actionbar-demo .btn--primary{flex:1.4}
+
+/* ---------- 16. motion ---------- */
+.motion-stage{
+  background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:clamp(18px,3vw,28px);
+}
+.lanes{display:grid;gap:14px}
+.lane{display:grid;grid-template-columns:76px minmax(0,1fr) 220px;gap:16px;align-items:center}
+.lane__name{font-family:var(--mono);font-size:10px;color:var(--ink-2)}
+.lane__track{
+  height:30px;background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  position:relative;overflow:hidden;
+}
+.lane__dot{
+  position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:5px;
+  background:var(--blue-500);
+}
+.lane__dot::after{
+  content:"";position:absolute;inset:0;border-radius:5px;
+  background:linear-gradient(120deg,rgba(255,255,255,.45),transparent 60%);
+}
+.lane__dot.run{animation:laneRun 880ms var(--ease) forwards}
+@keyframes laneRun{from{transform:translateX(0)}to{transform:translateX(var(--d))}}
+.lane__curve{position:relative;padding-top:14px}
+.lane__curve svg{width:100%;height:42px;overflow:visible;display:block}
+.lane__curve path{fill:none;stroke:#8A8578;stroke-width:1.8;stroke-linecap:round}
+.lane__curve path.ref{stroke:#D8D3C6;stroke-width:1;stroke-dasharray:3 3}
+.lane__curve em{
+  position:absolute;left:0;top:-11px;font-style:normal;
+  font-family:var(--mono);font-size:9px;letter-spacing:.02em;color:var(--ink-3);
+}
+
+.motion-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;align-items:center}
+.hint{font-size:11px;color:var(--ink-3)}
+
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:24px}
+.demo-cell{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:18px;display:flex;flex-direction:column;gap:14px;min-height:186px;
+}
+.demo-cell h4{font-size:12px;font-weight:600;color:var(--ink-2)}
+.demo-cell .hint{margin-top:auto}
+.stagger{display:grid;gap:7px}
+.stagger li{
+  height:34px;border-radius:6px;background:var(--paper-2);border:1px solid var(--line);
+  display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--ink-3);
+  opacity:0;transform:translateY(8px);
+}
+.stagger.run li{animation:up .44s cubic-bezier(.32,.72,0,1) forwards}
+@keyframes up{to{opacity:1;transform:none}}
+.check-wrap{display:flex;align-items:center;gap:14px}
+.check{
+  width:44px;height:44px;border-radius:50%;background:var(--teal-50);
+  display:flex;align-items:center;justify-content:center;flex:none;
+}
+.check svg{width:22px;height:22px;fill:none;stroke:var(--teal-600);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.check path{stroke-dasharray:26;stroke-dashoffset:26}
+.check.run path{animation:draw .46s .16s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.skel{display:grid;gap:8px}
+.skel i{
+  display:block;height:12px;border-radius:4px;
+  background:linear-gradient(90deg,#EFEDE6 25%,#E4E0D5 37%,#EFEDE6 63%);
+  background-size:400% 100%;animation:shimmer 1.6s linear infinite;
+}
+.skel i:nth-child(2){width:72%}
+.skel i:nth-child(3){width:44%}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+
+.lift-demo{
+  align-self:flex-start;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:14px 16px;font-size:12px;color:var(--ink-2);
+  transition:transform .2s cubic-bezier(.32,.72,0,1),box-shadow .2s,border-color .2s;
+  cursor:pointer;
+}
+.lift-demo:hover{transform:translateY(-3px);box-shadow:var(--shadow-1);border-color:var(--line-2)}
+
+/* ---------- 17. state grid ---------- */
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+.state-tile{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px;display:flex;flex-direction:column;gap:10px;min-height:126px;
+  transition:border-color .18s,transform .18s;
+}
+.state-tile:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.state-tile__code{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--ink-3)}
+.state-tile p{font-size:12px;line-height:18px;color:var(--ink-2);margin-top:auto}
+
+/* ---------- 18. footer ---------- */
+.foot{
+  margin-top:clamp(64px,9vw,110px);padding-top:24px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;
+  font-size:12px;color:var(--ink-3);
+}
+.foot b{color:var(--ink-2);font-weight:600}
+
+/* ---------- 19. toast layer ---------- */
+.toast-layer{
+  position:fixed;left:50%;bottom:36px;transform:translateX(-50%);
+  z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;
+  pointer-events:none;
+}
+.toast-layer .toast{
+  animation:toastIn .24s cubic-bezier(.32,.72,0,1) both;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- 20. reveal ---------- */
+.reveal{opacity:0;transform:translateY(14px)}
+.reveal.in{animation:up .5s cubic-bezier(.32,.72,0,1) forwards}
+
+/* ---------- 21. responsive ---------- */
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .toc{display:none}
+  .topnav{display:none}
+  .cover{padding:52px 0 60px;grid-template-columns:1fr}
+  .cover__panel{display:none}
+  .ramp{grid-template-columns:repeat(5,1fr)}
+  .sem-grid{grid-template-columns:repeat(2,1fr)}
+  .neutral{grid-template-columns:repeat(5,1fr)}
+  .matrix{
+    grid-template-columns:76px repeat(5,96px);
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+  .matrix>div{padding:12px 8px;min-height:66px}
+  .matrix .btn{font-size:12px;padding:0 8px;width:100%}
+  .matrix::-webkit-scrollbar{height:4px}
+  .matrix::-webkit-scrollbar-thumb{background:#D8D3C6;border-radius:2px}
+  .matrix-hint{display:block}
+  .type-row{grid-template-columns:1fr;gap:6px;align-items:start}
+  .type-meta{text-align:left;display:flex;gap:12px;align-items:baseline}
+  .type-meta em{display:none}
+  .lane{grid-template-columns:64px minmax(0,1fr);gap:10px}
+  .lane__curve{display:none}
+  .nums{grid-template-columns:1fr}
+  .scene-cards{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .cover__spec div{flex:1 1 100%}
+  .ramp{grid-template-columns:repeat(5,1fr)}
+  .block__head{flex-direction:column;gap:4px;align-items:flex-start}
+}
+
+/* ---------- 22. reduced motion ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__in">
+    <a class="brand" href="#cover">
+      <svg viewBox="0 0 24 24"><path d="M3.5 20.5V9.4L12 3.5l8.5 5.9v11.1"/><path d="M9.2 20.5v-5.6a2.8 2.8 0 0 1 5.6 0v5.6"/><path d="M3.5 20.5h17"/></svg>
+      <span>CampusLeave</span>
+      <em>DS 1.0</em>
+    </a>
+    <nav class="topnav">
+      <a href="#type">字体</a>
+      <a href="#color">色彩</a>
+      <a href="#space">间距</a>
+      <a href="#components">组件</a>
+      <a href="#motion">动效</a>
+      <a href="#states">状态</a>
+    </nav>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="toc">
+    <p class="toc__label">CONTENTS</p>
+    <ol>
+      <li><a href="#type"><i>01</i>字体</a></li>
+      <li><a href="#color"><i>02</i>色彩</a></li>
+      <li><a href="#space"><i>03</i>间距</a></li>
+      <li><a href="#components"><i>04</i>组件</a></li>
+      <li><a href="#motion"><i>05</i>动效</a></li>
+      <li><a href="#states"><i>06</i>状态</a></li>
+    </ol>
+    <div class="toc__foot">
+      校园请假管理系统<br>
+      学生端 / 视觉规范<br>
+      375 × 812 · 4pt
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- ================= COVER ================= -->
+    <section id="cover" class="cover">
+      <div class="cover__main">
+      <p class="eyebrow">校园请假管理系统 / 学生端</p>
+      <h1 class="display"><span>Campus</span><span>Leave</span></h1>
+      <p class="cover__body">
+        一套为「<b>审批在走</b>」这件事设计的中文界面系统。
+        用纸感的底、一档蓝、和只靠描边分层的方式，
+        让状态、时间和下一步动作在同一眼内被读到。
+      </p>
+      <dl class="cover__spec">
+        <div><dt>VIEWPORT</dt><dd>375 × 812</dd></div>
+        <div><dt>GRID</dt><dd>4pt 标尺</dd></div>
+        <div><dt>CONTRAST</dt><dd>WCAG AA</dd></div>
+        <div><dt>VERSION</dt><dd>V1.0 / 2026.10</dd></div>
+      </dl>
+      </div>
+
+      <div class="cover__panel">
+        <article class="app-card is-overdue">
+          <div class="app-card__top">
+            <span class="scene"><i></i><b>离校</b> · 事假</span>
+            <span class="badge-row">
+              <span class="badge badge--overdue"><svg viewBox="0 0 24 24"><path d="M12 3.8 21 20.2H3z"/><path d="M12 9.6v4.4"/><path d="M12 17.2h.01"/></svg>逾期</span>
+              <span class="badge badge--progress">请假中</span>
+            </span>
+          </div>
+          <p class="app-card__time"><span>10.16 周五 18:00 —</span><span>10.17 周六 12:00</span></p>
+          <ol class="tl">
+            <li class="is-done"><i></i><span>10.16 09:42</span></li>
+            <li class="is-done"><i></i><span>10.16 10:05</span></li>
+            <li class="is-now"><i></i><span>10.16 18:00</span></li>
+            <li><i></i><span>未结束</span></li>
+          </ol>
+          <p class="app-card__note">已超 30 分钟 · 请尽快销假或申请续假</p>
+        </article>
+        <p class="cover__panel-note">CARD 335 × 192 · OVERDUE</p>
+      </div>
+    </section>
+
+    <!-- ================= 01 TYPE ================= -->
+    <section id="type" class="sec">
+      <header class="sec-head">
+        <span class="sec-no">01</span>
+        <div>
+          <h2>字体</h2>
+          <p>七级字阶，大标题承担情绪，正文只负责清楚。所有数字等宽对齐，时间与编号不跳动。</p>
+        </div>
+      </header>
+
+      <div class="block">
+        <div class="block__head"><h3>字阶</h3><span>1.5× MODULAR · HOVER TO INSPECT</span></div>
+        <div class="type-list">
+          <div class="type-row">
+            <div class="type-demo" style="--fs:40px;--lh:44px;--fw:700;--ls:-.03em">请假已通过 <small>10.16</small></div>
+            <div class="type-meta"><b>DISPLAY</b><span>40 / 44 · 700</span><em>封面 · 结果页主结论</em></div>
+          </div>
+          <div class="type-row">
+            <div class="type-demo" style="--fs:28px;--lh:34px;--fw:680;--ls:-.02em">申请请假</div>
+            <div class="type-meta"><b>H1</b><span>28 / 34 · 680</span><em>页面主标题</em></div>
+          </div>
+          <div class="type-row">
+            <div class="type-demo" style="--fs:20px;--lh:28px;--fw:650;--ls:-.01em">我的申请</div>
+            <div class="type-meta"><b>H2</b><span>20 / 28 · 650</span><em>区块标题</em></div>
+          </div>
+          <div class="type-row">
+            <div class="type-demo" style="--fs:17px;--lh:24px;--fw:650">10.16 周五 18:00 — 10.17 周六 12:00</div>
+            <div class="type-meta"><b>H3</b><span>17 / 24 · 650</span><em>卡片时间 · 导航标题</em></div>
+          </div>
+          <div class="type-row">
+            <div class="type-demo" style="--fs:15px;--lh:26px;--fw:400">家中有事需回家一趟，已与辅导员沟通。</div>
+            <div class="type-meta"><b>BODY</b><span>15 / 26 · 400</span><em>正文 · 表单值</em></div>
+          </div>
+          <div class="type-row">
+            <div class="type-demo" style="--fs:13px;--lh:20px;--fw:400">驳回原因：申请时间与课程冲突，请调整后重新提交。</div>
+            <div class="type-meta"><b>AUX</b><span>13 / 20 · 400</span><em>辅助说明 · 驳回原因</em></div>
+          </div>
+          <div class="type-row">
+            <div class="type-demo" style="--fs:11px;--lh:16px;--fw:600;--ls:.06em">待审批 · 已通过 · 请假中 · 已销假</div>
+            <div class="type-meta"><b>TAG</b><span>11 / 16 · 600</span><em>徽章 · 标签 · 计数</em></div>
+          </div>
+        </div>
+
+        <div class="type-tools">
+          <span>正文实测</span>
+          <div class="seg seg--sm" id="bodySizeSeg">
+            <button data-size="14">14</button>
+            <button class="is-on" data-size="15">15</button>
+            <button data-size="16">16</button>
+          </div>
+          <span>切换字号，观察同一段文字的可读性与行长</span>
+        </div>
+        <div class="prose-demo" id="proseDemo">
+          <p>请假期间请保持电话畅通。返校后需在<b>「请假记录」</b>中完成销假，离校请假需通过定位校验；定位异常时可申请人工核验，辅导员处理后会通知你。</p>
+          <p>正文行高 26px，段落间距 10px。中英文之间不加空格，标点使用全角。</p>
+        </div>
+
+        <div class="nums">
+          <div class="nums__card">
+            <h4>TABULAR-NUMS <span class="tag-ok">ON</span></h4>
+            <ul><li>10.16 09:42</li><li>10.17 12:00</li><li>10.20 18:30</li></ul>
+          </div>
+          <div class="nums__card is-bad">
+            <h4>PROPORTIONAL <span class="tag-bad">OFF</span></h4>
+            <ul><li>10.16 09:42</li><li>10.17 12:00</li><li>10.20 18:30</li></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 02 COLOR ================= -->
+    <section id="color" class="sec">
+      <header class="sec-head">
+        <span class="sec-no">02</span>
+        <div>
+          <h2>色彩</h2>
+          <p>一档蓝承担品牌与主操作，四种语义色只出现在状态徽章与提示条。点击任意色块复制色值。</p>
+        </div>
+      </header>
+
+      <div class="block">
+        <div class="theme-bar">
+          <span>THEME</span>
+          <div class="theme-opts">
+            <button class="theme-opt is-on" data-theme-set="blue" style="--dot:#2563C9"><i></i>校园蓝</button>
+            <button class="theme-opt" data-theme-set="teal" style="--dot:#0E7C6B"><i></i>松青</button>
+            <button class="theme-opt" data-theme-set="clay" style="--dot:#8F4A1C"><i></i>赭石</button>
+          </div>
+          <span class="hint">切换后色板、按钮、徽章、卡片同步更新</span>
+        </div>
+        <div class="block__head"><h3>品牌色阶</h3><span>PRIMARY RAMP · CLICK TO COPY</span></div>
+        <div class="ramp" id="ramp">
+          <button class="sw" data-step="50"><b>50</b><span></span></button>
+          <button class="sw" data-step="100"><b>100</b><span></span></button>
+          <button class="sw" data-step="200"><b>200</b><span></span></button>
+          <button class="sw" data-step="300"><b>300</b><span></span></button>
+          <button class="sw" data-step="400"><b>400</b><span></span></button>
+          <button class="sw" data-step="500"><b>500</b><span></span></button>
+          <button class="sw" data-step="600"><b>600</b><span></span></button>
+          <button class="sw" data-step="700"><b>700</b><span></span></button>
+          <button class="sw" data-step="800"><b>800</b><span></span></button>
+          <button class="sw" data-step="900"><b>900</b><span></span></button>
+        </div>
+
+        <div class="sem-grid">
+          <div class="sem" style="--c:#0B7A6B;--tint:#E6F4F1">
+            <div class="sem__name"><i class="sem__dot"></i>成功</div>
+            <div class="sem__row"><span class="chip">已通过</span><code>#0B7A6B</code></div>
+            <div class="sem__row"><span class="chip">定位通过</span><code>#E6F4F1</code></div>
+          </div>
+          <div class="sem" style="--c:#9A5B0B;--tint:#FDF3E3">
+            <div class="sem__name"><i class="sem__dot"></i>等待</div>
+            <div class="sem__row"><span class="chip">待审批</span><code>#9A5B0B</code></div>
+            <div class="sem__row"><span class="chip">续假待审</span><code>#FDF3E3</code></div>
+          </div>
+          <div class="sem" style="--c:#B23A28;--tint:#FBECE9">
+            <div class="sem__name"><i class="sem__dot"></i>阻断</div>
+            <div class="sem__row"><span class="chip">已驳回</span><code>#B23A28</code></div>
+            <div class="sem__row"><span class="chip">逾期</span><code>#FBECE9</code></div>
+          </div>
+          <div class="sem" style="--c:#2563C9;--tint:#EFF4FD">
+            <div class="sem__name"><i class="sem__dot"></i>进行</div>
+            <div class="sem__row"><span class="chip">请假中</span><code>#2563C9</code></div>
+            <div class="sem__row"><span class="chip">离校场景</span><code>#EFF4FD</code></div>
+          </div>
+        </div>
+
+        <div class="block__head" style="margin-top:32px"><h3>中性色阶</h3><span>10 STEPS · WARM GREY</span></div>
+        <div class="neutral">
+          <div style="background:#FAF9F5;color:#7A7468">50</div>
+          <div style="background:#F3F1EA;color:#7A7468">100</div>
+          <div style="background:#E7E3D9;color:#5C574C">200</div>
+          <div style="background:#D8D3C6;color:#4C4840">300</div>
+          <div style="background:#B0AA9C;color:#2E2B26">400</div>
+          <div style="background:#8A8578;color:#fff">500</div>
+          <div style="background:#625E55;color:#fff">600</div>
+          <div style="background:#3F3C36;color:#fff">700</div>
+          <div style="background:#26231F;color:#fff">800</div>
+          <div style="background:#15202E;color:#fff">900</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 03 SPACE ================= -->
+    <section id="space" class="sec">
+      <header class="sec-head">
+        <span class="sec-no">03</span>
+        <div>
+          <h2>间距与形状</h2>
+          <p>4pt 基准，只用这套数字。圆角四档、阴影两档——阴影只留给真正的浮层。</p>
+        </div>
+      </header>
+
+      <div class="block">
+        <div class="block__head"><h3>4pt 标尺</h3><span>4 / 8 / 12 / 16 / 20 / 24 / 32 / 40</span></div>
+        <div class="sp-scale">
+          <div class="sp-item"><i style="width:4px"></i><span>4</span></div>
+          <div class="sp-item"><i style="width:8px"></i><span>8</span></div>
+          <div class="sp-item"><i style="width:12px"></i><span>12</span></div>
+          <div class="sp-item"><i style="width:16px"></i><span>16</span></div>
+          <div class="sp-item"><i style="width:20px"></i><span>20</span></div>
+          <div class="sp-item"><i style="width:24px"></i><span>24</span></div>
+          <div class="sp-item"><i style="width:32px"></i><span>32</span></div>
+          <div class="sp-item"><i style="width:40px"></i><span>40</span></div>
+        </div>
+
+        <div class="block__head" style="margin-top:34px"><h3>圆角</h3><span>6 / 10 / 14 / 20</span></div>
+        <div class="radius-row">
+          <div style="border-radius:6px">6</div>
+          <div style="border-radius:10px">10</div>
+          <div style="border-radius:14px">14</div>
+          <div style="border-radius:20px">20</div>
+        </div>
+
+        <div class="block__head" style="margin-top:34px"><h3>阴影</h3><span>仅浮层使用</span></div>
+        <div class="shadow-row">
+          <div style="box-shadow:0 2px 8px rgba(21,32,46,.06)">shadow-1 · Toast</div>
+          <div style="box-shadow:0 12px 32px rgba(21,32,46,.10)">shadow-2 · 弹窗</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 04 COMPONENTS ================= -->
+    <section id="components" class="sec">
+      <header class="sec-head">
+        <span class="sec-no">04</span>
+        <div>
+          <h2>组件</h2>
+          <p>每个组件只承担一件事。按钮的高度、圆角、按下态统一；卡片靠描边与底色分层，不靠投影。</p>
+        </div>
+      </header>
+
+      <div class="block">
+        <div class="block__head"><h3>按钮</h3><span>5 TYPES × 5 STATES</span></div>
+        <div class="matrix">
+          <div></div>
+          <div>DEFAULT</div><div>HOVER</div><div>ACTIVE</div><div>DISABLED</div><div>LOADING</div>
+
+          <div class="mx-label">主按钮</div>
+          <div><button class="btn btn--primary">提交申请</button></div>
+          <div><button class="btn btn--primary is-hover">提交申请</button></div>
+          <div><button class="btn btn--primary is-active">提交申请</button></div>
+          <div><button class="btn btn--primary" disabled>提交申请</button></div>
+          <div><button class="btn btn--primary is-loading">提交申请</button></div>
+
+          <div class="mx-label">次按钮</div>
+          <div><button class="btn btn--secondary">申请续假</button></div>
+          <div><button class="btn btn--secondary is-hover">申请续假</button></div>
+          <div><button class="btn btn--secondary is-active">申请续假</button></div>
+          <div><button class="btn btn--secondary" disabled>申请续假</button></div>
+          <div><button class="btn btn--secondary is-loading" style="color:transparent">申请续假</button></div>
+
+          <div class="mx-label">描边按钮</div>
+          <div><button class="btn btn--ghost">撤回申请</button></div>
+          <div><button class="btn btn--ghost is-hover">撤回申请</button></div>
+          <div><button class="btn btn--ghost is-active">撤回申请</button></div>
+          <div><button class="btn btn--ghost" disabled>撤回申请</button></div>
+          <div><button class="btn btn--ghost is-loading" style="color:transparent">撤回申请</button></div>
+
+          <div class="mx-label">文字按钮</div>
+          <div><button class="btn btn--text">查看全部</button></div>
+          <div><button class="btn btn--text is-hover">查看全部</button></div>
+          <div><button class="btn btn--text is-active">查看全部</button></div>
+          <div><button class="btn btn--text" disabled>查看全部</button></div>
+          <div><button class="btn btn--text is-loading" style="color:transparent">查看全部</button></div>
+
+          <div class="mx-label">危险按钮</div>
+          <div><button class="btn btn--danger">确认撤回</button></div>
+          <div><button class="btn btn--danger is-hover">确认撤回</button></div>
+          <div><button class="btn btn--danger is-active">确认撤回</button></div>
+          <div><button class="btn btn--danger" disabled>确认撤回</button></div>
+          <div><button class="btn btn--danger is-loading">确认撤回</button></div>
+        </div>
+        <p class="matrix-hint">横向滑动查看全部 5 种状态</p>
+      </div>
+
+      <div class="block">
+        <div class="block__head"><h3>状态徽章</h3><span>7 STATES + OVERDUE OVERLAY</span></div>
+        <div class="badge-row">
+          <span class="badge badge--pending">待审批</span>
+          <span class="badge badge--approved">已通过</span>
+          <span class="badge badge--progress">请假中</span>
+          <span class="badge badge--done">已销假</span>
+          <span class="badge badge--rejected">已驳回</span>
+          <span class="badge badge--withdrawn">已撤回</span>
+          <span class="badge badge--cancelled">已取消</span>
+          <span class="badge badge--overdue"><svg viewBox="0 0 24 24"><path d="M12 3.8 21 20.2H3z"/><path d="M12 9.6v4.4"/><path d="M12 17.2h.01"/></svg>逾期</span>
+          <span class="badge badge--pending badge--ext">续假待审批</span>
+        </div>
+        <div class="badge-mat">
+          <div><span class="badge badge--progress">请假中</span><code>IN_PROGRESS</code></div>
+          <div><span class="badge badge--overdue">逾期</span><code>OVERDUE · 叠加</code></div>
+          <div><span class="badge badge--done">已销假</span><code>COMPLETED</code></div>
+          <div><span class="badge badge--rejected">已驳回</span><code>REJECTED</code></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block__head"><h3>申请卡片</h3><span>NORMAL / OVERDUE</span></div>
+        <div class="card-stage">
+          <article class="app-card is-overdue">
+            <div class="app-card__top">
+              <span class="scene"><i></i><b>离校</b> · 事假</span>
+              <span class="badge-row">
+                <span class="badge badge--overdue"><svg viewBox="0 0 24 24"><path d="M12 3.8 21 20.2H3z"/><path d="M12 9.6v4.4"/><path d="M12 17.2h.01"/></svg>逾期</span>
+                <span class="badge badge--progress">请假中</span>
+              </span>
+            </div>
+            <p class="app-card__time"><span>10.16 周五 18:00 —</span><span>10.17 周六 12:00</span></p>
+            <ol class="tl">
+              <li class="is-done"><i></i><span>10.16 09:42</span></li>
+              <li class="is-done"><i></i><span>10.16 10:05</span></li>
+              <li class="is-now"><i></i><span>10.16 18:00</span></li>
+              <li><i></i><span>未结束</span></li>
+            </ol>
+            <p class="app-card__note">已超 30 分钟 · 请尽快销假或申请续假</p>
+          </article>
+
+          <article class="app-card">
+            <div class="app-card__top">
+              <span class="scene is-on"><i></i><b>校内</b> · 病假</span>
+              <span class="badge-row"><span class="badge badge--pending">待审批</span></span>
+            </div>
+            <p class="app-card__time"><span>10.17 周六 08:00 —</span><span>10.17 周六 18:00</span></p>
+            <ol class="tl">
+              <li class="is-done"><i></i><span>10.16 20:11</span></li>
+              <li class="is-now"><i></i><span>等待中</span></li>
+              <li><i></i><span>未开始</span></li>
+              <li><i></i><span>未结束</span></li>
+            </ol>
+            <p class="app-card__note">10.16 20:11 提交 · 辅导员 李老师</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block__head"><h3>表单控件</h3><span>SCENE / SEGMENT / ROW / TEXTAREA / UPLOAD / SWITCH</span></div>
+        <div class="form-stage">
+          <div>
+            <p class="field-label">请假场景 <i></i></p>
+            <div class="scene-cards">
+              <button class="scene-card is-on">
+                <svg viewBox="0 0 24 24"><path d="M14.4 4h4.2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4.2"/><path d="M9.6 8.2 13.4 12l-3.8 3.8"/><path d="M13.4 12H3.6"/></svg>
+                <b>离校请假</b><span>离开校园范围</span>
+              </button>
+              <button class="scene-card">
+                <svg viewBox="0 0 24 24"><path d="M4.4 20.5V6.2L12 3.4l7.6 2.8v14.3"/><path d="M2.8 20.5h18.4"/><path d="M9.4 20.5v-4.4h5.2v4.4"/><path d="M9.4 10h.01M14.6 10h.01"/></svg>
+                <b>校内请假</b><span>人仍在校园内</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p class="field-label">请假类型 <i></i></p>
+            <div class="seg">
+              <button class="is-on">病假</button>
+              <button>事假</button>
+              <button>其他</button>
+            </div>
+          </div>
+
+          <div>
+            <p class="field-label">时间</p>
+            <div class="row-field">
+              <div><label>开始时间</label><b>10月17日 周六 12:10</b></div>
+              <div class="is-focus"><label>结束时间</label><b>10月18日 周日 14:10</b><svg class="chev" viewBox="0 0 24 24" style="margin-left:auto"><path d="M9 18l6-6-6-6"/></svg></div>
+              <div class="is-error"><label>联系电话</label><span class="ph">请输入 11 位手机号</span></div>
+            </div>
+            <p class="err-msg">结束时间需晚于开始时间</p>
+          </div>
+
+          <div>
+            <p class="field-label">请假理由 <i></i></p>
+            <div class="ta is-focus">
+              家中有事需回家一趟，已与辅导员沟通，预计周日返校。
+              <span class="count">30 / 200</span>
+            </div>
+          </div>
+
+          <div>
+            <p class="field-label">证明材料</p>
+            <div class="upload">
+              <div class="thumb"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M3.5 16l5-4.5 4 3.5 3-2.5 5 4"/><circle cx="8.6" cy="9.4" r="1.3"/></svg><b>×</b></div>
+              <button class="up"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <p class="err-msg" style="color:#7A7468">病假需上传，最多 3 张 · jpg / png ≤ 5MB</p>
+          </div>
+
+          <div>
+            <p class="field-label">设置</p>
+            <div class="row-field">
+              <div style="height:64px"><label style="line-height:1.5">未读红点提醒<br><span style="font-size:11px;color:#7A7468">关闭后仍可查看消息，仅不再提示未读</span></label><span class="switch is-on"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block__head"><h3>反馈与导航</h3><span>TOAST / DIALOG / TABBAR / ACTIONBAR</span></div>
+        <div class="fb-stage">
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+            <div class="toast"><svg viewBox="0 0 24 24"><path d="M20 6.5 9.2 17.3 4 12.1"/></svg>申请已提交，等待辅导员审批</div>
+            <div class="toast"><svg viewBox="0 0 24 24" style="stroke:#FFB4A8"><path d="M12 3.8 21 20.2H3z"/><path d="M12 9.6v4.4"/><path d="M12 17.2h.01"/></svg>当前位置不在校园范围</div>
+          </div>
+
+          <div class="dialog">
+            <p class="dialog__t">确认结束本次请假？</p>
+            <p class="dialog__b">确认后将立即销假，结束时间记为当前时间。</p>
+            <div class="dialog__f"><button>取消</button><button>确认结束</button></div>
+          </div>
+
+          <div class="tabbar-demo">
+            <button class="is-on"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>首页</span></button>
+            <button><svg viewBox="0 0 24 24"><path d="M8.5 6h12M8.5 12h12M8.5 18h12M3.8 6h.01M3.8 12h.01M3.8 18h.01"/></svg><span>请假记录</span></button>
+            <button><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg><span>消息</span><i class="pill">1</i></button>
+            <button><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7.5" r="4"/></svg><span>我的</span></button>
+          </div>
+
+          <div class="actionbar-demo">
+            <button class="btn btn--secondary">申请续假</button>
+            <button class="btn btn--primary">返校定位并销假</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 05 MOTION ================= -->
+    <section id="motion" class="sec">
+      <header class="sec-head">
+        <span class="sec-no">05</span>
+        <div>
+          <h2>动效</h2>
+          <p>动效只解释状态变化，不表演。四条曲线，时长 120–300ms，回弹只用于结果反馈。</p>
+        </div>
+      </header>
+
+      <div class="block">
+        <div class="block__head"><h3>缓动曲线</h3><span>880ms DEMO · 实际使用 120–300ms</span></div>
+        <div class="motion-stage">
+          <div class="motion-tools">
+            <button class="btn btn--primary btn--sm" id="playLanes">播放</button>
+            <span class="hint">同一段位移，四种曲线。注意它们在 40% 处的速度差。</span>
+          </div>
+          <div class="lanes">
+            <div class="lane" data-ease="cubic-bezier(.2,0,0,1)">
+              <span class="lane__name">standard</span>
+              <div class="lane__track"><i class="lane__dot"></i></div>
+              <div class="lane__curve"><em>.2 0 0 1</em><svg viewBox="0 -4 100 108" preserveAspectRatio="none"><path class="ref" d="M0,100 L100,0"/><path d="M0,100 C20,100 0,0 100,0"/></svg></div>
+            </div>
+            <div class="lane" data-ease="cubic-bezier(.32,.72,0,1)">
+              <span class="lane__name">enter</span>
+              <div class="lane__track"><i class="lane__dot"></i></div>
+              <div class="lane__curve"><em>.32 .72 0 1</em><svg viewBox="0 -4 100 108" preserveAspectRatio="none"><path class="ref" d="M0,100 L100,0"/><path d="M0,100 C32,28 0,0 100,0"/></svg></div>
+            </div>
+            <div class="lane" data-ease="cubic-bezier(.4,0,1,1)">
+              <span class="lane__name">exit</span>
+              <div class="lane__track"><i class="lane__dot"></i></div>
+              <div class="lane__curve"><em>.4 0 1 1</em><svg viewBox="0 -4 100 108" preserveAspectRatio="none"><path class="ref" d="M0,100 L100,0"/><path d="M0,100 C40,100 100,0 100,0"/></svg></div>
+            </div>
+            <div class="lane" data-ease="cubic-bezier(.34,1.3,.64,1)">
+              <span class="lane__name">spring</span>
+              <div class="lane__track"><i class="lane__dot"></i></div>
+              <div class="lane__curve"><em>.34 1.3 .64 1</em><svg viewBox="0 -34 100 138" preserveAspectRatio="none"><path class="ref" d="M0,100 L100,0"/><path d="M0,100 C34,-30 64,0 100,0"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block__head"><h3>微交互</h3><span>CLICK TO REPLAY</span></div>
+        <div class="demo-grid">
+          <div class="demo-cell">
+            <h4>列表入场 · stagger 40ms</h4>
+            <ul class="stagger" id="staggerList">
+              <li>10.16 离校 · 事假 · 已通过</li>
+              <li>10.08 离校 · 病假 · 已销假</li>
+              <li>09.28 校内 · 事假 · 已驳回</li>
+            </ul>
+            <button class="btn btn--ghost btn--sm" data-replay="stagger">重播</button>
+          </div>
+
+          <div class="demo-cell">
+            <h4>成功打勾 · 200 + 400ms</h4>
+            <div class="check-wrap">
+              <div class="check" id="checkDemo"><svg viewBox="0 0 24 24"><path d="M5 12.6l4.6 4.6L19 7.4"/></svg></div>
+              <span class="hint">销假完成后<br>原地反馈一次</span>
+            </div>
+            <button class="btn btn--ghost btn--sm" data-replay="check">重播</button>
+          </div>
+
+          <div class="demo-cell">
+            <h4>骨架屏 · 1.6s shimmer</h4>
+            <div class="skel"><i></i><i></i><i></i></div>
+            <span class="hint">仅在加载超过 300ms 时出现</span>
+          </div>
+
+          <div class="demo-cell">
+            <h4>卡片悬浮 · 3px / 200ms</h4>
+            <div class="lift-demo">悬停或轻触这张卡片</div>
+            <span class="hint">位移而非缩放，避免文字重排</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 06 STATES ================= -->
+    <section id="states" class="sec">
+      <header class="sec-head">
+        <span class="sec-no">06</span>
+        <div>
+          <h2>状态</h2>
+          <p>七个主状态各有结论、时间轴位置与操作组合。逾期是叠加标记，不是第八个状态。</p>
+        </div>
+      </header>
+
+      <div class="block">
+        <div class="block__head"><h3>主状态</h3><span>BADGE + CONCLUSION</span></div>
+        <div class="state-grid">
+          <div class="state-tile">
+            <span class="badge badge--pending">待审批</span>
+            <span class="state-tile__code">PENDING</span>
+            <p>等待辅导员审批。可撤回。</p>
+          </div>
+          <div class="state-tile">
+            <span class="badge badge--approved">已通过</span>
+            <span class="state-tile__code">APPROVED</span>
+            <p>已通过，10.17 08:00 开始。可取消。</p>
+          </div>
+          <div class="state-tile">
+            <span class="badge badge--progress">请假中</span>
+            <span class="state-tile__code">IN_PROGRESS</span>
+            <p>还剩 6 小时 12 分。可续假、销假。</p>
+          </div>
+          <div class="state-tile">
+            <span class="badge badge--done">已销假</span>
+            <span class="state-tile__code">COMPLETED</span>
+            <p>已销假，10.17 12:04 完成。仅可查看。</p>
+          </div>
+          <div class="state-tile">
+            <span class="badge badge--rejected">已驳回</span>
+            <span class="state-tile__code">REJECTED</span>
+            <p>未通过，原因见审批信息。可重新申请。</p>
+          </div>
+          <div class="state-tile">
+            <span class="badge badge--withdrawn">已撤回</span>
+            <span class="state-tile__code">WITHDRAWN</span>
+            <p>已撤回，记录仅可查看。</p>
+          </div>
+          <div class="state-tile">
+            <span class="badge badge--cancelled">已取消</span>
+            <span class="state-tile__code">CANCELLED</span>
+            <p>已取消，本次请假未生效。</p>
+          </div>
+          <div class="state-tile" style="background:#FEFCFC;border-color:#EBD5D1">
+            <span class="badge-row"><span class="badge badge--overdue">逾期</span><span class="badge badge--progress">请假中</span></span>
+            <span class="state-tile__code">IN_PROGRESS + OVERDUE</span>
+            <p>已超过结束时间 30 分钟。可销假、续假、申请核验。</p>
+          </div>
+        </div>
+
+        <div class="block__head" style="margin-top:34px"><h3>状态色彩映射</h3><span>TEXT ON TINT · WCAG AA</span></div>
+        <table class="state-table">
+          <thead><tr><th>状态</th><th>徽章</th><th>文字 / 底色</th><th>对比度</th></tr></thead>
+          <tbody>
+            <tr><td>待审批</td><td><span class="badge badge--pending">待审批</span></td><td><code>#9A5B0B / #FDF3E3</code></td><td>5.05:1</td></tr>
+            <tr><td>已通过</td><td><span class="badge badge--approved">已通过</span></td><td><code>#0B7A6B / #E6F4F1</code></td><td>5.58:1</td></tr>
+            <tr><td>请假中</td><td><span class="badge badge--progress">请假中</span></td><td><code>#1F55AD / #EFF4FD</code></td><td>6.37:1</td></tr>
+            <tr><td>已销假</td><td><span class="badge badge--done">已销假</span></td><td><code>#4F6B5D / #EEF3F0</code></td><td>5.37:1</td></tr>
+            <tr><td>已驳回</td><td><span class="badge badge--rejected">已驳回</span></td><td><code>#B23A28 / #FBECE9</code></td><td>5.19:1</td></tr>
+            <tr><td>已撤回 / 已取消</td><td><span class="badge badge--withdrawn">已撤回</span></td><td><code>#6B675C / #F3F1EA</code></td><td>5.11:1</td></tr>
+            <tr><td>逾期（叠加）</td><td><span class="badge badge--overdue">逾期</span></td><td><code>#B23A28 / 透明</code></td><td>5.19:1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span><b>CampusLeave</b> · 校园请假管理系统 · 学生端设计系统 V1.0</span>
+      <span>2026.10 · 单文件演示 · 无外部依赖</span>
+    </footer>
+
+  </main>
+</div>
+
+<div class="toast-layer" id="toastLayer"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- 目录高亮 ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  if ('IntersectionObserver' in window && secs.length) {
+    var navIO = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting) {
+          links.forEach(function(l){ l.classList.toggle('is-on', l.getAttribute('href') === '#' + en.target.id); });
+        }
+      });
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+    secs.forEach(function(s){ navIO.observe(s); });
+  }
+
+  /* ---------- Toast ---------- */
+  var layer = document.getElementById('toastLayer');
+  function toast(msg){
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6.5 9.2 17.3 4 12.1"/></svg>' + msg;
+    layer.appendChild(el);
+    setTimeout(function(){
+      el.style.transition = 'opacity .2s, transform .2s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(function(){ el.remove(); }, 220);
+    }, 1500);
+  }
+
+  /* ---------- 复制色值 ---------- */
+  document.querySelectorAll('[data-copy]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var hex = el.getAttribute('data-copy');
+      var done = function(){ toast('已复制 ' + hex); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(hex).then(done, function(){ fallback(hex, done); });
+      } else {
+        fallback(hex, done);
+      }
+    });
+  });
+  function fallback(text, cb){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); cb(); } catch(e) { toast('复制失败，请手动选择'); }
+    ta.remove();
+  }
+
+  /* ---------- 缓动演示 ---------- */
+  var lanes = Array.prototype.slice.call(document.querySelectorAll('.lane'));
+  var playBtn = document.getElementById('playLanes');
+  function playLanes(){
+    lanes.forEach(function(lane, i){
+      var track = lane.querySelector('.lane__track');
+      var dot = lane.querySelector('.lane__dot');
+      var d = track.clientWidth - dot.offsetWidth - 8;
+      dot.style.setProperty('--d', Math.max(0, d) + 'px');
+      dot.style.setProperty('--ease', lane.getAttribute('data-ease'));
+      dot.classList.remove('run');
+      void dot.offsetWidth;
+      setTimeout(function(){ dot.classList.add('run'); }, i * 60);
+    });
+  }
+  if (playBtn) playBtn.addEventListener('click', playLanes);
+
+  /* ---------- stagger ---------- */
+  var stagger = document.getElementById('staggerList');
+  function runStagger(){
+    if (!stagger) return;
+    var items = Array.prototype.slice.call(stagger.children);
+    stagger.classList.remove('run');
+    items.forEach(function(li, i){
+      li.style.animation = 'none';
+      void li.offsetWidth;
+      li.style.animation = '';
+      li.style.animationDelay = (i * 40) + 'ms';
+    });
+    void stagger.offsetWidth;
+    stagger.classList.add('run');
+  }
+  if (stagger && 'IntersectionObserver' in window) {
+    var sIO = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting) { runStagger(); sIO.disconnect(); } });
+    }, { threshold: .4 });
+    sIO.observe(stagger);
+  }
+
+  /* ---------- 打勾 ---------- */
+  var check = document.getElementById('checkDemo');
+  function runCheck(){
+    if (!check) return;
+    check.classList.remove('run');
+    void check.offsetWidth;
+    check.classList.add('run');
+  }
+  if (check && 'IntersectionObserver' in window) {
+    var cIO = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting) { runCheck(); cIO.disconnect(); } });
+    }, { threshold: .5 });
+    cIO.observe(check);
+  }
+
+  /* ---------- 重播按钮 ---------- */
+  document.querySelectorAll('[data-replay]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var k = btn.getAttribute('data-replay');
+      if (k === 'stagger') runStagger();
+      if (k === 'check') runCheck();
+    });
+  });
+
+  /* ---------- 滚动入场 ---------- */
+  var reveals = Array.prototype.slice.call(document.querySelectorAll('.sec .block, .cover__body, .cover__spec'));
+  reveals.forEach(function(el){ el.classList.add('reveal'); });
+  if ('IntersectionObserver' in window) {
+    var rIO = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('in'); rIO.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: .06 });
+    reveals.forEach(function(el){ rIO.observe(el); });
+  } else {
+    reveals.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* ---------- 主题切换 + 色板同步 ---------- */
+  function syncRamp(){
+    var cs = getComputedStyle(document.documentElement);
+    document.querySelectorAll('.sw[data-step]').forEach(function(sw){
+      var step = sw.getAttribute('data-step');
+      var hex = cs.getPropertyValue('--blue-' + step).trim().toUpperCase();
+      if (!hex) return;
+      sw.style.background = hex;
+      sw.setAttribute('data-copy', hex);
+      sw.classList.toggle('is-dark', Number(step) >= 500);
+      sw.classList.toggle('is-light', Number(step) < 500);
+      var label = sw.querySelector('span');
+      if (label) label.textContent = hex.replace('#', '');
+    });
+  }
+  syncRamp();
+
+  document.querySelectorAll('[data-theme-set]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var t = btn.getAttribute('data-theme-set');
+      if (t === 'blue') document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', t);
+      document.querySelectorAll('[data-theme-set]').forEach(function(b){
+        b.classList.toggle('is-on', b === btn);
+      });
+      syncRamp();
+      toast('已切换到「' + btn.textContent.trim() + '」');
+    });
+  });
+
+  /* ---------- 正文字号实测 ---------- */
+  var sizeSeg = document.getElementById('bodySizeSeg');
+  var prose = document.getElementById('proseDemo');
+  if (sizeSeg && prose) {
+    sizeSeg.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-size]');
+      if (!b) return;
+      var size = Number(b.getAttribute('data-size'));
+      sizeSeg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('is-on', x === b); });
+      prose.querySelectorAll('p').forEach(function(pl){
+        pl.style.fontSize = size + 'px';
+        pl.style.lineHeight = (size + 11) + 'px';
+      });
+    });
+  }
+
+  /* ---------- 交互小样 ---------- */
+  document.querySelectorAll('.scene-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      document.querySelectorAll('.scene-card').forEach(function(c){ c.classList.remove('is-on'); });
+      card.classList.add('is-on');
+    });
+  });
+  document.querySelectorAll('.seg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      b.parentNode.querySelectorAll('button').forEach(function(x){ x.classList.remove('is-on'); });
+      b.classList.add('is-on');
+    });
+  });
+  document.querySelectorAll('.switch').forEach(function(s){
+    s.addEventListener('click', function(){ s.classList.toggle('is-on'); });
+  });
+})();
+</script>
+</body>
+</html>

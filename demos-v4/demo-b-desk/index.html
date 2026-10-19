@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>明德大学 · 请假工作台 — 审批台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== 左侧固定侧栏（内容由 mock 渲染） ===== -->
+  <aside class="sidebar" id="sidebar" aria-label="主导航">
+    <div class="sidebar__brand" id="sidebarBrand"></div>
+    <nav class="nav" id="nav" aria-label="功能导航"></nav>
+    <div class="sidebar__foot" id="sidebarFoot"></div>
+  </aside>
+
+  <!-- ===== 主区 ===== -->
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar__lead">
+        <h1 class="topbar__title" id="pageTitle"></h1>
+        <p class="topbar__date" id="dateLabel"></p>
+      </div>
+      <div class="topbar__tools">
+        <label class="search" for="searchInput">
+          <span class="search__icon" id="searchIcon" aria-hidden="true"></span>
+          <input class="search__input" id="searchInput" type="search" autocomplete="off" />
+        </label>
+        <button class="bell" id="bellBtn" type="button" aria-label="通知">
+          <span class="bell__ico" id="bellIcon" aria-hidden="true"></span>
+          <span class="bell__badge" id="bellBadge" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Bento 网格 12 列：格子面积按重要性分配 -->
+    <section class="bento" id="bento" aria-label="审批工作台">
+      <article class="card card--queue" id="cardQueue"></article>
+      <article class="card card--overdue" id="cardOverdue"></article>
+      <article class="card card--review" id="cardReview"></article>
+      <article class="card card--photo" id="cardPhoto"></article>
+      <article class="card card--kpi" id="cardKpi"></article>
+      <article class="card card--trend" id="cardTrend"></article>
+    </section>
+  </main>
+
+</div>
+
+<div class="toast-layer" id="toastLayer" aria-live="polite"></div>
+
+<script src="mock.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

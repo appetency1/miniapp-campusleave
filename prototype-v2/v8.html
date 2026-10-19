@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>校园请假 · 首页重构</title>
+<style>
+  :root{
+    --bg:#F4EBD9;
+    --ink:#1E3B2F;
+    --ink-2:#6C7C73;
+    --ink-3:#AAA294;
+    --line:rgba(30,59,47,.13);
+    --line-strong:rgba(30,59,47,.20);
+    --accent:#F26A44;
+    --accent-deep:#D9502C;
+    --sans:"PingFang SC","HarmonyOS Sans SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
+    --mono:"SF Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{
+    background:#E6DED0;font-family:var(--sans);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    padding:56px 32px;min-height:100vh;
+  }
+  .stage{display:flex;gap:52px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+  .frame{display:flex;flex-direction:column;align-items:center;gap:14px;width:375px;}
+  .tag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    color:rgba(30,59,47,.36);text-transform:uppercase;text-align:center;line-height:1.6;
+  }
+
+  .phone{
+    width:375px;height:812px;background:var(--bg);position:relative;
+    border-radius:44px;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.08),0 48px 90px -34px rgba(60,45,25,.42);
+  }
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:0 24px;}
+
+  .statusbar{
+    height:52px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding-bottom:6px;font-family:var(--mono);font-size:12px;font-weight:600;
+    padding-left:4px;padding-right:4px;flex-shrink:0;
+  }
+  .sb-icons{display:flex;align-items:center;gap:6px;}
+  .sb-bars{display:flex;align-items:flex-end;gap:1.5px;height:9px;}
+  .sb-bars i{display:block;width:3px;background:var(--ink);border-radius:.5px;}
+  .sb-battery{width:20px;height:10px;border:1.2px solid var(--ink);border-radius:2.5px;position:relative;}
+  .sb-battery::after{content:"";position:absolute;inset:2px;width:70%;background:var(--ink);border-radius:1px;}
+
+  /* ========== 头部：问候 + 角色 ========== */
+  .head{
+    position:relative;
+    padding-top:20px;
+    flex-shrink:0;
+  }
+  .h-greet{
+    font-size:11.5px;font-weight:600;letter-spacing:.1em;color:var(--ink-3);
+  }
+  .h-name{
+    font-size:33px;font-weight:800;letter-spacing:-.025em;line-height:1.18;
+    margin-top:9px;
+  }
+  .h-meta{
+    margin-top:11px;font-size:12px;font-weight:500;color:var(--ink-2);
+    letter-spacing:.02em;
+  }
+  .h-meta i{
+    display:inline-block;width:3px;height:3px;border-radius:50%;
+    background:var(--line-strong);margin:0 7px 2px;vertical-align:middle;
+  }
+
+  /* 角色：直接站在页面上，不用卡片 */
+  .hero-r{
+    position:absolute;right:-8px;top:-2px;
+    width:120px;height:126px;
+    display:flex;align-items:flex-end;justify-content:center;
+    z-index:2;
+  }
+  .glow{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:132px;height:132px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,252,244,.9) 0%,rgba(255,252,244,0) 58%);
+    pointer-events:none;
+  }
+
+  .mascot{position:relative;width:180px;height:186px;flex-shrink:0;}
+  .mascot .ground{
+    position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+    width:112px;height:12px;border-radius:50%;
+    background:radial-gradient(ellipse at center,rgba(120,85,35,.16),rgba(120,85,35,0) 70%);
+    animation:groundPulse 3.6s ease-in-out infinite;
+  }
+  @keyframes groundPulse{
+    0%,100%{transform:translateX(-50%) scale(1);opacity:.85}
+    50%{transform:translateX(-50%) scale(.9);opacity:.55}
+  }
+  .mbody{
+    position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
+    width:158px;height:146px;
+    background:radial-gradient(circle at 36% 22%,#FFFFFF 0%,#FFFBF2 42%,#EFDFC6 100%);
+    border-radius:52% 52% 44% 44% / 58% 58% 42% 42%;
+    box-shadow:
+      inset 0 -8px 16px rgba(185,145,85,.18),
+      inset 0 6px 12px rgba(255,255,255,.95),
+      0 14px 26px -14px rgba(120,85,35,.62),
+      0 0 0 1px rgba(190,155,105,.10);
+    animation:float 3.6s ease-in-out infinite;
+  }
+  @keyframes float{
+    0%,100%{transform:translateX(-50%) translateY(0)}
+    50%{transform:translateX(-50%) translateY(-7px)}
+  }
+  .ahoge{
+    position:absolute;left:50%;top:-14px;width:24px;height:21px;margin-left:-3px;
+    border-left:2.5px solid #DDC49B;border-top:2.5px solid #DDC49B;
+    border-radius:13px 0 0 0;transform:rotate(18deg);transform-origin:bottom left;
+    animation:sway 3.6s ease-in-out infinite;
+  }
+  @keyframes sway{0%,100%{transform:rotate(18deg)}50%{transform:rotate(31deg)}}
+  .eye{
+    position:absolute;top:60px;width:9.5px;height:11.5px;border-radius:50%;
+    background:#2E3B33;animation:blink 5.4s infinite;
+  }
+  .eye.l{left:48px;}
+  .eye.r{right:48px;}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+  .spark{position:absolute;top:62px;width:3.2px;height:3.2px;border-radius:50%;background:#fff;opacity:.95;}
+  .spark.l{left:50px;}
+  .spark.r{right:50px;}
+  .blush{
+    position:absolute;top:78px;width:18px;height:10px;border-radius:50%;
+    background:rgba(240,120,95,.28);filter:blur(1.8px);
+  }
+  .blush.l{left:31px;}
+  .blush.r{right:31px;}
+  .mouth{
+    position:absolute;top:81px;left:50%;transform:translateX(-50%);
+    width:11px;height:6px;border-bottom:2.1px solid #2E3B33;
+    border-radius:0 0 11px 11px;
+  }
+  .mini{transform:scale(.64);transform-origin:center bottom;}
+
+  /* ========== 分割线 ========== */
+  .rule{
+    height:1px;background:var(--line);
+    margin:20px 0 0;flex-shrink:0;
+  }
+
+  /* ========== 当前状态 ========== */
+  .now{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:24px 0 4px;
+    flex-shrink:0;
+  }
+  .now-dot{
+    width:9px;height:9px;border-radius:50%;
+    border:1.5px solid var(--line-strong);
+    margin-top:6px;flex-shrink:0;
+  }
+  .now-dot.live{
+    background:var(--accent);border-color:var(--accent);
+    box-shadow:0 0 0 4px rgba(242,106,68,.12);
+  }
+  .now-t{font-size:16px;font-weight:700;letter-spacing:.01em;line-height:1.3;}
+  .now-s{font-size:12px;color:var(--ink-2);margin-top:5px;line-height:1.5;}
+
+  /* ========== 主行动 ========== */
+  .cta{
+    width:100%;height:54px;margin-top:22px;
+    border:none;border-radius:14px;
+    background:var(--accent);color:#fff;
+    font-family:var(--sans);font-size:15.5px;font-weight:700;letter-spacing:.06em;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 8px 18px -10px rgba(217,80,44,.55);
+    transition:background .18s ease, transform .12s ease;
+    flex-shrink:0;
+  }
+  .cta:hover{background:var(--accent-deep);}
+  .cta:active{transform:translateY(1px);}
+  .cta .plus{font-size:17px;font-weight:400;line-height:1;transform:translateY(-1px);}
+
+  /* ========== 区块标题 ========== */
+  .sec{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-top:30px;
+    flex-shrink:0;
+  }
+  .sec b{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--ink);}
+  .sec span{font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:.02em;}
+
+  /* ========== 行式记录 ========== */
+  .list{margin-top:4px;flex-shrink:0;}
+  .row{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:17px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .row:last-child{border-bottom:none;}
+  .row-l{display:flex;flex-direction:column;gap:4px;}
+  .row-t{font-size:14.5px;font-weight:600;letter-spacing:.01em;}
+  .row-s{font-size:11px;font-weight:500;color:var(--ink-3);letter-spacing:.02em;}
+  .row-s.ok{color:#3F7A5C;}
+  .row-s.no{color:var(--accent-deep);}
+  .row-d{
+    font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em;
+  }
+
+  /* ========== 统计 ========== */
+  .stats{
+    margin-top:auto;padding-top:20px;
+    border-top:1px solid var(--line);
+    display:flex;align-items:baseline;justify-content:space-between;
+    flex-shrink:0;
+  }
+  .st{display:flex;align-items:baseline;gap:6px;}
+  .st b{
+    font-size:25px;font-weight:800;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:1;
+  }
+  .st span{font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:.02em;}
+
+  /* ========== 底部导航 ========== */
+  .tabbar{
+    display:flex;align-items:center;justify-content:space-between;
+    height:66px;flex-shrink:0;margin-top:auto;padding:0 10px;
+  }
+  .tab{
+    font-size:12px;color:var(--ink-3);letter-spacing:.1em;font-weight:500;
+    position:relative;padding-top:10px;cursor:pointer;
+    transition:color .2s;
+  }
+  .tab.on{color:var(--ink);font-weight:700;}
+  .tab.on::before{
+    content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:4px;height:4px;border-radius:50%;background:var(--accent);
+  }
+
+  /* ========== 离校态 ========== */
+  .count{
+    display:flex;align-items:flex-end;gap:10px;
+    padding:22px 0 2px;
+    flex-shrink:0;
+  }
+  .count b{
+    font-size:44px;font-weight:800;letter-spacing:-.04em;
+    font-variant-numeric:tabular-nums;line-height:.9;
+  }
+  .count span{font-size:12px;color:var(--ink-3);font-weight:500;padding-bottom:5px;}
+
+  .pair{
+    display:flex;justify-content:space-between;
+    padding:16px 0;border-top:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .pair div span{
+    display:block;font-size:10.5px;color:var(--ink-3);
+    letter-spacing:.04em;margin-bottom:6px;
+  }
+  .pair div b{
+    font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  }
+  .pair div:last-child{text-align:right;}
+
+  .link{
+    display:inline-block;margin-top:16px;
+    font-size:13px;font-weight:600;color:var(--ink-2);
+    border-bottom:1px solid var(--line-strong);
+    padding-bottom:2px;cursor:pointer;flex-shrink:0;
+  }
+
+  @media (max-width:1300px){body{padding:32px 16px;}.stage{gap:32px;}}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ================= 首页 · 在校 ================= -->
+  <div class="frame">
+    <div class="phone">
+      <div class="screen">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <div class="sb-icons">
+            <div class="sb-bars"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i></div>
+            <div class="sb-battery"></div>
+          </div>
+        </div>
+
+        <div class="head">
+          <div class="h-greet">早上好</div>
+          <div class="h-name">张同学。</div>
+          <div class="h-meta">10月17日 周五 <i></i> 晴 22°C</div>
+
+          <div class="hero-r">
+            <div class="glow"></div>
+            <div class="mascot mini">
+              <div class="ground"></div>
+              <div class="mbody">
+                <div class="ahoge"></div>
+                <div class="eye l"></div>
+                <div class="eye r"></div>
+                <div class="spark l"></div>
+                <div class="spark r"></div>
+                <div class="blush l"></div>
+                <div class="blush r"></div>
+                <div class="mouth"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="now">
+          <div class="now-dot"></div>
+          <div>
+            <div class="now-t">当前没有请假</div>
+            <div class="now-s">今天安心上课，有需要随时告诉我</div>
+          </div>
+        </div>
+
+        <button class="cta"><span class="plus">＋</span> 申请请假</button>
+
+        <div class="sec">
+          <b>最近</b>
+          <span>全部 6 条</span>
+        </div>
+
+        <div class="list">
+          <div class="row">
+            <div class="row-l">
+              <span class="row-t">离校 · 事假</span>
+              <span class="row-s ok">已销假</span>
+            </div>
+            <span class="row-d">10.09</span>
+          </div>
+          <div class="row">
+            <div class="row-l">
+              <span class="row-t">校内 · 病假</span>
+              <span class="row-s ok">已销假</span>
+            </div>
+            <span class="row-d">09.28</span>
+          </div>
+          <div class="row">
+            <div class="row-l">
+              <span class="row-t">离校 · 事假</span>
+              <span class="row-s no">已驳回</span>
+            </div>
+            <span class="row-d">09.15</span>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="st"><b>6</b><span>次申请</span></div>
+          <div class="st"><b>4</b><span>次已销假</span></div>
+          <div class="st"><b>1</b><span>次驳回</span></div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on">首页</div>
+          <div class="tab">记录</div>
+          <div class="tab">消息</div>
+          <div class="tab">我的</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="tag">首页 · 在校</div>
+  </div>
+
+  <!-- ================= 首页 · 离校 ================= -->
+  <div class="frame">
+    <div class="phone">
+      <div class="screen">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <div class="sb-icons">
+            <div class="sb-bars"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i></div>
+            <div class="sb-battery"></div>
+          </div>
+        </div>
+
+        <div class="head">
+          <div class="h-greet">早上好</div>
+          <div class="h-name">张同学。</div>
+          <div class="h-meta">10月17日 周五 <i></i> 晴 22°C</div>
+
+          <div class="hero-r">
+            <div class="glow"></div>
+            <div class="mascot mini">
+              <div class="ground"></div>
+              <div class="mbody">
+                <div class="ahoge"></div>
+                <div class="eye l"></div>
+                <div class="eye r"></div>
+                <div class="spark l"></div>
+                <div class="spark r"></div>
+                <div class="blush l"></div>
+                <div class="blush r"></div>
+                <div class="mouth"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="now">
+          <div class="now-dot live"></div>
+          <div>
+            <div class="now-t">离校中 · 病假</div>
+            <div class="now-s">10月16日 18:00 起</div>
+          </div>
+        </div>
+
+        <div class="count">
+          <b>12:04:33</b>
+          <span>后结束</span>
+        </div>
+
+        <button class="cta" style="margin-top:20px;">返校定位并销假</button>
+
+        <div class="pair">
+          <div><span>开始时间</span><b>10月16日 18:00</b></div>
+          <div><span>结束时间</span><b>10月17日 12:00</b></div>
+        </div>
+
+        <div class="link">申请续假</div>
+
+        <div class="sec">
+          <b>提醒</b>
+        </div>
+        <div style="font-size:12.5px;line-height:1.75;color:var(--ink-2);margin-top:2px;">
+          回到校园范围后点上面的按钮，定位通过会自动结束请假。定位不准可以申请人工核验。
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on">首页</div>
+          <div class="tab">记录</div>
+          <div class="tab">消息</div>
+          <div class="tab">我的</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="tag">首页 · 离校</div>
+  </div>
+
+</div>
+
+</body>
+</html>

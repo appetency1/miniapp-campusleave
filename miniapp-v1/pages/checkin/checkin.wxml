@@ -1,0 +1,133 @@
+<!-- pages/checkin/checkin.wxml —— 返校定位销假 -->
+<view class="page page--paper safe-bottom">
+
+  <!-- STEP 1: ready -->
+  <block wx:if="{{step === 'ready'}}">
+    <view class="chk__head reveal" style="--d:0s">
+      <text class="t-cap">离校请假 · 返校销假</text>
+      <view class="t-h1">返校定位销假</view>
+    </view>
+
+    <view class="card chk__card reveal" style="--d:.06s">
+      <view class="t-h2">定位销假规则</view>
+      <view class="rule"></view>
+      <text class="t-meta chk__rule">· 离校请假结束返校后，需在距离校门 {{limit}} 米范围内定位销假</text>
+      <text class="t-meta chk__rule">· 定位失败或超出范围，可申请辅导员人工核验</text>
+      <text class="t-meta chk__rule" wx:if="{{ctxNo}}">· 本次申请 {{ctxNo}}（{{ctxPeriod}}）</text>
+
+      <view class="chk__demo">
+        <text class="t-cap chk__demoCap">模拟定位结果（演示用）</text>
+        <view class="chips">
+          <view wx:for="{{modes}}" wx:key="value"
+                class="chip {{mode === item.value ? 'chip--on' : ''}}"
+                data-mode="{{item.value}}" bindtap="onMode" hover-class="chk__press">{{item.label}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="chk__actions reveal" style="--d:.1s">
+      <button class="btn btn--primary" hover-class="chk__press" bindtap="onStart">开始定位</button>
+    </view>
+  </block>
+
+  <block wx:elif="{{step === 'locating'}}">
+    <view class="chk__locating reveal" style="--d:0s">
+      <view class="chk__pulse">
+        <view class="chk__ring"></view>
+        <view class="chk__ring chk__ring--2"></view>
+        <view class="chk__ring chk__ring--3"></view>
+        <view class="chk__core"></view>
+      </view>
+      <view class="chk__locText">正在获取位置…</view>
+      <view class="chk__steps">
+        <view class="chk__step">
+          <view class="chk__stepDot"></view>
+          <text class="t-meta">已获取卫星定位</text>
+        </view>
+        <view class="chk__step">
+          <view class="chk__stepDot"></view>
+          <text class="t-meta">正在校验与校门的距离</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{step === 'result'}}">
+    <view class="chk__res reveal" style="--d:0s">
+      <view class="chk__mark {{result.pass ? 'chk__mark--ok' : 'chk__mark--no'}}"></view>
+
+      <view class="chk__dist">
+        <text class="chk__distNum t-num">{{distText}}</text>
+        <text class="chk__distUnit">{{result.unit}}</text>
+      </view>
+
+      <view class="chk__resTitle {{result.pass ? 'chk__resTitle--ok' : 'chk__resTitle--no'}}">
+        {{result.pass ? '校验通过' : '超出允许范围'}}
+      </view>
+      <view class="chk__resDesc">{{result.pass ? result.label : '超出 ' + limit + ' 米允许范围'}}</view>
+
+      <view class="chk__actions">
+        <block wx:if="{{result.pass}}">
+          <button class="btn btn--primary {{submitting ? 'btn--disabled' : ''}}"
+            hover-class="chk__press" disabled="{{submitting}}" bindtap="onConfirm">
+            {{submitting ? '销假中…' : '确认销假'}}
+          </button>
+        </block>
+        <block wx:else>
+          <view class="chk__review pill pill--wait" wx:if="{{reviewed}}">
+            <view class="pill__dot"></view>待核验
+          </view>
+          <button class="btn btn--ghost" hover-class="chk__press" bindtap="onReLocate">重新定位</button>
+          <button class="btn btn--clay" hover-class="chk__press" bindtap="onSheetOpen">申请人工核验</button>
+        </block>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="chk__done reveal" style="--d:0s">
+      <view class="chk__stamp">已销假</view>
+
+      <view class="chk__doneTime">
+        <text class="t-cap">实际结束</text>
+        <text class="chk__doneNum t-num">{{doneTime}}</text>
+      </view>
+
+      <view class="chk__tl">
+        <view class="chk__tlItem" wx:for="{{doneLogs}}" wx:key="k">
+          <view class="chk__tlAxis">
+            <view class="chk__tlDot"></view>
+            <view class="chk__tlLine" wx:if="{{index < doneLogs.length - 1}}"></view>
+          </view>
+          <view class="chk__tlBody">
+            <view>{{item.label}}</view>
+            <text class="t-meta chk__tlMeta t-num">{{item.atText}}</text>
+          </view>
+        </view>
+      </view>
+
+      <button class="btn btn--primary chk__homeBtn" hover-class="chk__press" bindtap="onHome">返回首页</button>
+    </view>
+  </block>
+
+  <!-- 人工核验弹层 -->
+  <view class="chk__mask" wx:if="{{sheet}}" bindtap="onSheetClose"></view>
+  <view class="chk__sheet" wx:if="{{sheet}}">
+    <view class="chk__sheetHead">
+      <text class="t-h2">申请人工核验</text>
+    </view>
+    <text class="t-meta">超出定位范围时，可提交说明由辅导员人工核验销假。</text>
+    <textarea class="chk__ta" value="{{manualReason}}" maxlength="120"
+      placeholder="请说明未能返校或定位失败的原因"
+      placeholder-class="chk__ph" bindinput="onManualInput"></textarea>
+    <view class="chk__count t-cap t-num">{{manualReason.length}} / 120</view>
+    <view class="chk__sheetBtns">
+      <button class="btn btn--ghost chk__sheetBtn" hover-class="chk__press" bindtap="onSheetClose">取消</button>
+      <button class="btn btn--primary chk__sheetBtn {{submitting ? 'btn--disabled' : ''}}"
+        hover-class="chk__press" disabled="{{submitting}}" bindtap="onManualSubmit">
+        {{submitting ? '提交中…' : '提交核验'}}
+      </button>
+    </view>
+  </view>
+
+</view>

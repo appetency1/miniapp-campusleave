@@ -1,0 +1,130 @@
+<!-- pages/apply/apply.wxml —— 发起请假 / 续假 -->
+<view class="page page--paper safe-bottom">
+
+  <view class="ap__head reveal" style="--d:0s">
+    <text class="t-cap ap__eyebrow">校园请假 · {{mode === 'extend' ? '续假' : '新申请'}}</text>
+    <view class="t-h1">{{mode === 'extend' ? '续假申请' : '发起请假'}}</view>
+  </view>
+
+  <!-- 规则说明卡 -->
+  <view class="card--flat ap__intro reveal" style="--d:.05s">
+    <view class="t-h2">请假规则</view>
+    <view class="rule"></view>
+    <text class="t-meta ap__rule">· 离校：返校后需在距离校门 {{radiusLimit}} 米范围内定位销假</text>
+    <text class="t-meta ap__rule">· 校内：请假结束后可自主确认销假</text>
+    <text class="t-meta ap__rule">· 同一时段不能同时存在两条有效申请（待审批 / 已通过）</text>
+  </view>
+
+  <!-- 续假上下文 -->
+  <view class="card--flat ap__intro reveal" style="--d:.08s" wx:if="{{mode === 'extend' && extendInfo}}">
+    <text class="t-cap">当前申请 · {{extendInfo.no}}</text>
+    <view class="t-h2 ap__cur">{{extendInfo.period}}</view>
+    <text class="t-meta ap__cur">{{extendInfo.sceneText}} · {{extendInfo.type}}</text>
+  </view>
+
+  <!-- 表单 -->
+  <view class="card ap__form reveal" style="--d:.11s">
+
+    <!-- 场景 -->
+    <view class="ap__field" wx:if="{{mode !== 'extend'}}">
+      <view class="row ap__row--bare">
+        <view class="row__main"><text class="row__title">请假场景</text></view>
+        <view class="chips">
+          <view wx:for="{{scenes}}" wx:key="value"
+                class="chip {{sceneIndex === index ? 'chip--on' : ''}}"
+                data-index="{{index}}" bindtap="onScene" hover-class="ap__chip-press">{{item.label}}</view>
+        </view>
+      </view>
+      <text class="ap__err t-clay" wx:if="{{errors.scene}}">{{errors.scene}}</text>
+    </view>
+
+    <!-- 类型 -->
+    <view class="ap__field" wx:if="{{mode !== 'extend'}}">
+      <view class="row ap__row--bare">
+        <view class="row__main"><text class="row__title">请假类型</text></view>
+        <picker mode="selector" range="{{types}}" value="{{typeIndex < 0 ? 0 : typeIndex}}" bindchange="onType">
+          <view class="ap__pick">
+            <text class="{{typeText ? '' : 'ap__pick--ph'}}">{{typeText || '请选择'}}</text>
+            <view class="chev"></view>
+          </view>
+        </picker>
+      </view>
+      <text class="ap__err t-clay" wx:if="{{errors.type}}">{{errors.type}}</text>
+    </view>
+
+    <!-- 开始时间 -->
+    <view class="ap__field" wx:if="{{mode !== 'extend'}}">
+      <view class="row ap__row--bare">
+        <view class="row__main"><text class="row__title">开始时间</text></view>
+        <view class="ap__times">
+          <picker mode="date" value="{{startDate}}" bindchange="onStartDate">
+            <view class="ap__pick ap__pick--box">{{startDate}}</view>
+          </picker>
+          <picker mode="time" value="{{startClock}}" bindchange="onStartClock">
+            <view class="ap__pick ap__pick--box t-num">{{startClock}}</view>
+          </picker>
+        </view>
+      </view>
+      <text class="ap__err t-clay" wx:if="{{errors.start}}">{{errors.start}}</text>
+    </view>
+
+    <!-- 结束时间 / 新的结束时间 -->
+    <view class="ap__field">
+      <view class="row ap__row--bare">
+        <view class="row__main"><text class="row__title">{{mode === 'extend' ? '新的结束时间' : '结束时间'}}</text></view>
+        <view class="ap__times">
+          <picker mode="date" value="{{endDate}}" bindchange="onEndDate">
+            <view class="ap__pick ap__pick--box">{{endDate}}</view>
+          </picker>
+          <picker mode="time" value="{{endClock}}" bindchange="onEndClock">
+            <view class="ap__pick ap__pick--box t-num">{{endClock}}</view>
+          </picker>
+        </view>
+      </view>
+      <text class="ap__err t-clay" wx:if="{{errors.end}}">{{errors.end}}</text>
+    </view>
+
+    <!-- 事由 / 续假事由 -->
+    <view class="ap__field">
+      <view class="row ap__row--bare ap__row--top">
+        <view class="row__main"><text class="row__title">{{mode === 'extend' ? '续假事由' : '请假事由'}}</text></view>
+      </view>
+      <textarea class="ap__ta" value="{{reason}}" maxlength="120"
+        placeholder="{{mode === 'extend' ? '请说明需要续假的原因' : '简要说明请假原因'}}"
+        placeholder-class="ap__ph" bindinput="onReason"></textarea>
+      <view class="ap__count t-cap t-num">{{reason.length}} / 120</view>
+      <text class="ap__err t-clay" wx:if="{{errors.reason}}">{{errors.reason}}</text>
+    </view>
+
+    <!-- 去向（仅离校） -->
+    <view class="ap__field" wx:if="{{mode !== 'extend' && isOffCampus}}">
+      <view class="row ap__row--bare">
+        <view class="row__main"><text class="row__title">去向</text></view>
+        <input class="ap__input" value="{{dest}}" placeholder="如：校外 · 江城"
+          placeholder-class="ap__ph" bindinput="onDest"></input>
+      </view>
+      <text class="ap__err t-clay" wx:if="{{errors.dest}}">{{errors.dest}}</text>
+    </view>
+
+    <!-- 联系电话 -->
+    <view class="ap__field" wx:if="{{mode !== 'extend'}}">
+      <view class="row ap__row--bare">
+        <view class="row__main"><text class="row__title">联系电话</text></view>
+        <input class="ap__input t-num" type="number" value="{{phone}}" placeholder="请输入手机号"
+          placeholder-class="ap__ph" bindinput="onPhone"></input>
+      </view>
+      <text class="ap__err t-clay" wx:if="{{errors.phone}}">{{errors.phone}}</text>
+    </view>
+
+  </view>
+
+  <!-- 提交 -->
+  <view class="ap__submit reveal" style="--d:.14s">
+    <button class="btn btn--primary {{submitting ? 'btn--disabled' : ''}}"
+      hover-class="ap__press" hover-stay-time="80" disabled="{{submitting}}" bindtap="onSubmit">
+      {{submitting ? '提交中…' : (mode === 'extend' ? '提交续假申请' : '提交请假申请')}}
+    </button>
+    <text class="ap__hint t-cap">提交后由辅导员审批 · 审批前可撤回</text>
+  </view>
+
+</view>

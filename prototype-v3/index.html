@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="WHCRt8DCQBLgZ5P9hBAaHQ">
+<head data-page-node-id="9hSliPpWeMe8Xqd6YTXjh6">
+<meta charset="utf-8" data-page-node-id="0e0HLQiMAIWytWGDoaUWOz">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" data-page-node-id="uCQJHkbPt3JMOPEhy8fry0">
+<title>校园请假 · 学生端原型</title>
+<link rel="stylesheet" href="styles.css" data-page-node-id="Fx4t1AWiC7M9JvnmYs0js1">
+</head>
+<body data-page-node-id="0YjwfkjK2woYtRENuUzd6f">
+
+<!-- ===== 内联 SVG 图标集（24×24 线性，stroke 1.6） ===== -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" data-page-node-id="LZgK6yOZOcinR70gWTwCPC">
+  <symbol id="i-home" viewBox="0 0 24 24" data-page-node-id="A0VqOdMunVWCsOYO6bzqAt"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" data-page-node-id="vwVzTQ9XB436FbUtCEN8AZ"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" data-page-node-id="puu7bvY7pG5rbDvG7p3WAo"><path d="M8.5 6h12M8.5 12h12M8.5 18h12M3.8 6h.01M3.8 12h.01M3.8 18h.01" data-page-node-id="drHFX5FIR7obPSBph4TrTm"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24" data-page-node-id="cCBEGVsYmxCGQIg5NXl8j2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" data-page-node-id="JBkhP3vYi0cpb560PV3W22"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" data-page-node-id="64wEB4KZgEoBLuYPGtt2Ei"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" data-page-node-id="eu4y6mDHlkmFscgeUrhQ9J"/><circle cx="12" cy="7.5" r="4" data-page-node-id="V6v2RZ8JxKWCyhyk0Yxwij"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24" data-page-node-id="k05OuUuNS12mhYk6K5zCPa"><path d="M15 18l-6-6 6-6" data-page-node-id="jHoZGteFYa3PFUPN364kat"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24" data-page-node-id="7bWY4MsVA0l8oPGBbhx9fg"><path d="M9 18l6-6-6-6" data-page-node-id="A40R0j7CguWINyzcHftnnh"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" data-page-node-id="xalegkuGqEQZ7PIcvFO0Cv"><path d="M6 9l6 6 6-6" data-page-node-id="2s2ACoCYv5Gspb6BUN5Hcf"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" data-page-node-id="CKqzWu92bAFp5Rzx1zTspW"><path d="M12 5v14M5 12h14" data-page-node-id="j2zOWSbhkI2MXP2usa80wa"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" data-page-node-id="BfhRKl7JaO1tEcwRCvLGGi"><path d="M20 6.5 9.2 17.3 4 12.1" data-page-node-id="c1xoYnjeLyAFFbVavVPmAp"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" data-page-node-id="DR2jK221CfRAoJtg6sB3j4"><path d="M18 6 6 18M6 6l12 12" data-page-node-id="ef5SSrq6WNSGOSVscySasC"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" data-page-node-id="BvRvna8Ozog1EwByrppZoT"><path d="M12 3.6 21.6 20.4H2.4z" data-page-node-id="3Tqx3s1pK8MYBH08KbgEQD"/><path d="M12 9.6v4.6" data-page-node-id="IZC8KcKueKMevqIRY8pGts"/><path d="M12 17.4h.01" data-page-node-id="IfNogbLxk4bxh2QNvSkV0H"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" data-page-node-id="Di0qZ6t3hPmO8WeqPR9ipR"><circle cx="12" cy="12" r="9" data-page-node-id="gFW9XoFKM4aXiBYsPfZDL1"/><path d="M12 11.2v5.2" data-page-node-id="JxvKOskl9Whci357tRLruB"/><path d="M12 7.8h.01" data-page-node-id="tVaCD2xJFpGI4dfNbEpJvx"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" data-page-node-id="dQvnBQBFp39oEV3hwa6OfH"><circle cx="12" cy="12" r="9" data-page-node-id="6UXIe47EfCxn0o30FpLbq7"/><path d="M12 7.4V12l3.4 2" data-page-node-id="0UrfH8Z9Fj7xgtz0Gt2xhr"/></symbol>
+  <symbol id="i-gate" viewBox="0 0 24 24" data-page-node-id="ksIydRPIGxYdH9tRKFjyR6"><path d="M3.4 20.6V9.2L12 3.6l8.6 5.6v11.4" data-page-node-id="HRyh1SRLKyrKY9oUiDIKto"/><path d="M9.2 20.6v-5.8a2.8 2.8 0 0 1 5.6 0v5.8" data-page-node-id="Ccdh2tizz4alkR2faYU19P"/><path d="M3.4 20.6h17.2" data-page-node-id="dKoEqmMBj2GsiHaOugzTax"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" data-page-node-id="g6bj9i5COgbvKI9Ihbbbgj"><path d="M4.4 19.2V5.4A1.8 1.8 0 0 1 6.2 3.6H20v17H6.2a1.8 1.8 0 0 0-1.8 1.8z" data-page-node-id="Xjoe5zM1GZnSOCvJ3Hn3kC"/><path d="M8.6 3.6v17" data-page-node-id="43xCpnbCcLSZr7iGbU52fw"/></symbol>
+  <symbol id="i-book-check" viewBox="0 0 24 24" data-page-node-id="ZOQozc3ttOHj8hR2jciZbc"><path d="M4.4 19.2V5.4A1.8 1.8 0 0 1 6.2 3.6H20v17H6.2a1.8 1.8 0 0 0-1.8 1.8z" data-page-node-id="6vqNfnDfdfcSrXL4CEahiy"/><path d="M11 11.6l2 2 3.4-3.8" data-page-node-id="MUT1J87FjFCWorfUgfyF0T"/></symbol>
+  <symbol id="i-door" viewBox="0 0 24 24" data-page-node-id="Q59QB8eBTlz5taFrXCFWQT"><path d="M5.4 20.6V4.4a1 1 0 0 1 1-1h9.2a1 1 0 0 1 1 1v16.2" data-page-node-id="D31oiodaPLCyrNDkLEcAUm"/><path d="M2.8 20.6h18.4" data-page-node-id="aaxHV4zzJDKaYlLri7yZbk"/><path d="M12.6 12.2h.01" data-page-node-id="GsDGG6YNQYb9G0IAgEFsc6"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24" data-page-node-id="Bfe8Fya7zzArGHIl3qHu1M"><path d="M14.4 4h4.2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4.2" data-page-node-id="Hx3qGjKzCgQfmcJPYBKCfX"/><path d="M9.6 8.2 13.4 12l-3.8 3.8" data-page-node-id="hOFPXPM45zBr9fDEfAOYXN"/><path d="M13.4 12H3.6" data-page-node-id="RVFI20Bqq8hOdeoGwquFFg"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24" data-page-node-id="wYliPPaHPIkIrmA9yn7Zuh"><path d="M4.4 20.6V6.2L12 3.4l7.6 2.8v14.4" data-page-node-id="DWAxaFpHDVjZu5btRF3kJW"/><path d="M2.8 20.6h18.4" data-page-node-id="GLh8fyI9u2FZkXWA6GxfRP"/><path d="M9.4 20.6v-4.4h5.2v4.4" data-page-node-id="CWzmXGv7AP6qj0ELKRqFMe"/><path d="M9.4 10h.01M14.6 10h.01" data-page-node-id="OOHgTiaJ2pnFxvMAdako3z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" data-page-node-id="RMoT1yicFDwSTlOZ5a10Lf"><path d="M4 12h15" data-page-node-id="vHxrsGBiHvP9QzkTc4QjFP"/><path d="M13 6l6 6-6 6" data-page-node-id="1VpCpzW0YSZ2cBgh3wD3P5"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24" data-page-node-id="vmcDGBjx4NfJhkRmNmrRcN"><path d="M3.4 8.2A1.8 1.8 0 0 1 5.2 6.4h2.6l1.4-1.9h5.6l1.4 1.9h2.6a1.8 1.8 0 0 1 1.8 1.8v9.4a1.8 1.8 0 0 1-1.8 1.8H5.2a1.8 1.8 0 0 1-1.8-1.8z" data-page-node-id="4RRWxncJmxjdQRZVmFNWzD"/><circle cx="12" cy="12.6" r="3.2" data-page-node-id="hphBSl3pCEPh1SBlhB7FJa"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" data-page-node-id="dnBqc3CovPjTlzKIB21Cnq"><path d="M12 21.2s6.8-5.6 6.8-10.8a6.8 6.8 0 1 0-13.6 0c0 5.2 6.8 10.8 6.8 10.8z" data-page-node-id="GFoioJm7GgNLKBqFqMQFXp"/><circle cx="12" cy="10.2" r="2.6" data-page-node-id="oQGWnrv2mdj1RzmJ20pp4R"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" data-page-node-id="83At6YnGCXOHrIEvH0CViq"><rect x="3.6" y="5.4" width="16.8" height="15" rx="1.8" data-page-node-id="Fui6M2MRtCWk8g6oRU0LYm"/><path d="M3.6 10h16.8M8.4 3.6v3.2M15.6 3.6v3.2" data-page-node-id="rPHszI1GtySiQvl2mW5PAl"/></symbol>
+  <symbol id="i-empty" viewBox="0 0 72 72" data-page-node-id="xj4K8m25AR83ZabKbkuwqO"><rect x="14" y="12" width="44" height="50" rx="4" data-page-node-id="9rymjZqNXGJ3iS9BPYsMpd"/><path d="M24 26h24M24 36h24M24 46h14" data-page-node-id="BFoHwQCxPPYATs8kNIwCXR"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" data-page-node-id="XDDpDrqQa3F4iJkMRiRprT"><path d="M20.4 12a8.4 8.4 0 1 1-2.6-6.1" data-page-node-id="4mPeJO8azH6pfosCIy0BaW"/><path d="M20.6 4.4v5h-5" data-page-node-id="srkJZBAKdCQPcCb75rMHzD"/></symbol>
+</svg>
+
+<div class="stage" data-page-node-id="YGD1KfgBBImd25qF459PDx">
+  <div class="phone" id="phone" data-page-node-id="dQjy3P1nFw6Etbk15oIdMJ">
+    <div class="screen" id="screen" data-page-node-id="iuDdHUWw0pZE4gLIPSNLQp">
+
+      <!-- ===== 状态栏（静态展示，不交互） ===== -->
+      <div class="statusbar" aria-hidden="true" data-page-node-id="X5rHWcGEqSXirLmp0ZqE2n">
+        <span class="statusbar__time" id="statusbarTime" data-page-node-id="NrkDqSfBp3ESnv9qRaCesa">18:30</span>
+        <span class="statusbar__icons" data-page-node-id="yPqHwRODjzpbElpEa1JMa8">
+          <i class="sb-signal" data-page-node-id="veQditEPNWgGkPcIDHxFdo"><b data-page-node-id="zjMAuszdUjWXqBntXHXWrh"></b><b data-page-node-id="31mHQzBBGEs8Qiv29SlKgR"></b><b data-page-node-id="6Ymzr1oyFdvW9TfF30A82g"></b><b data-page-node-id="UIChlYq4APDiee1RyAHhGB"></b></i>
+          <svg class="sb-wifi" viewBox="0 0 16 12" fill="none" data-page-node-id="ULyyQ2UH1dP6kT4ZhIdvQP"><path d="M1 4.2a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" data-page-node-id="VCnKY7tMLSMbwTLtXmJvG9"/><path d="M3.6 7a6.4 6.4 0 0 1 8.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" data-page-node-id="qj7DF2tuPoOKxFgEImHO5D"/><circle cx="8" cy="9.8" r="1.2" fill="currentColor" data-page-node-id="vBCa9myDn9SIsMSMsy1UgD"/></svg>
+          <i class="sb-batt" data-page-node-id="3LfGbecuCcjaaXAFq9mIGA"><b data-page-node-id="4BDZ3dSZeth2n3xeolT4A6"></b></i>
+        </span>
+      </div>
+
+      <!-- ===== 页面栈：4 个 tab 页常驻 + 5 个 push 页外壳（按需克隆） ===== -->
+      <div class="stack" id="stack" data-page-node-id="SvG52khEROX7e7IJ0aC5iS">
+        <section class="page" data-page="S1" data-kind="tab" aria-label="首页" data-page-node-id="BhEkNngsTCWQkDxv6mQ6kx"></section>
+        <section class="page" data-page="S3" data-kind="tab" aria-label="请假记录" data-page-node-id="I294iwUF0g7eYFJwxlRH80"></section>
+        <section class="page" data-page="S7" data-kind="tab" aria-label="消息" data-page-node-id="u9VXSTE3xv7Nnf9EOVLjwV"></section>
+        <section class="page" data-page="S9" data-kind="tab" aria-label="我的" data-page-node-id="YV2onag2Ezx1URp6j3AZ3X"></section>
+
+        <section class="page page--push" data-page="S2" data-kind="push" hidden data-page-node-id="3WMmZy7sYAB275nlw6YMeu"></section>
+        <section class="page page--push" data-page="S4" data-kind="push" hidden data-page-node-id="I4pUF8pM35rjdU8gfi0T0U"></section>
+        <section class="page page--push" data-page="S5" data-kind="push" hidden data-page-node-id="m0MxfZB4oUQFgdSofwdimQ"></section>
+        <section class="page page--push" data-page="S6" data-kind="push" hidden data-page-node-id="sXHm4TrJXxvC93BJCiYyMf"></section>
+        <section class="page page--push" data-page="S8" data-kind="push" hidden data-page-node-id="gHbngCeclUGSQIBlA8WtCs"></section>
+
+        <div class="push-layer" id="pushLayer" data-page-node-id="W6asyJPIoP4bP7BPsdH3y5"></div>
+      </div>
+
+      <!-- ===== 底部 tabBar ===== -->
+      <nav class="tabbar" id="tabbar" role="tablist" aria-label="主导航" data-page-node-id="CYevcAeW895Jq1G0DBO8bq">
+        <button class="tabbar__item" role="tab" data-action="tab" data-id="S1" aria-selected="true" data-page-node-id="6SAY3cpvsCwhOEm4mStKz4">
+          <svg class="icon icon--24" data-page-node-id="sUGmZOlx7wRuhBzayyLWk7"><use href="#i-home" data-page-node-id="6x830br1er8jMdCvuCbJ57"/></svg><span data-page-node-id="mUkEBrW1OqMRBDMPbtrjqR">首页</span>
+        </button>
+        <button class="tabbar__item" role="tab" data-action="tab" data-id="S3" aria-selected="false" data-page-node-id="peEbHiZv2sl47tCXZ50LON">
+          <svg class="icon icon--24" data-page-node-id="uvFbafOlu7K99KG8zaS4ml"><use href="#i-list" data-page-node-id="4ROn32DCZNlbkPwrK8HI4x"/></svg><span data-page-node-id="KcntBYQhgt3JHGAkbwmvBd">请假记录</span>
+        </button>
+        <button class="tabbar__item" role="tab" data-action="tab" data-id="S7" aria-selected="false" data-page-node-id="vs5MAetrD3aBhKLhFnwq2J">
+          <svg class="icon icon--24" data-page-node-id="XYcbWeJAPUZjHtX7aobK7M"><use href="#i-msg" data-page-node-id="5t5pEUEPoffoYojBq2c3O3"/></svg><span data-page-node-id="zA1whGM9cRpgMuzPZwbshE">消息</span>
+          <span class="tabbar__pill" id="msgPill" hidden data-page-node-id="nOs8bFaaMAOQRRvjvZnP5g">1</span>
+        </button>
+        <button class="tabbar__item" role="tab" data-action="tab" data-id="S9" aria-selected="false" data-page-node-id="8EkgVaLPEipGgwB0lHApLH">
+          <svg class="icon icon--24" data-page-node-id="kA2bH9jLkgWVegYM47qsD9"><use href="#i-user" data-page-node-id="jAcCSzCHZG6egG84Sbzu1L"/></svg><span data-page-node-id="wHpiIzhxWCqWbwvbFv077e">我的</span>
+        </button>
+      </nav>
+
+      <!-- ===== 浮层根：Toast / 弹窗 / 底部面板 ===== -->
+      <div id="layerRoot" data-page-node-id="FVCENNWgh5Ceho9Bbmopre"></div>
+
+      <!-- ===== 首次引导（不遮挡主流程） ===== -->
+      <div class="onboard" id="onboard" hidden data-page-node-id="Tju7WWiKkYBhzqAo5qq5fe">
+        <div class="onboard__title" data-page-node-id="6aOD70uha3Ku3dYpmbdx3o">欢迎使用校园请假</div>
+        <p class="onboard__line" data-page-node-id="F6W1WXDPZULPHjJ9kwuuwS">需要请假时，从首页进入「申请请假」。</p>
+        <p class="onboard__line" data-page-node-id="UzWxJ4ahAsJFZ4C0GXf9aM">提交后可在「请假记录」查看审批进度。</p>
+        <p class="onboard__line" data-page-node-id="SDQ6pItEp32SkbCeT05nnx">审批结果和重要提醒会出现在「消息」。</p>
+        <button class="btn btn--primary btn--sm" data-action="onboard-ok" data-page-node-id="5oAHgZhGWT0wTvUUXf2aGy">知道了</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 演示控制入口：已移出手机壳，桌面停靠壳右侧外，窄屏回落到壳内右下（由 app.js updateFabPos 定位） ===== -->
+  <div class="demo-anchor" id="demoAnchor" data-page-node-id="Cyo0ywGDlVEI6xFSE2z3vo">
+    <button class="demo-fab" id="demoFab" data-action="demo-open" aria-haspopup="dialog" data-page-node-id="QCWoRBXGt48rcqtBpMG8LU">演示</button>
+    <button class="demo-hot" id="demoHot" data-action="demo-open" aria-label="打开演示控制" hidden data-page-node-id="WTSrIvAr43Z7ZlAtyb2fYz"></button>
+  </div>
+
+  <p class="stage__caption" data-page-node-id="UBqkWADDRECv7M1N8bFDGS">校园请假 · 学生端原型 ｜ 点击「演示」可切换状态</p>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

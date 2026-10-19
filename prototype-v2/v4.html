@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusLeave · 分身版 v2</title>
+<style>
+  :root{
+    --cream:#FAF4E8;
+    --ink:#1B2E27;
+    --ink-2:rgba(27,46,39,.55);
+    --ink-3:rgba(27,46,39,.32);
+    --line:rgba(27,46,39,.10);
+    --accent:#FF5A2B;
+    --accent-deep:#E8451A;
+    --accent-tint:#FFE9DF;
+    --card:#FFFFFF;
+    --sans:"PingFang SC","HarmonyOS Sans SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
+    --mono:"SF Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{
+    background:#E4DACA;font-family:var(--sans);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    padding:56px 32px;min-height:100vh;
+  }
+  .stage{display:flex;gap:56px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+  .frame{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:rgba(27,46,39,.42);text-transform:uppercase;}
+
+  .phone{
+    width:375px;height:812px;background:var(--cream);position:relative;
+    border-radius:44px;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.09),0 48px 90px -30px rgba(40,30,10,.40);
+  }
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:0 20px;}
+
+  .statusbar{
+    height:52px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding-bottom:6px;font-family:var(--mono);font-size:12px;font-weight:600;flex-shrink:0;
+    padding-left:6px;padding-right:6px;
+  }
+  .sb-icons{display:flex;align-items:center;gap:6px;}
+  .sb-bars{display:flex;align-items:flex-end;gap:1.5px;height:9px;}
+  .sb-bars i{display:block;width:3px;background:var(--ink);border-radius:.5px;}
+  .sb-battery{width:20px;height:10px;border:1.2px solid var(--ink);border-radius:2.5px;position:relative;}
+  .sb-battery::after{content:"";position:absolute;inset:2px;width:70%;background:var(--ink);border-radius:1px;}
+
+  /* ===== 头部信息框（问候 + 时间 + 天气 + 角色） ===== */
+  .hero{
+    position:relative;
+    background:var(--accent-tint);
+    border-radius:26px;
+    padding:20px 20px 18px;
+    margin-top:8px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    min-height:118px;
+  }
+  .hero-l{position:relative;z-index:2;}
+  .h-greet{font-size:12px;font-weight:600;letter-spacing:.1em;color:rgba(27,46,39,.45);}
+  .h-name{font-size:27px;font-weight:800;letter-spacing:-.01em;margin-top:5px;line-height:1.15;}
+  .h-name em{font-style:normal;color:var(--accent);}
+  .h-meta{
+    margin-top:9px;font-size:11.5px;font-weight:600;color:rgba(27,46,39,.48);
+    letter-spacing:.01em;display:flex;align-items:center;gap:7px;
+  }
+  .h-meta i{display:inline-block;width:3px;height:3px;border-radius:50%;background:rgba(27,46,39,.26);font-style:normal;}
+
+  .hero-r{
+    position:absolute;right:12px;bottom:0;
+    width:104px;height:112px;
+    display:flex;align-items:flex-end;justify-content:center;
+    z-index:1;
+  }
+
+  /* ===== 角色 ===== */
+  .mascot{position:relative;width:180px;height:186px;flex-shrink:0;}
+  .mascot .ground{
+    position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+    width:138px;height:15px;border-radius:50%;
+    background:radial-gradient(ellipse at center,rgba(90,55,20,.18),rgba(90,55,20,0) 70%);
+    animation:groundPulse 3.6s ease-in-out infinite;
+  }
+  @keyframes groundPulse{0%,100%{transform:translateX(-50%) scale(1);opacity:.85}50%{transform:translateX(-50%) scale(.9);opacity:.55}}
+
+  .body{
+    position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
+    width:158px;height:146px;
+    background:radial-gradient(circle at 36% 22%,#FFFFFF 0%,#FFFDF9 44%,#F2E6D2 100%);
+    border-radius:52% 52% 44% 44% / 58% 58% 42% 42%;
+    box-shadow:
+      inset 0 -9px 16px rgba(180,150,105,.18),
+      inset 0 7px 13px rgba(255,255,255,.95),
+      0 10px 20px -10px rgba(90,60,20,.32);
+    animation:float 3.6s ease-in-out infinite;
+  }
+  @keyframes float{
+    0%,100%{transform:translateX(-50%) translateY(0)}
+    50%{transform:translateX(-50%) translateY(-8px)}
+  }
+
+  .ahoge{
+    position:absolute;left:50%;top:-14px;width:24px;height:21px;margin-left:-3px;
+    border-left:2.5px solid #E9DAC0;border-top:2.5px solid #E9DAC0;
+    border-radius:13px 0 0 0;transform:rotate(18deg);transform-origin:bottom left;
+    animation:sway 3.6s ease-in-out infinite;
+  }
+  @keyframes sway{0%,100%{transform:rotate(18deg)}50%{transform:rotate(31deg)}}
+
+  .eye{position:absolute;top:60px;width:9.5px;height:11.5px;border-radius:50%;background:#22322B;animation:blink 5.4s infinite;}
+  .eye.l{left:48px;}
+  .eye.r{right:48px;}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+  .spark{position:absolute;top:62px;width:3.2px;height:3.2px;border-radius:50%;background:#fff;opacity:.9;}
+  .spark.l{left:50px;}
+  .spark.r{right:50px;}
+
+  .blush{position:absolute;top:78px;width:18px;height:10px;border-radius:50%;background:rgba(255,110,90,.30);filter:blur(1.6px);}
+  .blush.l{left:31px;}
+  .blush.r{right:31px;}
+
+  .mouth{
+    position:absolute;top:81px;left:50%;transform:translateX(-50%);
+    width:12px;height:6.5px;border-bottom:2.2px solid #22322B;
+    border-radius:0 0 12px 12px;
+  }
+
+  .mini{transform:scale(.50);transform-origin:center bottom;}
+
+  .absent{
+    width:92px;height:100px;
+    border-radius:52% 52% 44% 44% / 58% 58% 42% 42%;
+    border:2px dashed rgba(27,46,39,.22);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:6px;
+    animation:absentBreathe 4.2s ease-in-out infinite;
+  }
+  @keyframes absentBreathe{0%,100%{opacity:.65}50%{opacity:1}}
+  .absent span{
+    font-family:var(--mono);font-size:7px;letter-spacing:.14em;
+    color:rgba(27,46,39,.32);text-transform:uppercase;text-align:center;line-height:1.7;
+  }
+
+  .block{
+    background:var(--card);
+    border-radius:20px;
+    padding:16px 18px;
+    margin-top:14px;
+    flex-shrink:0;
+  }
+
+  .sec-title{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:0 2px;margin:18px 0 10px;
+  }
+  .sec-title b{font-size:13.5px;font-weight:800;letter-spacing:.01em;}
+  .sec-title span{font-size:11px;color:var(--ink-3);font-weight:600;letter-spacing:.04em;}
+
+  .empty-row{display:flex;align-items:center;gap:11px;}
+  .e-dot{width:8px;height:8px;border-radius:50%;background:rgba(27,46,39,.16);}
+  .e-t{font-size:14.5px;font-weight:700;}
+  .e-s{font-size:11.5px;color:var(--ink-3);margin-top:4px;}
+
+  .cta{
+    width:100%;height:58px;margin-top:14px;border:none;border-radius:20px;
+    background:var(--accent);color:#fff;font-family:var(--sans);
+    font-size:16px;font-weight:700;letter-spacing:.03em;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 12px 24px -10px rgba(255,90,43,.72);
+    transition:transform .14s ease,box-shadow .22s,background .2s;
+    flex-shrink:0;
+  }
+  .cta:hover{background:var(--accent-deep);}
+  .cta:active{transform:scale(.985);}
+  .cta .plus{font-size:19px;font-weight:400;line-height:1;transform:translateY(-1px);}
+
+  .ghost{
+    width:100%;height:52px;margin-top:10px;border:1.5px solid rgba(27,46,39,.12);
+    border-radius:18px;background:transparent;color:var(--ink);
+    font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;
+    transition:border-color .2s,background .2s;
+  }
+  .ghost:hover{border-color:rgba(27,46,39,.28);background:rgba(27,46,39,.03);}
+
+  .rrow{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 0;border-bottom:1px solid var(--line);
+  }
+  .rrow:last-child{border-bottom:none;padding-bottom:1px;}
+  .rrow:first-child{padding-top:1px;}
+  .rl{display:flex;align-items:center;gap:9px;}
+  .r-tag{
+    font-size:9.5px;font-weight:700;letter-spacing:.04em;
+    padding:3px 7px;border-radius:6px;background:rgba(27,46,39,.055);color:var(--ink-2);
+  }
+  .r-tag.ok{background:#E9F2EC;color:#2F6B4F;}
+  .r-tag.no{background:#FDEDEA;color:#B3402A;}
+  .r-n{font-size:13px;font-weight:600;}
+  .r-d{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.08em;}
+
+  .tabbar{
+    display:flex;align-items:center;justify-content:space-around;
+    height:62px;flex-shrink:0;border-top:1px solid var(--line);margin-top:auto;
+  }
+  .tab{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:11px;color:var(--ink-3);letter-spacing:.06em;font-weight:600;
+    cursor:pointer;position:relative;padding-top:7px;
+  }
+  .tab.on{color:var(--ink);}
+  .tab.on::before{content:"";position:absolute;top:0;width:4px;height:4px;border-radius:50%;background:var(--accent);}
+
+  .count-big{
+    font-size:38px;font-weight:800;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:1;
+  }
+  .count-big small{font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.08em;margin-left:7px;}
+  .irow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;}
+  .irow k{font-size:12px;color:var(--ink-3);font-weight:600;}
+  .irow v{font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .state-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--accent-tint);color:var(--accent-deep);
+    font-size:11px;font-weight:800;letter-spacing:.06em;
+    padding:5px 10px;border-radius:8px;
+  }
+  .state-pill i{width:5px;height:5px;border-radius:50%;background:var(--accent);}
+
+  /* 申请页 */
+  .ap-head{display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px;flex-shrink:0;}
+  .ap-title{font-size:29px;font-weight:800;letter-spacing:-.02em;}
+
+  .bubble-wrap{display:flex;align-items:flex-end;gap:2px;margin-top:2px;flex-shrink:0;height:112px;}
+  .bubble{
+    background:#fff;border-radius:16px 16px 16px 5px;
+    padding:11px 14px;font-size:12.5px;font-weight:600;line-height:1.5;
+    box-shadow:0 6px 16px -8px rgba(90,60,20,.28);
+    margin-bottom:26px;max-width:198px;
+  }
+
+  .steps{display:flex;gap:5px;margin-top:12px;flex-shrink:0;}
+  .step{flex:1;height:3px;border-radius:2px;background:rgba(27,46,39,.10);}
+  .step.now{background:var(--accent);}
+
+  .field{padding:15px 0;border-bottom:1px solid var(--line);}
+  .field:last-of-type{border-bottom:none;}
+  .flabel{
+    font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--ink-3);
+    margin-bottom:10px;display:flex;align-items:center;gap:7px;
+  }
+  .flabel b{
+    font-family:var(--mono);font-size:9px;background:rgba(27,46,39,.06);
+    color:var(--ink-2);padding:2px 5px;border-radius:4px;letter-spacing:.06em;
+  }
+
+  .opts{display:flex;gap:10px;}
+  .opt{
+    flex:1;height:62px;border:1.5px solid rgba(27,46,39,.10);border-radius:16px;
+    display:flex;flex-direction:column;justify-content:center;padding-left:14px;gap:3px;
+    cursor:pointer;transition:all .16s ease;background:#fff;
+  }
+  .opt strong{font-size:14px;font-weight:700;}
+  .opt em{font-family:var(--mono);font-style:normal;font-size:8px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;}
+  .opt.on{background:var(--ink);border-color:var(--ink);}
+  .opt.on strong{color:#fff;}
+  .opt.on em{color:rgba(255,255,255,.45);}
+
+  .chips{display:flex;gap:8px;}
+  .chip{
+    font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 15px;
+    border-radius:12px;background:#fff;border:1.5px solid transparent;cursor:pointer;
+    transition:all .16s;
+  }
+  .chip.on{background:var(--accent-tint);color:var(--accent-deep);border-color:rgba(255,90,43,.28);}
+
+  .timerow{display:flex;align-items:center;justify-content:space-between;}
+  .tcell{background:#fff;border-radius:14px;padding:10px 13px;flex:1;}
+  .tcell small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px;}
+  .tcell v{font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .tarrow{color:var(--ink-3);font-size:13px;padding:0 8px;}
+
+  .reason-box{background:#fff;border-radius:14px;padding:12px 14px;font-size:13px;color:var(--ink-2);line-height:1.55;min-height:56px;}
+
+
+  .stat-strip{
+    display:flex;background:var(--card);border-radius:20px;
+    padding:15px 6px;margin-top:14px;flex-shrink:0;
+  }
+  .stat-strip > div{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;
+    border-right:1px solid var(--line);
+  }
+  .stat-strip > div:last-child{border-right:none;}
+  .stat-strip b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .stat-strip span{font-size:10.5px;color:var(--ink-3);font-weight:600;letter-spacing:.04em;}
+
+  @media (max-width:1300px){body{padding:32px 16px;}.stage{gap:32px;}}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ============ 屏 1 · 首页（在校） ============ -->
+  <div class="frame">
+    <div class="phone">
+      <div class="screen">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <div class="sb-icons">
+            <div class="sb-bars"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i></div>
+            <div class="sb-battery"></div>
+          </div>
+        </div>
+
+        <div class="hero">
+          <div class="hero-l">
+            <div class="h-greet">早上好</div>
+            <div class="h-name">张同学<em>。</em></div>
+            <div class="h-meta">10月17日 周五 <i></i> 晴 22°C</div>
+          </div>
+          <div class="hero-r">
+            <div class="mascot mini">
+              <div class="ground"></div>
+              <div class="body">
+                <div class="ahoge"></div>
+                <div class="eye l"></div>
+                <div class="eye r"></div>
+                <div class="spark l"></div>
+                <div class="spark r"></div>
+                <div class="blush l"></div>
+                <div class="blush r"></div>
+                <div class="mouth"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="empty-row">
+            <div class="e-dot"></div>
+            <div>
+              <div class="e-t">当前无请假</div>
+              <div class="e-s">今天在校，一切正常</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="cta"><span class="plus">＋</span> 申请请假</button>
+
+        <div class="sec-title">
+          <b>最近</b>
+          <span>全部 6 条 →</span>
+        </div>
+
+        <div class="block" style="margin-top:0;padding:6px 18px;">
+          <div class="rrow">
+            <div class="rl"><span class="r-tag ok">已销假</span><span class="r-n">离校 · 事假</span></div>
+            <span class="r-d">10.09</span>
+          </div>
+          <div class="rrow">
+            <div class="rl"><span class="r-tag ok">已销假</span><span class="r-n">校内 · 病假</span></div>
+            <span class="r-d">09.28</span>
+          </div>
+          <div class="rrow">
+            <div class="rl"><span class="r-tag no">已驳回</span><span class="r-n">离校 · 事假</span></div>
+            <span class="r-d">09.15</span>
+          </div>
+        </div>
+
+        <div class="stat-strip">
+          <div><b>6</b><span>本学期申请</span></div>
+          <div><b>4</b><span>已销假</span></div>
+          <div><b>1</b><span>已驳回</span></div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on">首页</div>
+          <div class="tab">记录</div>
+          <div class="tab">消息</div>
+          <div class="tab">我的</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="tag">01 / 首页 · 在校</div>
+  </div>
+
+  <!-- ============ 屏 2 · 首页（离校） ============ -->
+  <div class="frame">
+    <div class="phone">
+      <div class="screen">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <div class="sb-icons">
+            <div class="sb-bars"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i></div>
+            <div class="sb-battery"></div>
+          </div>
+        </div>
+
+        <div class="hero">
+          <div class="hero-l">
+            <div class="h-greet">早上好</div>
+            <div class="h-name">张同学<em>。</em></div>
+            <div class="h-meta">10月17日 周五 <i></i> 晴 22°C</div>
+          </div>
+          <div class="hero-r">
+            <div class="absent"><span>Not<br>in school</span></div>
+          </div>
+        </div>
+
+        <div class="block" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="state-pill"><i></i>离校中</span>
+            <span class="r-d">病假</span>
+          </div>
+          <div style="margin-top:15px;">
+            <div class="count-big">12:04:33<small>剩余</small></div>
+          </div>
+          <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:4px;">
+            <div class="irow"><k>开始</k><v>10.16 18:00</v></div>
+            <div class="irow"><k>结束</k><v>10.17 12:00</v></div>
+          </div>
+        </div>
+
+        <button class="cta" style="margin-top:16px;">返校定位并销假</button>
+        <button class="ghost">申请续假</button>
+
+        <div class="sec-title"><b>提醒</b></div>
+        <div class="block" style="margin-top:0;padding:14px 18px;">
+          <div style="font-size:12px;line-height:1.7;color:var(--ink-2);">
+            回到校园范围后点上面的按钮，定位通过会自动销假。定位不准可以申请人工核验。
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on">首页</div>
+          <div class="tab">记录</div>
+          <div class="tab">消息</div>
+          <div class="tab">我的</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="tag">02 / 首页 · 离校</div>
+  </div>
+
+  <!-- ============ 屏 3 · 申请请假 ============ -->
+  <div class="frame">
+    <div class="phone">
+      <div class="screen">
+
+        <div class="statusbar">
+          <span>9:41</span>
+          <div class="sb-icons">
+            <div class="sb-bars"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i></div>
+            <div class="sb-battery"></div>
+          </div>
+        </div>
+
+        <div class="ap-head">
+          <div class="ap-title">申请请假</div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-3);">01 / 05</div>
+        </div>
+
+        <div class="steps">
+          <div class="step now"></div>
+          <div class="step"></div>
+          <div class="step"></div>
+          <div class="step"></div>
+          <div class="step"></div>
+        </div>
+
+        <div class="bubble-wrap">
+          <div style="width:116px;height:124px;display:flex;align-items:flex-end;justify-content:center;overflow:visible;">
+            <div class="mascot" style="transform:scale(.55);transform-origin:center bottom;">
+              <div class="ground"></div>
+              <div class="body">
+                <div class="ahoge"></div>
+                <div class="eye l"></div>
+                <div class="eye r"></div>
+                <div class="spark l"></div>
+                <div class="spark r"></div>
+                <div class="blush l"></div>
+                <div class="blush r"></div>
+                <div class="mouth"></div>
+              </div>
+            </div>
+          </div>
+          <div class="bubble">先选场景吧，这次是出校门，还是留在校内？</div>
+        </div>
+
+        <div class="field" style="padding-top:6px;">
+          <div class="flabel"><b>01</b>请假场景</div>
+          <div class="opts">
+            <div class="opt on"><strong>离校请假</strong><em>Off-Campus</em></div>
+            <div class="opt"><strong>校内请假</strong><em>On-Campus</em></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="flabel"><b>02</b>请假类型</div>
+          <div class="chips">
+            <span class="chip on">病假</span>
+            <span class="chip">事假</span>
+            <span class="chip">其他</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="flabel"><b>03</b>请假时间</div>
+          <div class="timerow">
+            <div class="tcell"><small>Start</small><v>10.16 18:00</v></div>
+            <span class="tarrow">→</span>
+            <div class="tcell"><small>End</small><v>10.17 12:00</v></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="flabel"><b>04</b>请假理由</div>
+          <div class="reason-box">回家处理家庭事务，已与家人确认行程。</div>
+        </div>
+
+        <button class="cta" style="margin-top:auto;margin-bottom:14px;">下一步 · 上传材料</button>
+
+      </div>
+    </div>
+    <div class="tag">03 / 申请 · 角色随步骤演出</div>
+  </div>
+
+</div>
+
+</body>
+</html>

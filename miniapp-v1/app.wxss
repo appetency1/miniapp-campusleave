@@ -1,0 +1,284 @@
+/* app.wxss —— 全局设计令牌与基础组件
+ * 方向：自然秩序 / 晨读（苔墨绿 + 宣纸米白 + 唯一赤陶强调）
+ * 约束：小程序原生，无外部字体/图标库；性格靠字阶跳跃、字重极端对比、等宽数字
+ */
+
+page {
+  /* 色彩：苔墨绿（主导）/ 宣纸中性 / 赤陶（唯一强调，仅用于逾期与关键动作） */
+  --moss: #1F3A2B;
+  --moss-2: #2E5740;
+  --moss-3: #4A7A5E;
+  --paper: #F4F2EA;
+  --paper-2: #FBFAF6;
+  --ink: #16201A;
+  --ink-2: #5B6660;
+  --ink-3: #8A918B;
+  --line: #E4E1D6;
+  --line-2: #D5D2C6;
+  --clay: #C2603A;
+  --clay-soft: #F0E2D8;
+  --ok: #2F6B4F;
+  --ok-soft: #E4EDE6;
+
+  --r-lg: 28rpx;
+  --r-md: 20rpx;
+  --r-sm: 12rpx;
+  --r-pill: 999rpx;
+
+  --sh-lg: 0 28rpx 64rpx rgba(31, 58, 43, 0.16);
+  --sh-md: 0 14rpx 34rpx rgba(31, 58, 43, 0.10);
+
+  --pad: 40rpx;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 版心 ---------- */
+.page {
+  min-height: 100vh;
+  padding: 0 var(--pad);
+  box-sizing: border-box;
+}
+.page--paper {
+  background: var(--paper);
+}
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 32rpx);
+}
+
+/* ---------- 字阶（大跨度，不做 14/15/16 这种糊成一团的近邻） ---------- */
+.t-cap {
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  color: var(--ink-3);
+}
+.t-display {
+  font-size: 56rpx;
+  font-weight: 900;
+  letter-spacing: -1rpx;
+  line-height: 1.08;
+}
+.t-h1 {
+  font-size: 44rpx;
+  font-weight: 800;
+  letter-spacing: -0.6rpx;
+  line-height: 1.16;
+}
+.t-h2 {
+  font-size: 34rpx;
+  font-weight: 700;
+  letter-spacing: -0.2rpx;
+}
+.t-body {
+  font-size: 28rpx;
+}
+.t-meta {
+  font-size: 24rpx;
+  color: var(--ink-2);
+}
+.t-num {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1rpx;
+}
+.t-ink2 { color: var(--ink-2); }
+.t-ink3 { color: var(--ink-3); }
+.t-moss { color: var(--moss); }
+.t-clay { color: var(--clay); }
+.t-ok { color: var(--ok); }
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--paper-2);
+  border-radius: var(--r-lg);
+  padding: 34rpx;
+  box-shadow: var(--sh-md);
+}
+.card--flat {
+  background: var(--paper-2);
+  border-radius: var(--r-lg);
+  padding: 34rpx;
+  border: 2rpx solid var(--line);
+  box-shadow: none;
+}
+.card--lift {
+  box-shadow: var(--sh-lg);
+}
+.rule {
+  height: 2rpx;
+  background: var(--line);
+  margin: 28rpx 0;
+}
+
+/* ---------- 状态标记（无图标库：用色点 + 文字承载状态） ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 44rpx;
+  padding: 0 20rpx;
+  border-radius: var(--r-pill);
+  font-size: 22rpx;
+  font-weight: 600;
+  background: var(--paper);
+  color: var(--ink-2);
+}
+.pill__dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  background: currentColor;
+}
+.pill--live { background: var(--ok-soft); color: var(--ok); }
+.pill--wait { background: #EFEDE2; color: var(--ink-2); }
+.pill--late { background: var(--clay-soft); color: var(--clay); }
+.pill--done { background: #ECEAE0; color: var(--ink-3); }
+.pill--rej  { background: #F3E4E0; color: var(--danger, #B3452F); }
+.pill--breath .pill__dot {
+  animation: breath 2.2s ease-in-out infinite;
+}
+
+/* ---------- 胶囊筛选 ---------- */
+.chips {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+.chip {
+  height: 62rpx;
+  padding: 0 28rpx;
+  border-radius: var(--r-pill);
+  border: 2rpx solid var(--line-2);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 24rpx;
+  display: inline-flex;
+  align-items: center;
+}
+.chip--on {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: #F6F5EF;
+  font-weight: 600;
+}
+
+/* ---------- 按钮 ---------- */
+.btn {
+  height: 100rpx;
+  line-height: 100rpx;
+  border-radius: var(--r-pill);
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 40rpx;
+  border: none;
+  box-sizing: border-box;
+}
+.btn::after { border: none; }
+.btn--primary {
+  background: var(--moss);
+  color: #F6F5EF;
+}
+.btn--primary.btn--pressed { opacity: 0.86; transform: translateY(2rpx); }
+.btn--ghost {
+  background: transparent;
+  color: var(--moss);
+  border: 2rpx solid var(--line-2);
+}
+.btn--clay {
+  background: var(--clay);
+  color: #FFF7F2;
+}
+.btn--sm {
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: 26rpx;
+  padding: 0 30rpx;
+}
+.btn--disabled {
+  background: var(--line);
+  color: var(--ink-3);
+}
+
+/* ---------- 列表行 ---------- */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 0;
+  border-bottom: 2rpx solid var(--line);
+}
+.row:last-child { border-bottom: none; }
+.row__main { flex: 1; min-width: 0; }
+.row__title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+.row__sub {
+  font-size: 23rpx;
+  color: var(--ink-2);
+  margin-top: 8rpx;
+}
+.chev {
+  width: 16rpx;
+  height: 16rpx;
+  border-top: 3rpx solid var(--ink-3);
+  border-right: 3rpx solid var(--ink-3);
+  transform: rotate(45deg);
+  flex: none;
+  margin-left: 20rpx;
+}
+
+/* ---------- 空态 ---------- */
+.empty {
+  padding: 96rpx 0 110rpx;
+  text-align: center;
+}
+.empty__mark {
+  width: 108rpx;
+  height: 108rpx;
+  margin: 0 auto 26rpx;
+  border-radius: 50%;
+  border: 3rpx dashed var(--line-2);
+}
+.empty__title { font-size: 30rpx; font-weight: 600; }
+.empty__desc { font-size: 24rpx; color: var(--ink-3); margin-top: 10rpx; }
+
+/* ---------- 载入骨架 ---------- */
+.skel {
+  background: linear-gradient(90deg, #EDEBE1 0%, #F6F5EE 50%, #EDEBE1 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.25s linear infinite;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- 页面载入分层揭示 ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(26rpx);
+  animation: revealUp 0.66s cubic-bezier(0.16, 0.84, 0.32, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+@keyframes revealUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes breath {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.78); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; animation: none; }
+  .pill--breath .pill__dot { animation: none; }
+  .skel { animation: none; }
+}
