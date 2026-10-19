@@ -82,7 +82,11 @@
     font-family:var(--mono);font-size:76px;line-height:76px;font-weight:500;letter-spacing:-2px;
     color:var(--brand);margin-top:14px;font-variant-numeric:tabular-nums;
   }
-  .big .colon{margin:0 -.055em;font-size:1em;}
+  .big .colon{
+    display:inline-flex;flex-direction:column;justify-content:center;gap:20px;
+    width:16px;height:76px;vertical-align:top;margin:0 3px;padding-top:8px;
+  }
+  .big .colon i{display:block;width:8px;height:8px;border-radius:50%;background:currentColor;}
   .unit{font-size:10px;line-height:16px;font-weight:600;letter-spacing:1px;color:var(--ink-3);margin-top:8px;}
   .span{font-family:var(--mono);font-size:12px;line-height:18px;color:var(--ink-2);
         margin-top:20px;font-variant-numeric:tabular-nums;letter-spacing:.2px;}
@@ -118,6 +122,14 @@
   .ghost:active{transform:scale(.97);background:#F1F4EF;}
 
   .hint{font-size:12px;line-height:18px;color:var(--ink-2);text-align:center;}
+
+  .more{display:flex;justify-content:center;margin-top:26px;}
+  .link{
+    background:none;border:0;font-family:inherit;font-size:12px;line-height:18px;
+    color:var(--ink-3);cursor:pointer;padding:8px 14px;border-radius:999px;
+    transition:color .16s,background .16s;
+  }
+  .link:active{color:var(--brand);background:#F1EEE5;}
 
   /* ===== B 状态 ===== */
   .mascot{position:absolute;left:244px;top:44px;width:80px;height:96px;pointer-events:none;}
@@ -277,7 +289,7 @@
           <span class="tagline"><i></i>请假中 · 离校 · 事假</span>
           <span class="a-ratio">11 / 18</span>
         </div>
-        <div class="big">6:09</div>
+        <div class="big">6<span class="colon"><i></i><i></i></span>09</div>
         <div class="unit">小时 : 分</div>
         <div class="span">10.16 18:00 — 10.17 12:00</div>
         <div class="track" style="--p:.61"><i></i></div>
@@ -292,12 +304,7 @@
       </div>
       <div class="hint" style="margin-top:12px">12:00 前回来，记得销假</div>
 
-      <div style="margin-top:28px">
-        <div class="recent">
-          <div><div class="l">最近记录</div><div class="s">10.09 · 病假 · 已销假</div></div>
-          <svg class="arw" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>
-        </div>
-      </div>
+      <div class="more"><button class="link">查看全部请假记录</button></div>
     </section>
 
     <!-- ================= B 无请假 ================= -->
@@ -331,12 +338,7 @@
         <button class="cta">申请请假</button>
       </div>
 
-      <div style="margin-top:28px">
-        <div class="recent">
-          <div><div class="l">最近记录</div><div class="s">10.09 · 病假 · 已销假</div></div>
-          <svg class="arw" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>
-        </div>
-      </div>
+      <div class="more"><button class="link">查看全部请假记录</button></div>
     </section>
 
     <!-- ================= C 待审批 ================= -->
@@ -371,19 +373,13 @@
         </div>
       </div>
 
-      <div style="margin-top:28px">
-        <div class="recent">
-          <div><div class="l">最近记录</div><div class="s">10.09 · 病假 · 已销假</div></div>
-          <svg class="arw" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>
-        </div>
-      </div>
+      <div class="more"><button class="link">查看全部请假记录</button></div>
     </section>
 
   </div>
 
   <nav class="tabbar">
     <button class="tab on"><svg viewBox="0 0 24 24"><path d="M3.6 10.4 12 3.6l8.4 6.8V20a.8.8 0 0 1-.8.8h-4.8v-6H9.2v6H4.4a.8.8 0 0 1-.8-.8z"/></svg><span>首页</span></button>
-    <button class="tab"><svg viewBox="0 0 24 24"><path d="M6 3.8h8.6L19 8.2V20a.8.8 0 0 1-.8.8H6a.8.8 0 0 1-.8-.8V4.6a.8.8 0 0 1 .8-.8z"/><path d="M14.4 4v4.2h4.2M8.4 12.4h7M8.4 16h4.6"/></svg><span>申请</span></button>
     <button class="tab"><svg viewBox="0 0 24 24"><path d="M6 4.2h12a.8.8 0 0 1 .8.8v14.4a.8.8 0 0 1-.8.8H6a.8.8 0 0 1-.8-.8V5a.8.8 0 0 1 .8-.8z"/><path d="M8.6 9h6.8M8.6 12.6h6.8M8.6 16.2h4"/></svg><span>记录</span></button>
     <button class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.4" r="3.5"/><path d="M5.4 20.4v-1a6.6 6.6 0 0 1 13.2 0v1"/></svg><span>我的</span></button>
   </nav>
@@ -429,7 +425,7 @@
   function pad(n){ return n<10?'0'+n:''+n; }
   function render(t){
     var p = t.split(':');
-    big.innerHTML = '<span>'+p[0]+'</span><span class="colon">:</span><span>'+p[1]+'</span>';
+    big.innerHTML = '<span>'+p[0]+'</span><span class="colon"><i></i><i></i></span><span>'+p[1]+'</span>';
   }
   function setTime(t){
     if (big.dataset.v === t) return;
