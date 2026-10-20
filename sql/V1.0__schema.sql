@@ -168,12 +168,19 @@ CREATE TABLE IF NOT EXISTS `leave_extension` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_extension_pending` (`pending_app_id`),
     KEY `idx_extension_application_status` (`application_id`,`status`),
-    KEY `idx_extension_reviewer` (`reviewer_id`),
-    CONSTRAINT `fk_ext_application` FOREIGN KEY (`application_id`) REFERENCES `leave_application` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_ext_reviewer`    FOREIGN KEY (`reviewer_id`)    REFERENCES `user` (`id`)              ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_ext_withdrawn`   FOREIGN KEY (`withdrawn_by`)   REFERENCES `user` (`id`)              ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `ck_ext_status`      CHECK (`status` IN ('PENDING','APPROVED','REJECTED','WITHDRAWN'))
+    KEY `idx_extension_reviewer` (`reviewer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='续假记录表';
+
+-- MySQL 9.x 回归 bug：STORED 生成列(pending_app_id)依赖 application_id 且建唯一索引时，
+-- 无法给 application_id 添加外键（InnoDB 内部约束解析错误，1215）。reviewer_id/withdrawn_by 不受影响。
+-- 处理：application_id 的外键降级为"应用层保证"（续假由 Service 层基于已存在申请创建，无悬空引用风险）；
+--       status 的 CHECK 与外键仍保留，逐条 ALTER 追加。
+ALTER TABLE `leave_extension`
+    ADD CONSTRAINT `ck_ext_status`      CHECK (`status` IN ('PENDING','APPROVED','REJECTED','WITHDRAWN'));
+
+ALTER TABLE `leave_extension`
+    ADD CONSTRAINT `fk_ext_reviewer`    FOREIGN KEY (`reviewer_id`)    REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    ADD CONSTRAINT `fk_ext_withdrawn`   FOREIGN KEY (`withdrawn_by`)   REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- -------------------------------------------------------------
 -- 8. leave_material 请假材料表
@@ -249,12 +256,11 @@ CREATE TABLE IF NOT EXISTS `leave_approval_log` (
     CONSTRAINT `ck_log_action` CHECK (`action` IN (
         'SUBMIT','APPROVE','REJECT','WITHDRAW','CANCEL','COMPLETE','MANUAL_REVIEW',
         'EXTENSION_SUBMIT','EXTENSION_APPROVE','EXTENSION_REJECT','EXTENSION_WITHDRAW','AUTO_WITHDRAW_EXTENSION'
-    )),
-    CONSTRAINT `ck_log_extension_required` CHECK (
-        (`action` NOT LIKE 'EXTENSION\_%' AND `action` <> 'AUTO_WITHDRAW_EXTENSION')
-        OR `extension_id` IS NOT NULL
-    )
+    ))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='请假操作日志表';
+
+-- 说明：ck_log_extension_required（EXTENSION 类 action 必须有 extension_id）为跨列逻辑约束，
+-- MySQL 9.x 禁止 extension_id 同时用于外键与 CHECK，故降级为 Service 层保证（写日志时按 action 校验）。
 
 -- -------------------------------------------------------------
 -- 11. notification 通知表（dedup_key 唯一，一次性事件/自然日桶）

@@ -5,3 +5,8 @@ backup/
 node_modules/
 *.log
 .DS_Store
+
+# 后端编译产物
+backend/target/
+# 含真实密码的本地配置（提交 example 模板即可）
+backend/src/main/resources/application-dev.yml

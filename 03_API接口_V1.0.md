@@ -91,7 +91,15 @@ Token 有效期：7 天（毕设简化，不做 refresh token）
 | 提交申请时间冲突 | 事务内 `SELECT ... FOR UPDATE` 锁学生行后复查，冲突 → 40903 |
 | 续假并发 | `pending_app_id` 唯一键拦截第二条 PENDING → 40902 |
 
-### 1.7 权限矩阵
+### 1.8 资源 URL 约定
+
+```text
+文件接口返回相对路径（如 /files/2026/10/uuid.jpg）
+客户端展示时拼 BASE_URL（小程序端、Web 后台均同）
+服务端静态映射：GET /files/** → 本地上传目录 uploads/
+```
+
+### 1.9 权限矩阵
 
 | 资源 | STUDENT | TEACHER | ADMIN |
 |---|---|---|---|
@@ -240,9 +248,42 @@ GET /api/v1/common/dictionaries
     { "value": "WITHDRAWN", "label": "已撤回" },
     { "value": "CANCELLED", "label": "已取消" },
     { "value": "COMPLETED", "label": "已完成" }
-  ]
+  ],
+  "materialTypes": [
+    { "value": "MEDICAL_PROOF", "label": "诊断证明" },
+    { "value": "LEAVE_FORM", "label": "请假单" },
+    { "value": "OTHER", "label": "其他" }
+  ],
+  "checkTypes": [
+    { "value": "GPS", "label": "定位销假" },
+    { "value": "ON_CAMPUS_CONFIRM", "label": "校内确认" },
+    { "value": "MANUAL_REVIEW", "label": "人工核验" }
+  ],
+  "reviewStatus": [
+    { "value": "NONE", "label": "无" },
+    { "value": "PENDING_REVIEW", "label": "待核验" },
+    { "value": "APPROVED", "label": "核验通过" },
+    { "value": "REJECTED", "label": "核验驳回" },
+    { "value": "VOID", "label": "已关闭" }
+  ],
+  "notificationTypes": [
+    { "value": "LEAVE_APPROVED", "label": "请假通过" },
+    { "value": "LEAVE_REJECTED", "label": "请假驳回" },
+    { "value": "EXTENSION_APPROVED", "label": "续假通过" },
+    { "value": "EXTENSION_REJECTED", "label": "续假驳回" },
+    { "value": "EXTENSION_AUTO_WITHDRAWN", "label": "续假自动撤回" },
+    { "value": "START_REMINDER", "label": "开始提醒" },
+    { "value": "OVERDUE_REMINDER", "label": "逾期提醒" },
+    { "value": "CHECKIN_RESULT", "label": "销假结果" },
+    { "value": "SYSTEM", "label": "系统通知" }
+  ],
+  "mockLocation": false,
+  "campusCenter": { "lat": 30.000000, "lng": 120.000000 }
 }
 ```
+
+> `mockLocation` / `campusCenter` 仅用于演示模拟定位（见《开发方案 V1.0》D-07）；`mockLocation=false` 时前端不显示「模拟位置」下拉。
+> 详情接口的 `actions` 枚举：`CHECKIN`（销假）/ `EXTENSION`（续假）/ `WITHDRAW`（撤回）/ `CANCEL`（取消）/ `MANUAL_REVIEW`（申请人工核验）。
 
 ---
 
@@ -375,6 +416,7 @@ GET /api/v1/student/applications/{id}
 ```
 
 > `actions` 为后端按 `status + effective_status + leave_scene + 续假状态` 计算的可用动作集合，前端据此显示按钮。
+> `approvedBy` / `approvalComment` 来源：`approved_by_user_id → user.real_name`，`approvalComment` 取该申请最新一条 `action ∈ {APPROVE, REJECT}` 的 `leave_approval_log.comment`（主表无此字段）。
 
 ### 5.5 撤回申请
 
@@ -386,6 +428,8 @@ POST /api/v1/student/applications/{id}/withdraw
 错误：40901（状态已变化）、42201（非 PENDING）
 ```
 
+> `reason` 写入 `leave_approval_log.comment`（主表无 `withdraw_reason` 字段）；`WITHDRAWN` 不写 `cancel_reason`（那是取消专用）。
+
 ### 5.6 取消申请
 
 ```text
@@ -393,10 +437,10 @@ POST /api/v1/student/applications/{id}/cancel
 权限：本人；前置：status = APPROVED 且 effective_status = WAITING_START
 请求：{ "reason": "行程取消" }
 响应：status → CANCELLED；写 cancel_reason / cancelled_at / cancelled_by_user_id
-错误：42201（已开始或有待审续假时不允许取消）
+错误：42201（非 WAITING_START）
 ```
 
-> 有待审批续假时，取消前应先撤回续假（或后端自动撤回并返回 40902 提示）。
+> 前置仅要求 `effective_status = WAITING_START`（01 §9 未设"有待审续假不得取消"约束）；取消时若存在 PENDING 续假，一并自动撤回。
 
 ### 5.7 校内确认结束
 
@@ -415,6 +459,11 @@ POST /api/v1/student/applications/{id}/checkin/on-campus
 写库：单条 UPDATE 同时改 `status` + `actual_end_time`；插入 `leave_checkin_log`（ON_CAMPUS_CONFIRM / PASSED / NONE）；自动撤回 PENDING 续假；写日志与通知。
 
 错误：42201（WAITING_START 或场景不符）、40901（已处理）。
+
+> 完成销假（5.7 / 5.8 / 6.11 人工核验通过）时，统一执行以下副作用：
+> ① 本申请历史 `GPS FAILED AND review_status=NONE` 记录关闭（`closed_at` + `SUPERSEDED_BY_LATER_PASSED`）；
+> ② 本申请 `PENDING_REVIEW` 记录置 `VOID` + `SUPERSEDED_BY_SELF_CHECKIN`；
+> ③ 自动撤回 PENDING 续假（`WITHDRAWN` + `AUTO_WITHDRAWN_BY_COMPLETION`）。
 
 ### 5.8 离校 GPS 销假
 
@@ -458,7 +507,7 @@ distance = Haversine(点, 校园中心)
 
 ```text
 POST /api/v1/student/applications/{id}/checkin/manual-review
-权限：本人；前置：最近一条 GPS 记录为 FAILED，且 review_status ∈ {NONE}
+权限：本人；前置：本申请存在 GPS FAILED 记录，且当前无 PENDING_REVIEW 记录
 ```
 
 请求：
@@ -473,7 +522,9 @@ POST /api/v1/student/applications/{id}/checkin/manual-review
 { "code": 0, "data": { "checkinLogId": 22, "reviewStatus": "PENDING_REVIEW" } }
 ```
 
-错误：42203（已有一条待审核验）、40901。
+错误：42203（无 GPS 失败记录 / 已有待审核验）、40901。
+
+> 实现：新建一条 `leave_checkin_log`（`check_type=MANUAL_REVIEW`、`check_result=FAILED`、`review_status=PENDING_REVIEW`、`distance_m` 复制最近一条 GPS FAILED 的距离），**不改写原 GPS 记录**（配合《开发方案 V1.0》D-01，符合 02 §12.3 矩阵）。学生每次申请核验留一条独立记录，"驳回后再次申请"天然成立。
 
 ### 5.10 申请续假
 
@@ -676,6 +727,7 @@ POST /api/v1/teacher/checkin-logs/{id}/review
 错误：42203（已关闭 / 已被自助销假取代 VOID）、40901。
 
 > 若主申请此时已 COMPLETED（学生自助销假成功），系统将该记录置 `VOID` 并返回 42203，不允许重复审批。
+> 核验 APPROVE 时，与销假一致，需执行：① 自动撤回 PENDING 续假；② 写 `overdue_at_completion` / `delay_minutes` 快照（完成时已逾期则记 1 与分钟数）。
 
 ### 6.12 逾期列表
 
@@ -730,8 +782,10 @@ PUT  /api/v1/admin/users/{id}/password   { "newPassword": "..." }
 GET    /api/v1/admin/classes?keyword=&page=&size=
 POST   /api/v1/admin/classes      { "className": "...", "classCode": "...", "major": "...", "grade": "..." }
 PUT    /api/v1/admin/classes/{id}
-DELETE /api/v1/admin/classes/{id}   （存在学生时 40901）
+DELETE /api/v1/admin/classes/{id}   （软删：status=DISABLED；存在 ACTIVE 学生时 40901）
 ```
+
+> 班级不物理删除，统一走 `status=DISABLED`（与 02 §26 一致）。
 
 ### 7.3 辅导员-班级绑定
 
@@ -751,7 +805,7 @@ GET /api/v1/admin/configs
 PUT /api/v1/admin/configs/{key}   { "configValue": "120" }
 ```
 
-可配置项：`CAMPUS_CENTER_LAT`、`CAMPUS_CENTER_LNG`、`OFF_CAMPUS_CHECK_RADIUS_M`、`START_REMINDER_WINDOW_MINUTES`。
+可配置项：`CAMPUS_CENTER_LAT`、`CAMPUS_CENTER_LNG`、`OFF_CAMPUS_CHECK_RADIUS_M`、`START_REMINDER_WINDOW_MINUTES`、`MOCK_LOCATION`（演示模拟定位开关，默认 false）。
 
 ### 7.5 全校统计
 
@@ -834,11 +888,13 @@ GET /api/v1/admin/stats?startDate=&endDate=
 
 ## 11. 待确认 / Non-goals
 
+**已关闭（M0 决策）**
+1. ~~消息接口是否提供给教师~~ → **不提供**。通知接收方仅学生；教师靠工作台实时角标 + 逾期列表，不建消息中心（《开发方案 V1.0》D-04）。
+2. ~~撤销已批准申请是否需管理员审批~~ → 不需要，学生取消（WAITING_START）即可。
+
 **待确认**
-1. 消息接口是否也提供给教师（当前仅学生有消息页）——V1.2 通知规则只定义了学生接收。
-2. 撤销已批准申请是否需要管理员审批——当前只允许学生取消（未开始）。
-3. 材料是否按请假类型强制（当前全部选填，接口预留校验点）。
-4. 教师端是否需要"导出"（Excel）——当前 Non-goal。
+1. 材料是否按请假类型强制（当前全部选填，接口预留校验点）。
+2. 教师端是否需要"导出"（Excel）——当前 Non-goal。
 
 **Non-goals（V1.0）**
 - 多级审批、审批流引擎
