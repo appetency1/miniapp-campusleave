@@ -1,27 +1,20 @@
-<!--index.wxml-->
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
-        </view>
-      </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
-    </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
+<!-- pages/index/index.wxml —— 占位首页（待按定稿 formal-v2 实现） -->
+<view class="home page-pad">
+
+  <view class="home__meta">{{student}}</view>
+
+  <view class="home__hero">
+    <view class="home__label">首页待落地</view>
+    <view class="home__hint">按定稿 <text class="num">formal-v2</text> 逐屏实现</view>
+  </view>
+
+  <view class="rule"></view>
+
+  <view class="home__list">
+    <view class="home__item" wx:for="{{screens}}" wx:key="*this">
+      <text class="home__idx num">{{index + 1}}</text>
+      <text class="home__name">{{item}}</text>
     </view>
   </view>
-</scroll-view>
+
+</view>

@@ -2,7 +2,16 @@
   "compileType": "miniprogram",
   "libVersion": "trial",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "file", "value": "README.md" },
+      { "type": "file", "value": "01_业务规则_V1.2.md" },
+      { "type": "file", "value": "02_数据库设计_V1.1.md" },
+      { "type": "file", "value": "03_API接口_V1.0.md" },
+      { "type": "folder", "value": "archive" },
+      { "type": "folder", "value": "formal-v2" },
+      { "type": "folder", "value": "reviews" },
+      { "type": "folder", "value": "sql" }
+    ],
     "include": []
   },
   "setting": {

@@ -1,10 +1,39 @@
-/**app.wxss**/
-.container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 200rpx 0;
-  box-sizing: border-box;
-} 
+/* app.wxss —— 全局设计令牌，取自定稿 formal-v2
+ * 纸感体系：纸 / 墨 / 蓝 / 线，圆角 6，页边距 20px（= 40rpx）
+ */
+
+page {
+  /* 色板 */
+  --paper: #FBFAF7;
+  --paper-2: #F5F2EC;
+  --ink: #15202E;
+  --ink-2: #5B6472;
+  --ink-3: #8A8578;
+  --blue: #2563C9;
+  --line: #E7E3D9;
+  --danger: #C0392B;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.55;
+}
+
+/* 数字与编号：衬线 + 等宽数字，定稿的记忆点之一 */
+.num {
+  font-family: "Noto Serif SC", Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 1px 细线分区（替代卡片） */
+.rule {
+  height: 1rpx;
+  background: var(--line);
+}
+
+/* 页边距 */
+.page-pad {
+  padding: 0 40rpx;
+}

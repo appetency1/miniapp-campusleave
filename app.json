@@ -1,12 +1,13 @@
 {
   "pages": [
-    "pages/index/index",
-    "pages/logs/logs"
+    "pages/index/index"
   ],
   "window": {
+    "navigationBarBackgroundColor": "#FBFAF7",
+    "navigationBarTitleText": "校园请假",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
-    "navigationBarBackgroundColor": "#ffffff"
+    "backgroundColor": "#FBFAF7",
+    "backgroundTextStyle": "dark"
   },
   "style": "v2",
   "componentFramework": "glass-easel",
