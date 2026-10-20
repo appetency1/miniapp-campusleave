@@ -1,6 +1,9 @@
 # formal-v1 · 首页方案
 
-**当前看**：[`home-v5-three-states.html`](home-v5-three-states.html) —— 纸感三态版，2026-10-20 11:04
+> **过程稿，已被 `formal-v2/` 取代（2026-10-20 12:30）。** 本目录只作决策记录，不再修改。
+> 定稿看 [`../formal-v2/index.html`](../formal-v2/index.html)。
+
+**当时最后看的是**：[`home-v5-three-states.html`](home-v5-three-states.html) —— 纸感三态版，2026-10-20 11:04
 
 全部版本见 [`index.html`](index.html)（目录页，双击可开）。
 

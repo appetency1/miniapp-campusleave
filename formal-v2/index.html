@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>校园请假 · 学生端</title>
+<!--
+  定稿版：纸 #FBFAF7 / 墨 #15202E / 蓝 #2563C9 / 线 #E7E3D9
+  中文 Noto Sans SC，数字与编号 Noto Serif SC
+  记忆点：请假区间画成刻度尺
+  单文件、零依赖、双击可开
+-->
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --paper:#FBFAF7; --paper-2:#F5F3EC; --surface:#fff;
+    --ink:#15202E; --ink-2:#55606F; --ink-3:#6B6559; --ink-4:#8E887B;
+    --line:#E7E3D9; --line-2:#D8D3C6;
+    --blue-50:#EFF4FD; --blue-100:#DCE8FA; --blue-500:#2563C9; --blue-600:#1F55AD; --blue-700:#194089;
+    --amber-600:#9A5B0B; --amber-50:#FDF3E3;
+    --red-600:#B23A28; --red-50:#FBECE9;
+    --teal-600:#0B7A6B; --teal-50:#E6F4F1;
+    --mono:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,SimSun,Cambria,Georgia,serif;
+    --sans:"Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Source Han Sans SC","Microsoft YaHei",sans-serif;
+    --r:6px;
+    --ease:cubic-bezier(.2,.8,.25,1);
+  }
+  html,body{height:100%}
+  body{
+    margin:0;display:flex;align-items:center;justify-content:center;gap:44px;padding:24px;
+    background:#EDEAE2;color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  :focus-visible{outline:2px solid var(--blue-500);outline-offset:2px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ===== 手机 ===== */
+  .phone{
+    position:relative;width:375px;height:812px;overflow:hidden;flex:0 0 auto;
+    background:var(--paper);border-radius:28px;
+    box-shadow:0 24px 60px -30px rgba(21,32,46,.42),0 0 0 1px rgba(21,32,46,.07);
+  }
+  .viewport{position:absolute;left:0;right:0;top:44px;bottom:52px;overflow:hidden;transition:bottom .28s var(--ease)}
+  .phone.is-push .viewport{bottom:0}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--paper)}
+  .s-body{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:24px}
+  .s-body::-webkit-scrollbar{width:0}
+
+  .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;
+             padding:0 24px 0 20px;font-size:12px;font-weight:600}
+  .sb{display:flex;align-items:center;gap:5px}
+  .bars{display:flex;align-items:flex-end;gap:2px;height:11px}
+  .bars i{width:3px;border-radius:.8px;background:var(--ink)}
+  .bars i:nth-child(1){height:4.5px}.bars i:nth-child(2){height:6.5px}
+  .bars i:nth-child(3){height:9px}.bars i:nth-child(4){height:11.5px}
+
+  /* ===== 顶栏 ===== */
+  .nav{flex:0 0 auto;height:44px;display:flex;align-items:center;justify-content:center;position:relative}
+  .nav__t{font-size:17px;line-height:24px;font-weight:600;letter-spacing:-.01em}
+  .nav__back{position:absolute;left:6px;top:2px;width:40px;height:40px;border-radius:50%;
+             display:flex;align-items:center;justify-content:center}
+  .nav__back:active{background:rgba(21,32,46,.05)}
+  .nav__back svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:1.8;
+                 stroke-linecap:round;stroke-linejoin:round}
+
+  /* 首页头：问候语 + 一行元信息 */
+  .greet{padding:8px 20px 0}
+  .greet__hi{font-size:26px;line-height:34px;font-weight:600;letter-spacing:-.03em}
+  .greet__meta{margin-top:8px;font-family:var(--mono);font-size:11px;line-height:16px;
+               letter-spacing:.04em;color:var(--ink-3)}
+  .greet__meta i{font-style:normal;color:var(--line-2);margin:0 6px}
+
+  /* ===== 状态 ===== */
+  .state{padding:20px 20px 0;font-size:12px;line-height:18px;font-weight:600;
+         color:var(--blue-700);letter-spacing:2px}
+  .state--warn{color:var(--amber-600)}
+  .state--danger{color:var(--red-600)}
+  .state--muted{color:var(--ink-3)}
+
+  /* ===== 时间块 ===== */
+  .timeblock{margin:12px 20px 0;padding:14px 0 16px;
+             border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .range{font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--ink-2)}
+  .range em{font-style:normal;color:var(--line-2);margin:0 5px}
+  .bigrow{display:flex;align-items:baseline;gap:14px;margin-top:8px}
+  .bigrow .part{display:inline-flex;align-items:baseline;gap:4px}
+  .bigrow .lb{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-3)}
+  .bigrow .v{font-family:var(--mono);font-size:46px;line-height:52px;font-weight:600;
+             letter-spacing:-.6px;color:var(--ink)}
+  .bigrow .u{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-3)}
+  .bigrow--danger .v{color:var(--red-600)}
+
+  /* 刻度尺 */
+  .ruler{position:relative;margin-top:26px}
+  .ruler__track{position:relative;height:40px;border-bottom:1px solid var(--line-2)}
+  .ruler__range{position:absolute;left:0;bottom:0;height:40px;width:0;z-index:1;
+    background:linear-gradient(180deg,rgba(37,99,201,0),rgba(37,99,201,.13));
+    border-bottom:2px solid var(--blue-500)}
+  .ruler--danger .ruler__range{background:linear-gradient(180deg,rgba(178,58,40,0),rgba(178,58,40,.12));
+    border-bottom-color:var(--red-600)}
+  .ruler__grid{position:absolute;inset:0;z-index:2;pointer-events:none;
+    background-image:linear-gradient(to right,rgba(21,32,46,.20) 1px,transparent 1px);
+    background-size:calc(100% / 12) 8px;background-repeat:repeat-x;background-position:left bottom}
+  .ruler__grid::after{content:"";position:absolute;left:0;right:0;bottom:0;height:15px;
+    background-image:linear-gradient(to right,rgba(21,32,46,.34) 1px,transparent 1px);
+    background-size:calc(100% / 6) 15px;background-repeat:repeat-x}
+  .ruler__now{position:absolute;bottom:0;width:2px;height:40px;background:var(--blue-600);z-index:3}
+  .ruler--danger .ruler__now{background:var(--red-600)}
+  .ruler__now::after{content:"";position:absolute;left:-3px;top:-3px;width:8px;height:8px;background:inherit}
+  .ruler__nowlab{position:absolute;top:-19px;transform:translateX(-50%);
+    font-family:var(--mono);font-size:11px;color:var(--blue-600);white-space:nowrap}
+  .ruler--danger .ruler__nowlab{color:var(--red-600)}
+  .ruler__labs{display:flex;justify-content:space-between;margin-top:8px}
+  .ruler__labs span{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em;
+                    transform:translateX(-50%)}
+  .ruler__labs span:first-child{transform:none}
+  .ruler__labs span:last-child{transform:translateX(-100%)}
+  .reads{display:flex;justify-content:space-between;margin-top:12px;
+         font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .reads b{font-weight:600;color:var(--ink)}
+
+  /* 四步流程 */
+  .flow{display:flex;margin-top:18px}
+  .flow__s{flex:1;position:relative;padding-top:16px}
+  .flow__s::before{content:"";position:absolute;left:0;right:0;top:4px;height:1.5px;background:var(--line-2)}
+  .flow__s:first-child::before{left:9px}
+  .flow__s:last-child::before{display:none}
+  .flow__s.is-done::before{background:var(--ink)}
+  .flow__d{position:absolute;left:0;top:0;width:9px;height:9px;border-radius:50%;
+           background:var(--paper);border:1.5px solid var(--line-2);box-sizing:border-box}
+  .flow__s.is-done .flow__d{background:var(--ink);border-color:var(--ink)}
+  .flow__s.is-now .flow__d{background:var(--paper);border-color:var(--ink);border-width:2px;
+                           box-shadow:0 0 0 3px rgba(21,32,46,.08)}
+  .flow__t{display:block;font-size:12px;line-height:18px;font-weight:600;color:var(--ink-3)}
+  .flow__s.is-done .flow__t,.flow__s.is-now .flow__t{color:var(--ink)}
+  .flow__s2{display:block;margin-top:1px;font-family:var(--mono);font-size:10px;
+            line-height:16px;color:var(--ink-3);white-space:nowrap}
+
+  /* ===== 提示条 ===== */
+  .notice{margin:12px 20px 0;padding:9px 12px;border-left:2px solid var(--red-600);
+          background:var(--red-50);font-size:12px;line-height:19px;color:var(--red-600)}
+
+  /* ===== 操作 ===== */
+  .action{padding:18px 20px 0}
+  .cta{display:flex;align-items:center;justify-content:center;width:100%;height:48px;
+       border:1px solid var(--ink);border-radius:var(--r);background:var(--ink);color:#FCFBF8;
+       font-size:14px;font-weight:600;letter-spacing:.02em;
+       transition:background .18s,transform .12s}
+  .cta:active{background:#050A11;transform:translateY(1px)}
+  .cta--ghost{background:transparent;color:var(--ink);border-color:var(--line-2)}
+  .cta--ghost:active{background:var(--paper-2)}
+  .sub{display:flex;align-items:center;justify-content:center;width:100%;height:44px;margin-top:2px;
+       font-size:13px;font-weight:500;color:var(--ink-2);
+       text-decoration:underline;text-decoration-color:#B9B2A3;
+       text-underline-offset:4px;text-decoration-thickness:1px}
+  .sub--danger{color:var(--red-600)}
+  .links{display:flex;align-items:center;justify-content:center;gap:0;margin-top:4px}
+  .links button{padding:10px 14px;font-size:13px;line-height:20px;color:var(--ink-2);font-weight:500}
+  .links button.is-danger{color:var(--red-600)}
+  .links .div{width:1px;height:11px;background:var(--line-2)}
+
+  .facts{padding:8px 20px 0;font-size:12px;line-height:20px;color:var(--ink-3);
+         display:flex;flex-wrap:wrap;gap:4px 10px}
+  .facts b{font-weight:500;color:var(--ink-2)}
+  .facts .dot{color:var(--line-2)}
+
+  /* ===== 区块 / 台账行 ===== */
+  .sec{display:flex;align-items:baseline;justify-content:space-between;padding:24px 20px 4px}
+  .sec h2{margin:0;font-size:14px;line-height:20px;font-weight:600;letter-spacing:.02em}
+  .sec button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-3)}
+  .rec{display:flex;align-items:center;gap:12px;height:48px;margin:0 20px;padding:0;
+       border-bottom:1px solid var(--line);width:calc(100% - 40px);text-align:left}
+  .rec__d{flex:0 0 38px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .rec__t{flex:1;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rec__s{font-size:12px;color:var(--ink-3)}
+  .rec:active{background:rgba(21,32,46,.03)}
+
+  /* ===== 空态 / 概览 ===== */
+  .empty{margin:12px 20px 0;padding:18px 0 4px;border-top:1px solid var(--line)}
+  .empty__t{font-size:22px;line-height:30px;font-weight:600;letter-spacing:-.02em}
+  .hint{margin:16px 0 0;font-size:12px;line-height:20px;color:var(--ink-3)}
+  .overview{margin:26px 20px 0;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .ov__t{font-size:12px;line-height:18px;color:var(--ink-3)}
+  .ov__r{display:flex;margin-top:12px}
+  .ov__r>div{flex:1;display:flex;align-items:baseline;gap:3px;min-width:0}
+  .ov__r span{font-size:11px;line-height:16px;color:var(--ink-3);white-space:nowrap}
+  .ov__r b{font-family:var(--mono);font-size:21px;line-height:26px;font-weight:600;color:var(--ink)}
+  .ov__r i{font-style:normal;font-size:11px;line-height:16px;color:var(--ink-3)}
+
+  /* 须知（零记录时） */
+  .rules{margin:8px 20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .rule{display:flex;gap:14px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--line)}
+  .rule:last-child{border-bottom:0}
+  .rule i{flex:0 0 18px;font-family:var(--mono);font-style:normal;font-size:11px;
+          letter-spacing:.06em;color:var(--ink-4)}
+  .rule span{font-size:13px;line-height:20px;color:var(--ink-2)}
+  .rules-note{margin:10px 20px 0;font-size:11px;line-height:18px;color:var(--ink-3)}
+
+  /* ===== 场景卡 ===== */
+  .picks{display:flex;gap:12px;margin:20px 0 0}
+  .pick{flex:1;display:block;text-align:left;padding:14px;
+        border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
+        transition:border-color .18s,background .16s,transform .2s var(--ease)}
+  .pick:active{transform:scale(.985)}
+  .pick.is-on{border-color:var(--blue-500);background:var(--blue-50)}
+  .pick svg{width:22px;height:22px;fill:none;stroke:var(--blue-600);stroke-width:1.6;
+            stroke-linecap:round;stroke-linejoin:round}
+  .pick b{display:block;margin-top:10px;font-size:15px;line-height:22px;font-weight:600}
+  .pick span{display:block;margin-top:2px;font-size:11px;line-height:17px;color:var(--ink-3)}
+
+  /* ===== 表单 ===== */
+  .field{margin:22px 20px 0}
+  .field__label{display:flex;align-items:baseline;justify-content:space-between;
+                font-size:13px;line-height:20px;font-weight:500;color:var(--ink-2);margin-bottom:10px}
+  .field__label i{font-style:normal;font-size:11px;color:var(--ink-4)}
+  .field__err{font-size:12px;line-height:18px;color:var(--red-600);margin-top:6px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .seg button{flex:1;height:42px;font-size:14px;color:var(--ink-2);background:var(--surface);
+              border-right:1px solid var(--line);transition:background .16s,color .16s}
+  .seg button:last-child{border-right:0}
+  .seg button.is-on{background:var(--ink);color:#FCFBF8;font-weight:600}
+  .rows{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+       min-height:52px;padding:0 14px;border-bottom:1px solid var(--line);text-align:left}
+  .row:last-child{border-bottom:0}
+  .row:active{background:var(--paper-2)}
+  .row__k{font-size:13.5px;color:var(--ink-2);flex:0 0 auto}
+  .row__v{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;
+          font-variant-numeric:tabular-nums}
+  .row__v.is-empty{color:var(--ink-4);font-weight:400}
+  .row__v svg{width:14px;height:14px;fill:none;stroke:var(--line-2);stroke-width:2;
+              stroke-linecap:round;stroke-linejoin:round}
+  .textwrap{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px 14px}
+  textarea{width:100%;min-height:78px;resize:none;border:0;outline:none;background:none;
+           font-family:inherit;font-size:14px;line-height:22px;color:var(--ink)}
+  textarea::placeholder{color:var(--ink-4)}
+  .count{margin-top:4px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+  input[type=text],input[type=tel]{flex:1;border:0;outline:none;background:none;text-align:right;
+    font-family:inherit;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+  input::placeholder{color:var(--ink-4)}
+  
+
+  /* ===== 详情 ===== */
+  .tl{padding:16px;border:1px solid var(--line);border-radius:var(--r);margin:0 20px}
+  .tl__i{position:relative;padding-left:22px;padding-bottom:18px}
+  .tl__i:last-child{padding-bottom:0}
+  .tl__i::before{content:"";position:absolute;left:0;top:5px;width:8px;height:8px;border-radius:50%;
+    background:var(--paper);border:1.5px solid var(--line-2);box-sizing:border-box}
+  .tl__i.is-done::before{background:var(--ink);border-color:var(--ink)}
+  .tl__i.is-now::before{background:var(--paper);border-color:var(--ink);border-width:2px;
+                        box-shadow:0 0 0 3px rgba(21,32,46,.08)}
+  .tl__l{position:absolute;left:3.5px;top:14px;bottom:2px;width:1px;background:var(--line)}
+  .tl__i:last-child .tl__l{display:none}
+  .tl__t{font-size:14px;line-height:22px;font-weight:500}
+  .tl__i.is-idle .tl__t{color:var(--ink-3)}
+  .tl__s{margin-top:1px;font-family:var(--mono);font-size:11px;line-height:18px;color:var(--ink-3)}
+  .kv{margin:0 20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .kv__r{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:22px}
+  .kv__r:last-child{border-bottom:0}
+  .kv__k{flex:0 0 76px;font-size:13px;color:var(--ink-2)}
+  .kv__v{flex:1;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+  .kv__r--stack{display:block}
+  .kv__r--stack .kv__k{flex:none}
+  .kv__r--stack .kv__v{text-align:left;font-weight:400;margin-top:4px;line-height:23px}
+  .actionbar{flex:0 0 auto;padding:10px 20px 12px;border-top:1px solid var(--line);background:var(--paper)}
+
+  /* ===== 记录页 ===== */
+  .filters{display:flex;gap:8px;overflow-x:auto;padding:4px 20px 12px;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;height:30px;padding:0 12px;border:1px solid var(--line);border-radius:15px;
+        background:var(--surface);font-size:12.5px;color:var(--ink-2);transition:all .16s}
+  .chip.is-on{background:var(--ink);border-color:var(--ink);color:#FCFBF8}
+  .card{width:calc(100% - 40px);margin:0 20px 10px;padding:13px 14px;text-align:left;
+        border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+  .card:active{background:var(--paper-2)}
+  .card__top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .card__no{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink-4)}
+  .card__s{font-size:12px;color:var(--ink-3)}
+  .card__s--danger{color:var(--red-600)}
+  .card__s--warn{color:var(--amber-600)}
+  .card__r{margin-top:6px;font-family:var(--mono);font-size:14px;font-weight:600;
+           font-variant-numeric:tabular-nums}
+  .card__r em{font-style:normal;color:var(--line-2);margin:0 4px;font-weight:400}
+  .card__sub{margin-top:3px;font-size:12px;line-height:18px;color:var(--ink-3);
+             overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ===== 消息 ===== */
+  .msg{display:flex;gap:12px;padding:15px 20px;border-bottom:1px solid var(--line)}
+  .msg__b{flex:1;min-width:0}
+  .msg__t{font-size:14px;line-height:20px;font-weight:600}
+  .msg__t .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+               background:var(--red-600);vertical-align:2px;margin-left:6px}
+  .msg__d{margin-top:3px;font-size:13px;line-height:20px;color:var(--ink-2)}
+  .msg__time{margin-top:5px;font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+
+  /* ===== 我的 ===== */
+  .me{display:flex;align-items:center;gap:14px;padding:18px 20px 20px}
+  .me__av{width:54px;height:54px;border-radius:50%;background:var(--blue-50);color:var(--blue-700);
+          display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600}
+  .me__n{font-size:17px;line-height:24px;font-weight:600}
+  .me__s{margin-top:2px;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);margin:0 20px;padding:16px 0;
+         border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .stats div{text-align:center;border-right:1px solid var(--line)}
+  .stats div:last-child{border-right:0}
+  .stats b{display:block;font-family:var(--mono);font-size:20px;line-height:28px;font-weight:600}
+  .stats span{display:block;margin-top:2px;font-size:11px;color:var(--ink-3)}
+
+  /* ===== tabBar ===== */
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:52px;display:flex;
+    background:rgba(251,250,247,.94);
+    -webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);
+    border-top:1px solid var(--line);transition:transform .28s var(--ease)}
+  .tabbar.is-hidden{transform:translateY(100%)}
+  .tab{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+       gap:2px;font-size:10px;line-height:12px;color:var(--ink-3);letter-spacing:.04em}
+  .tab svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;
+           stroke-linecap:round;stroke-linejoin:round}
+  .tab.on{color:var(--blue-600)}
+  .tab.on::before{content:"";position:absolute;top:0;width:20px;height:2px;background:var(--blue-600)}
+  .tab .pill{position:absolute;top:5px;right:calc(50% - 16px);min-width:14px;height:14px;padding:0 3px;
+             border-radius:7px;background:var(--red-600);color:#fff;font-size:9px;line-height:14px;
+             text-align:center;font-weight:600}
+
+  /* ===== 浮层 ===== */
+  .layer{position:absolute;inset:0;z-index:60;pointer-events:none}
+  .layer.is-on{pointer-events:auto}
+  .mask{position:absolute;inset:0;background:rgba(21,32,46,.34);opacity:0;transition:opacity .2s}
+  .mask.is-on{opacity:1}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);
+         border-radius:16px 16px 0 0;padding:18px 20px 24px;
+         transform:translateY(100%);transition:transform .28s var(--ease);max-height:78%;
+         display:flex;flex-direction:column}
+  .sheet.is-on{transform:translateY(0)}
+  .sheet__t{font-size:16px;line-height:24px;font-weight:600;text-align:center;margin-bottom:14px}
+  .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+  .quick button{height:38px;border:1px solid var(--line);border-radius:var(--r);
+                font-size:13px;color:var(--ink-2);background:var(--surface)}
+  .quick button.is-on{border-color:var(--blue-500);color:var(--blue-700);background:var(--blue-50)}
+  .dt{display:flex;gap:10px}
+  .dt label{flex:1}
+  .dt span{display:block;font-size:11px;color:var(--ink-3);margin-bottom:6px}
+  .dt input{width:100%;height:44px;border:1px solid var(--line);border-radius:var(--r);
+            padding:0 10px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--surface)}
+  .dlg{position:absolute;left:50%;top:50%;width:280px;transform:translate(-50%,-48%) scale(.96);
+       background:var(--surface);border-radius:12px;padding:20px 20px 0;opacity:0;
+       transition:opacity .18s,transform .22s var(--ease)}
+  .dlg.is-on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .dlg__t{font-size:16px;line-height:24px;font-weight:600;text-align:center}
+  .dlg__d{margin-top:8px;font-size:13.5px;line-height:21px;color:var(--ink-2);text-align:center}
+  .dlg__b{display:flex;margin-top:18px;border-top:1px solid var(--line)}
+  .dlg__b button{flex:1;height:48px;font-size:15px;color:var(--ink-2)}
+  .dlg__b button+button{border-left:1px solid var(--line);color:var(--ink);font-weight:600}
+  .dlg__b button.is-danger{color:var(--red-600)}
+  .toast{position:absolute;left:50%;bottom:92px;transform:translate(-50%,8px);
+         background:rgba(21,32,46,.92);color:#FCFBF8;font-size:13px;line-height:20px;
+         padding:9px 16px;border-radius:6px;opacity:0;transition:opacity .2s,transform .24s;
+         max-width:280px;text-align:center}
+  .toast.is-on{opacity:1;transform:translate(-50%,0)}
+  .loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+           justify-content:center;gap:14px;background:rgba(251,250,247,.94);
+           opacity:0;pointer-events:none;transition:opacity .2s}
+  .loading.is-on{opacity:1;pointer-events:auto}
+  .spin{width:28px;height:28px;border-radius:50%;border:2px solid var(--line-2);
+        border-top-color:var(--ink);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading p{font-size:13px;color:var(--ink-2)}
+
+  /* ===== 定位校验 ===== */
+  .checkin{flex:1;display:flex;flex-direction:column;align-items:center;
+           padding:0 20px 26px;text-align:center}
+  .checkin__main{margin:auto 0;display:flex;flex-direction:column;align-items:center;width:100%}
+  .checkin__note{font-size:11px;line-height:18px;color:var(--ink-4);max-width:280px}
+  .radar{position:relative;width:168px;height:168px;margin:8px 0 30px}
+  .radar__ring{position:absolute;inset:0;border:1px solid var(--line);border-radius:50%}
+  .radar__ring--in{inset:34px;border-color:var(--line-2)}
+  .radar__pulse{position:absolute;inset:52px;border-radius:50%;background:var(--blue-500);opacity:.1;
+                animation:pulse 1.8s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(.7);opacity:.16}100%{transform:scale(2.1);opacity:0}}
+  .radar__core{position:absolute;inset:52px;border-radius:50%;background:var(--blue-50);
+               display:flex;align-items:center;justify-content:center}
+  .radar__core svg{width:30px;height:30px;fill:none;stroke:var(--blue-600);stroke-width:1.8;
+                   stroke-linecap:round;stroke-linejoin:round}
+  .radar--ok .radar__pulse{display:none}
+  .radar--ok .radar__core{background:var(--paper-2)}
+  .radar--ok .radar__core svg{stroke:var(--ink)}
+  .radar--fail .radar__pulse{animation:none;opacity:0}
+  .radar--fail .radar__core{background:var(--red-50)}
+  .radar--fail .radar__core svg{stroke:var(--red-600)}
+  .checkin h2{margin:0;font-size:20px;line-height:28px;font-weight:600;letter-spacing:-.02em}
+  .checkin p{margin:10px 0 0;font-size:13px;line-height:21px;color:var(--ink-2);max-width:280px}
+  .checkin__foot{width:100%}
+  .checkin__meta{margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-4)}
+
+  .panel__lab{margin-top:2px;font-size:10px;letter-spacing:.14em;color:var(--ink-4)}
+  .panel__seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .panel__seg button{flex:1;height:32px;font-size:12px;color:var(--ink-2)}
+  .panel__seg button+button{border-left:1px solid var(--line)}
+  .panel__seg button.is-on{background:var(--ink);color:#FCFBF8}
+
+  /* ===== 演示面板（手机外） ===== */
+  .panel{width:210px;flex:0 0 auto;display:flex;flex-direction:column;gap:8px;
+         padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+  .panel h3{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);
+            font-weight:400;margin-bottom:2px}
+  .panel__b{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;
+            border:1px solid var(--line);border-radius:6px;font-size:13px;color:var(--ink-2);text-align:left}
+  .panel__b:hover{border-color:var(--line-2)}
+  .panel__b.is-on{background:var(--ink);border-color:var(--ink);color:#FCFBF8}
+  .panel p{font-size:11px;line-height:17px;color:var(--ink-4)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);
+           font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:#8E887B}
+
+  @media (max-width:900px){ .panel{display:none} .caption{display:none} }
+  @media (max-width:520px){
+    body{padding:0;overflow:auto}
+    .phone{width:100%;height:100dvh;border-radius:0}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important;animation-duration:.01ms !important}}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="statusbar">
+    <span class="mono" id="clock">14:30</span>
+    <span class="sb">
+      <span class="bars"><i></i><i></i><i></i><i></i></span>
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none">
+        <path d="M1 3.6a8.6 8.6 0 0 1 13 0" stroke="#15202E" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M3.4 6.2a5.4 5.4 0 0 1 8.2 0" stroke="#15202E" stroke-width="1.3" stroke-linecap="round"/>
+        <circle cx="7.5" cy="8.9" r="1.1" fill="#15202E"/>
+      </svg>
+      <svg width="24" height="11" viewBox="0 0 24 11" fill="none">
+        <rect x="0.5" y="0.9" width="20" height="9.2" rx="2.4" stroke="#15202E" stroke-opacity=".35"/>
+        <rect x="2" y="2.4" width="15" height="6.2" rx="1.2" fill="#15202E"/>
+        <path d="M22.4 3.6v3.8" stroke="#15202E" stroke-opacity=".4" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </div>
+
+  <div class="viewport" id="viewport"></div>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab is-on" data-tab="home">
+      <svg viewBox="0 0 24 24"><path d="M3.6 10.6 12 3.8l8.4 6.8V20a.9.9 0 0 1-.9.9h-4.7v-5.8H9.2v5.8H4.5a.9.9 0 0 1-.9-.9z"/></svg><span>首页</span>
+    </button>
+    <button class="tab" data-tab="records">
+      <svg viewBox="0 0 24 24"><path d="M6 3.8h9l4.2 4.2V20a.9.9 0 0 1-.9.9H6a.9.9 0 0 1-.9-.9V4.7a.9.9 0 0 1 .9-.9z"/><path d="M14.8 4v4.2H19M8.6 12.4h7M8.6 16.2h4.6"/></svg><span>记录</span>
+    </button>
+    <button class="tab" data-tab="messages">
+      <svg viewBox="0 0 24 24"><path d="M12 3.6a5.6 5.6 0 0 0-5.6 5.6v3.6L4.8 16h14.4l-1.6-3.2V9.2A5.6 5.6 0 0 0 12 3.6z"/><path d="M9.8 19.4a2.4 2.4 0 0 0 4.4 0"/></svg><span>消息</span>
+      <i class="pill" id="msgPill">1</i>
+    </button>
+    <button class="tab" data-tab="mine">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="3.8"/><path d="M4.8 20.4v-.8a7.2 7.2 0 0 1 14.4 0v.8"/></svg><span>我的</span>
+    </button>
+  </nav>
+
+  <div class="layer" id="layer"></div>
+</div>
+
+<aside class="panel">
+  <h3>演 示</h3>
+  <button class="panel__b is-on" data-demo="progress"><span class="mono">A</span> 请假中</button>
+  <button class="panel__b" data-demo="pending"><span class="mono">B</span> 待审批</button>
+  <button class="panel__b" data-demo="overdue"><span class="mono">C</span> 逾期未销假</button>
+  <button class="panel__b" data-demo="empty"><span class="mono">D</span> 当前无请假</button>
+  <button class="panel__b" data-demo="fresh"><span class="mono">E</span> 零记录（首次）</button>
+  <div class="panel__lab">定 位 结 果</div>
+  <div class="panel__seg"><button data-loc="ok" class="is-on">通过</button><button data-loc="fail">范围外</button></div>
+  <p>切状态只改首页主卡，其余页面数据不变。</p>
+</aside>
+
+<p class="caption">CAMPUS LEAVE · 学生端</p>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= 1. 数据 ================= */
+const STUDENT = { name: '张同学', sid: '202301001001', cls: '计算机2201班', phone: '138****6621', teacher: '李老师' };
+const dt = (m, d, h, mi) => new Date(2026, m - 1, d, h, mi || 0, 0);
+
+const BASE_APPS = [
+  { id: 'CL20261020001', scene: 'OFF', type: 'PERSONAL', start: dt(10, 20, 8, 0), end: dt(10, 20, 20, 0),
+    status: 'APPROVED', submittedAt: dt(10, 19, 19, 40), approvedAt: dt(10, 19, 20, 15),
+    reason: '家中临时有事需返家处理，已与家长沟通。', dest: '本市 · 家中', phone: '138****6621', materials: 0 },
+  { id: 'CL20261020002', scene: 'OFF', type: 'SICK', start: dt(10, 21, 8, 0), end: dt(10, 22, 18, 0),
+    status: 'PENDING', submittedAt: dt(10, 20, 9, 2),
+    reason: '发热伴咽痛，已到市第一医院门诊就诊，需休息两天。', dest: '市第一医院', phone: '138****6621', materials: 2 },
+  { id: 'CL20261009003', scene: 'ON', type: 'SICK', start: dt(10, 9, 9, 0), end: dt(10, 9, 18, 0),
+    status: 'COMPLETED', submittedAt: dt(10, 8, 21, 10), approvedAt: dt(10, 9, 7, 40),
+    completedAt: dt(10, 9, 17, 40), reason: '校医院输液，需在宿舍休息。', dest: '—', phone: '138****6621', materials: 1 },
+  { id: 'CL20260928004', scene: 'OFF', type: 'PERSONAL', start: dt(9, 28, 14, 0), end: dt(9, 29, 12, 0),
+    status: 'REJECTED', submittedAt: dt(9, 28, 9, 30), approvedAt: dt(9, 28, 10, 20),
+    rejectReason: '当日有课程考核，请调整时间后重新提交。', reason: '需回家参加亲属婚礼。',
+    dest: '邻市', phone: '138****6621', materials: 0 },
+  { id: 'CL20260915005', scene: 'ON', type: 'OTHER', start: dt(9, 15, 10, 0), end: dt(9, 15, 16, 0),
+    status: 'WITHDRAWN', submittedAt: dt(9, 15, 8, 10), reason: '学院安排外出参加学科竞赛。',
+    dest: '—', phone: '138****6621', materials: 0 },
+  { id: 'CL20260902006', scene: 'OFF', type: 'PERSONAL', start: dt(9, 2, 13, 0), end: dt(9, 3, 18, 0),
+    status: 'COMPLETED', submittedAt: dt(9, 1, 20, 0), approvedAt: dt(9, 2, 8, 20),
+    completedAt: dt(9, 3, 17, 10), reason: '参加校外实习面试。', dest: '本市 · 高新区',
+    phone: '138****6621', materials: 0 }
+];
+
+const BASE_MSGS = [
+  { t: '请假申请已通过', d: '李老师审批通过了你的离校请假（10.20 08:00 — 10.20 20:00）', time: '10.19 20:15', unread: true },
+  { t: '返校提醒', d: '你的请假 20:00 结束，返校后请完成定位销假', time: '10.20 12:00', unread: false },
+  { t: '请假申请被驳回', d: '09.28 离校事假：当日有课程考核，请调整时间后重新提交', time: '09.28 10:20', unread: false },
+  { t: '材料已提交', d: '病假证明材料 2 张已随申请提交', time: '10.19 19:41', unread: false }
+];
+
+const state = {
+  now: dt(10, 20, 14, 30),
+  tab: 'home',
+  stack: [],
+  filter: 'ALL',
+  form: null,
+  demo: 'progress',
+  heroId: null,
+  checkin: null,
+  locResult: 'ok',
+  apps: BASE_APPS.map(a => Object.assign({}, a)),
+  messages: BASE_MSGS.map(m => Object.assign({}, m))
+};
+
+/* ================= 2. 工具 ================= */
+const pad = n => (n < 10 ? '0' + n : '' + n);
+const md = d => pad(d.getMonth() + 1) + '.' + pad(d.getDate());
+const hm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const mdhm = d => md(d) + ' ' + hm(d);
+const mdCN = d => (d.getMonth() + 1) + '月' + d.getDate() + '日';
+const wk = d => '周' + '日一二三四五六'[d.getDay()];
+const TYPE = { SICK: '病假', PERSONAL: '事假', OTHER: '其他' };
+const SCENE = { OFF: '离校', ON: '校内' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const apps = () => (state.demo === 'fresh' ? [] : state.apps);
+const byId = id => apps().filter(a => a.id === id)[0];
+
+function displayStatus(a) {
+  if (a.status !== 'APPROVED') return a.status;
+  if (state.now < a.start) return 'APPROVED';
+  if (state.now <= a.end) return 'IN_PROGRESS';
+  return 'OVERDUE';
+}
+const isOverdue = a => displayStatus(a) === 'OVERDUE';
+
+function parts(ms) {
+  ms = Math.max(0, ms);
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+  if (d > 0) return [{ n: d, u: '天' }, { n: h, u: '小时' }];
+  if (h > 0) return [{ n: h, u: '小时' }, { n: mi, u: '分' }];
+  return [{ n: mi, u: '分钟' }];
+}
+function partsText(ms) {
+  const ps = parts(ms).filter(p => p.n > 0);
+  return (ps.length ? ps : parts(ms)).map(p => p.n + ' ' + p.u).join(' ');
+}
+function rank(a) {
+  const s = displayStatus(a);
+  if (s === 'IN_PROGRESS' || s === 'OVERDUE') return 0;
+  if (s === 'PENDING') return 1;
+  if (s === 'APPROVED') return 2;
+  return 3;
+}
+const sorted = () => apps().slice().sort((a, b) => rank(a) - rank(b) || b.start - a.start);
+
+function heroApp() {
+  if (state.demo === 'empty' || state.demo === 'fresh') return null;
+  if (state.heroId) return byId(state.heroId) || null;
+  return sorted()[0] || null;
+}
+const unread = () => (state.demo === 'fresh' ? 0 : state.messages.filter(m => m.unread).length);
+
+/* ================= 3. 组件 ================= */
+function navHTML(o) {
+  o = o || {};
+  return '<div class="nav">' +
+    (o.back ? '<button class="nav__back" data-act="back" aria-label="返回"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>' : '') +
+    '<div class="nav__t">' + esc(o.title || '') + '</div></div>';
+}
+function sealHTML(ds) {
+  const map = {
+    IN_PROGRESS: ['请假中', 'var(--blue-700)'], PENDING: ['待审批', 'var(--amber-600)'],
+    APPROVED: ['已通过', 'var(--teal-600)'], OVERDUE: ['逾期', 'var(--red-600)'],
+    COMPLETED: ['已销假', 'var(--ink-3)'], REJECTED: ['已驳回', 'var(--red-600)'],
+    WITHDRAWN: ['已撤回', 'var(--ink-3)'], CANCELLED: ['已取消', 'var(--ink-3)']
+  };
+  const m = map[ds] || map.PENDING;
+  return '<span style="font-size:12px;color:' + m[1] + ';letter-spacing:1px">' + m[0] + '</span>';
+}
+function rulerHTML(a, danger) {
+  const total = a.end - a.start;
+  const pct = danger ? 1 : Math.max(0, Math.min(1, (state.now - a.start) / total));
+  const sameDay = a.start.toDateString() === a.end.toDateString();
+  let labs = '';
+  for (let i = 0; i < 7; i++) {
+    const t = new Date(a.start.getTime() + total * i / 6);
+    labs += '<span>' + (sameDay ? pad(t.getHours()) : md(t)) + '</span>';
+  }
+  return '<div class="ruler' + (danger ? ' ruler--danger' : '') + '">' +
+    '<div class="ruler__track">' +
+      '<div class="ruler__range" style="width:' + (pct * 100).toFixed(1) + '%"></div>' +
+      '<div class="ruler__grid"></div>' +
+      '<div class="ruler__now" style="left:' + (pct * 100).toFixed(1) + '%"></div>' +
+    '</div>' +
+    '<span class="ruler__nowlab" style="left:' + (pct * 100).toFixed(1) + '%;' +
+      (pct > .88 ? 'transform:translateX(-100%)' : pct < .12 ? 'transform:none' : '') + '">现在 ' + hm(state.now) + '</span>' +
+    '<div class="ruler__labs">' + labs + '</div>' +
+  '</div>';
+}
+function flowHTML(a) {
+  const ds = displayStatus(a);
+  const done1 = true;
+  const now2 = ds === 'PENDING';
+  const done4 = ds === 'COMPLETED';
+  const started = ['IN_PROGRESS', 'OVERDUE', 'COMPLETED'].indexOf(ds) >= 0;
+  const steps = [
+    { t: '提交', s: mdhm(a.submittedAt), st: 'is-done' },
+    { t: '审批', s: now2 ? '处理中' : '已通过', st: now2 ? 'is-now' : 'is-done' },
+    { t: '生效', s: started ? '已生效' : md(a.start), st: started ? 'is-done' : '' },
+    { t: '销假', s: done4 ? md(a.completedAt) : '—', st: done4 ? 'is-done' : '' }
+  ];
+  return '<div class="flow">' + steps.map(s =>
+    '<div class="flow__s ' + s.st + '"><i class="flow__d"></i><b class="flow__t">' + s.t + '</b>' +
+    '<span class="flow__s2">' + s.s + '</span></div>').join('') + '</div>';
+}
+function clockText(ms) {
+  ms = Math.max(0, ms);
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+  if (h >= 24) { const d = Math.floor(h / 24); return d + '天 ' + (h % 24) + '时'; }
+  return h + ':' + pad(m);
+}
+function bigNum(lb, ms, danger) {
+  return '<div class="bigrow' + (danger ? ' bigrow--danger' : '') + '"><span class="lb">' + lb + '</span>' +
+    '<span class="v">' + clockText(ms) + '</span>' +
+    '<span class="u">小时 : 分</span></div>';
+}
+function rulesHTML() {
+  const list = [
+    '离校请假，返校后需在校区范围内定位销假',
+    '校内请假，结束后由本人确认完成',
+    '病假申请需随单上传就诊材料',
+    '续假需重新提交申请并等待审批'
+  ];
+  return '<div class="sec" style="margin-top:26px"><h2>请假须知</h2></div>' +
+    '<div class="rules">' + list.map((r, i) =>
+      '<div class="rule"><i>' + pad(i + 1) + '</i><span>' + r + '</span></div>').join('') + '</div>' +
+    '<p class="rules-note">以上须知由管理员端实时增改，保存后即时生效</p>';
+}
+function bigText(t, muted) {
+  return '<div style="margin-top:8px;font-size:21px;line-height:30px;font-weight:600;' +
+    'letter-spacing:-.3px;' + (muted ? 'color:var(--ink-2)' : '') + '">' + esc(t) + '</div>';
+}
+function factsHTML(pairs) {
+  return '<div class="facts">' + pairs.join('<span class="dot">·</span>') + '</div>';
+}
+function recRow(a) {
+  const ds = displayStatus(a);
+  const map = { IN_PROGRESS: '请假中', PENDING: '待审批', APPROVED: '已通过', OVERDUE: '逾期',
+    COMPLETED: '已销假', REJECTED: '已驳回', WITHDRAWN: '已撤回', CANCELLED: '已取消' };
+  return '<button class="rec" data-act="open" data-id="' + a.id + '">' +
+    '<span class="rec__d">' + md(a.start) + '</span>' +
+    '<span class="rec__t">' + TYPE[a.type] + ' · ' + SCENE[a.scene] + '</span>' +
+    '<span class="rec__s">' + map[ds] + '</span></button>';
+}
+function overviewHTML() {
+  const list = apps();
+  if (!list.length) return '';
+  const off = list.filter(a => a.scene === 'OFF').length, on = list.length - off;
+  const totalMin = list.reduce((s, a) => s + (a.end - a.start) / 60000, 0);
+  const avg = (totalMin / list.length / 1440).toFixed(1);
+  return '<div class="overview"><div class="ov__t">本学期请假</div>' +
+    '<div class="ov__r">' +
+    '<div><span>离校</span><b>' + off + '</b><i>次</i></div>' +
+    '<div><span>校内</span><b>' + on + '</b><i>次</i></div>' +
+    '<div><span>平均</span><b>' + avg + '</b><i>天</i></div>' +
+    '</div></div>';
+}
+function recordsBlock(limit) {
+  const closed = apps().filter(a => ['COMPLETED', 'REJECTED', 'WITHDRAWN', 'CANCELLED'].indexOf(displayStatus(a)) >= 0);
+  const list = (closed.length ? closed : apps()).slice().sort((x, y) => y.start - x.start);
+  const show = limit ? list.slice(0, limit) : list;
+  if (!show.length) return '';
+  return '<div class="sec"><h2>最近记录</h2><button data-act="go-records">全部记录</button></div>' +
+    show.map(recRow).join('');
+}
+
+/* ================= 4. 屏幕 ================= */
+function homeScreen() {
+  const a = heroApp();
+  let body = '';
+
+  if (!a) {
+    body = '<div class="state">今天没有请假</div>' +
+      '<div class="empty">' +
+        '<div class="empty__t">要离校，还是只在校内活动？</div>' +
+        '<div class="picks">' +
+          '<button class="pick" data-act="apply" data-scene="OFF">' +
+            '<svg viewBox="0 0 24 24"><path d="M5.4 20.6V4.4a1 1 0 0 1 1-1h9.2a1 1 0 0 1 1 1v16.2"/><path d="M2.8 20.6h18.4"/><path d="M12.6 12.2h.01"/></svg>' +
+            '<b>离校请假</b><span>返校定位销假</span></button>' +
+          '<button class="pick" data-act="apply" data-scene="ON">' +
+            '<svg viewBox="0 0 24 24"><path d="M4.4 20.6V6.2L12 3.4l7.6 2.8v14.4"/><path d="M2.8 20.6h18.4"/><path d="M9.4 20.6v-4.4h5.2v4.4"/></svg>' +
+            '<b>校内请假</b><span>结束后自主确认</span></button>' +
+        '</div>' +
+        '<div class="hint">提交后由辅导员审批。</div>' +
+      '</div>' +
+      (apps().length ? overviewHTML() + recordsBlock(3) : rulesHTML());
+  } else {
+    const ds = displayStatus(a);
+    let stateCls = '', block = '', act = '', facts = [];
+
+    if (ds === 'IN_PROGRESS') {
+      block = '<div class="range">' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+        bigNum('还剩', a.end - state.now) + rulerHTML(a, false) +
+        '<div class="reads"><span>已过 <b>' + partsText(state.now - a.start) + '</b></span>' +
+        '<span>共 <b>' + partsText(a.end - a.start) + '</b></span></div>';
+      act = '<div class="action"><button class="cta" data-act="checkout" data-id="' + a.id + '">' +
+        (a.scene === 'OFF' ? '返校定位并销假' : '确认结束本次请假') + '</button>' +
+        '<div class="links"><button data-act="extend" data-id="' + a.id + '">申请续假</button>' +
+        '<span class="div"></span><button data-act="open" data-id="' + a.id + '">查看详情</button></div></div>';
+      facts = ['审批 <b>' + STUDENT.teacher + '</b> ' + mdhm(a.approvedAt), '销假 <b>' + (a.scene === 'OFF' ? '返校定位' : '自主确认') + '</b>'];
+    } else if (ds === 'OVERDUE') {
+      stateCls = ' state--danger';
+      block = '<div class="range">' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+        bigNum('逾期', state.now - a.end, true) + rulerHTML(a, true) +
+        '<div class="reads"><span><b>' + hm(a.end) + '</b> 已到期</span><span>未销假</span></div>';
+      act = '<div class="action"><button class="cta" data-act="checkout" data-id="' + a.id + '">立即补销假</button></div>';
+      facts = ['审批 <b>' + STUDENT.teacher + '</b> ' + mdhm(a.approvedAt)];
+    } else if (ds === 'PENDING') {
+      stateCls = ' state--warn';
+      block = '<div class="range">申请区间 ' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+        bigNum('已等待', state.now - a.submittedAt) + flowHTML(a);
+      act = '<div class="action"><button class="cta cta--ghost" data-act="open" data-id="' + a.id + '">查看申请详情</button>' +
+        '<div class="links"><button class="is-danger" data-act="withdraw" data-id="' + a.id + '">撤回申请</button></div></div>';
+      facts = ['提交 <b>' + mdhm(a.submittedAt) + '</b>', '审批 <b>' + STUDENT.teacher + '</b>'];
+    } else if (ds === 'APPROVED') {
+      block = '<div class="range">' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+        bigNum('还有', a.start - state.now) +
+        '<div class="reads"><span>' + mdCN(a.start) + ' ' + hm(a.start) + ' 开始</span><span>共 ' + partsText(a.end - a.start) + '</span></div>';
+      act = '<div class="action"><button class="cta cta--ghost" data-act="open" data-id="' + a.id + '">查看申请详情</button>' +
+        '<div class="links"><button class="is-danger" data-act="cancel" data-id="' + a.id + '">取消申请</button></div></div>';
+      facts = ['审批 <b>' + STUDENT.teacher + '</b> ' + mdhm(a.approvedAt), '销假 <b>' + (a.scene === 'OFF' ? '返校定位' : '自主确认') + '</b>'];
+    } else {
+      stateCls = (ds === 'REJECTED') ? ' state--danger' : ' state--muted';
+      block = '<div class="range">' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+        bigText(ds === 'COMPLETED' ? '本次请假已完成' : ds === 'REJECTED' ? '申请未通过' : '本次申请已关闭', true);
+      if (ds === 'REJECTED') block += '<div class="notice" style="margin:12px 0 0">' + esc(a.rejectReason) + '</div>';
+      act = '<div class="action"><button class="cta" data-act="apply">再请一次</button>' +
+        '<div class="links"><button data-act="open" data-id="' + a.id + '">查看详情</button></div></div>';
+      facts = ['审批 <b>' + STUDENT.teacher + '</b> ' + mdhm(a.approvedAt)];
+    }
+
+    const stateWord = ds === 'IN_PROGRESS' ? '请假中' : ds === 'OVERDUE' ? '已逾期' :
+      ds === 'PENDING' ? '待审批' : ds === 'APPROVED' ? '已通过' :
+      ds === 'COMPLETED' ? '已销假' : ds === 'REJECTED' ? '已驳回' : '已关闭';
+
+    body = '<div class="state' + stateCls + '">' + stateWord + ' · ' + SCENE[a.scene] + ' · ' + TYPE[a.type] + '</div>' +
+      '<div class="timeblock">' + block + '</div>' +
+      act + factsHTML(facts) + recordsBlock(3);
+  }
+
+  const h0 = state.now.getHours();
+  const hi = h0 >= 5 && h0 < 11 ? '早上好' : h0 >= 11 && h0 < 14 ? '中午好' :
+    h0 >= 14 && h0 < 18 ? '下午好' : h0 >= 18 && h0 < 23 ? '晚上好' : '夜深了';
+  return '<section class="screen">' +
+    '<div class="greet"><div class="greet__hi">' + hi + '，' + STUDENT.name + '</div>' +
+    '<div class="greet__meta">' + (state.now.getMonth() + 1) + '月' + state.now.getDate() + '日 ' + wk(state.now) +
+    '<i>·</i>晴 21°<i>·</i>' + STUDENT.cls + '</div></div>' +
+    '<div class="s-body">' + body + '</div></section>';
+}
+
+function recordsScreen() {
+  const F = [['ALL', '全部'], ['IN_PROGRESS', '进行中'], ['PENDING', '待审批'], ['APPROVED', '已通过'], ['COMPLETED', '已销假'], ['REJECTED', '已驳回']];
+  const list = sorted().filter(a => {
+    if (state.filter === 'ALL') return true;
+    const ds = displayStatus(a);
+    if (state.filter === 'IN_PROGRESS') return ds === 'IN_PROGRESS' || ds === 'OVERDUE';
+    return ds === state.filter;
+  });
+  const map = { IN_PROGRESS: '请假中', PENDING: '待审批', APPROVED: '已通过', OVERDUE: '逾期',
+    COMPLETED: '已销假', REJECTED: '已驳回', WITHDRAWN: '已撤回', CANCELLED: '已取消' };
+  const cards = list.map(a => {
+    const ds = displayStatus(a);
+    const cls = ds === 'REJECTED' || ds === 'OVERDUE' ? ' card__s--danger' : ds === 'PENDING' ? ' card__s--warn' : '';
+    let sub = '';
+    if (ds === 'REJECTED') sub = a.rejectReason;
+    else if (ds === 'IN_PROGRESS') sub = '还剩 ' + partsText(a.end - state.now) + ' · 返校后定位销假';
+    else if (ds === 'OVERDUE') sub = '已超过结束时间 ' + partsText(state.now - a.end);
+    else if (ds === 'PENDING') sub = '已提交 ' + partsText(state.now - a.submittedAt) + '，等待审批';
+    else if (ds === 'COMPLETED') sub = mdhm(a.completedAt) + ' 完成销假';
+    else sub = '本人已撤回';
+    return '<button class="card" data-act="open" data-id="' + a.id + '">' +
+      '<div class="card__top"><span class="card__no">' + a.id + '</span>' +
+      '<span class="card__s' + cls + '">' + map[ds] + '</span></div>' +
+      '<div class="card__r">' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+      '<div class="card__sub">' + esc(sub) + '</div></button>';
+  }).join('');
+
+  return '<section class="screen">' + navHTML({ title: '请假记录' }) +
+    '<div class="s-body">' +
+    '<div class="filters">' + F.map(f => '<button class="chip' + (state.filter === f[0] ? ' is-on' : '') +
+      '" data-act="filter" data-f="' + f[0] + '">' + f[1] + '</button>').join('') + '</div>' +
+    (cards || '<div style="padding:60px 20px;text-align:center;color:var(--ink-3);font-size:13px">该状态下暂无记录</div>') +
+    '</div></section>';
+}
+
+function applyScreen() {
+  const f = state.form;
+  const off = f.scene === 'OFF';
+  const row = (label, val, act, field) =>
+    '<button class="row" data-act="' + act + '" data-f="' + field + '"><span class="row__k">' + label + '</span>' +
+    '<span class="row__v">' + val + '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+
+  return '<section class="screen">' + navHTML({ title: '申请请假', back: true }) +
+    '<div class="s-body">' +
+
+    '<div class="field"><div class="field__label">请假场景<i>必选</i></div>' +
+    '<div class="picks" style="margin-top:0">' +
+      '<button class="pick' + (f.scene === 'OFF' ? ' is-on' : '') + '" data-act="scene" data-v="OFF">' +
+        '<svg viewBox="0 0 24 24"><path d="M5.4 20.6V4.4a1 1 0 0 1 1-1h9.2a1 1 0 0 1 1 1v16.2"/><path d="M2.8 20.6h18.4"/></svg><b>离校</b><span>返校定位销假</span></button>' +
+      '<button class="pick' + (f.scene === 'ON' ? ' is-on' : '') + '" data-act="scene" data-v="ON">' +
+        '<svg viewBox="0 0 24 24"><path d="M4.4 20.6V6.2L12 3.4l7.6 2.8v14.4"/><path d="M2.8 20.6h18.4"/><path d="M9.4 20.6v-4.4h5.2v4.4"/></svg><b>校内</b><span>结束后自主确认</span></button>' +
+    '</div><div class="field__err" data-err="scene" hidden>请选择请假场景</div></div>' +
+
+    '<div class="field"><div class="field__label">请假类型</div>' +
+    '<div class="seg">' + ['SICK', 'PERSONAL', 'OTHER'].map(t =>
+      '<button class="' + (f.type === t ? 'is-on' : '') + '" data-act="type" data-v="' + t + '">' + TYPE[t] + '</button>').join('') +
+    '</div><div class="field__err" data-err="type" hidden>请选择请假类型</div></div>' +
+
+    '<div class="field"><div class="field__label">请假时间<i>结束需晚于开始 10 分钟</i></div>' +
+    '<div class="rows">' + row('开始时间', mdhm(f.start), 'pick', 'start') + row('结束时间', mdhm(f.end), 'pick', 'end') + '</div>' +
+    '<div class="field__err" data-err="time" hidden>结束时间需晚于开始时间至少 10 分钟</div></div>' +
+
+    '<div class="field"><div class="field__label">请假理由<i>不少于 5 个字</i></div>' +
+    '<div class="textwrap"><textarea data-in="reason" maxlength="120" placeholder="说明原因，便于辅导员判断">' + esc(f.reason) + '</textarea>' +
+    '<div class="count"><span data-count>' + f.reason.length + '</span>/120</div></div>' +
+    '<div class="field__err" data-err="reason" hidden>请填写请假理由（不少于 5 个字）</div></div>' +
+
+    (off ? '<div class="field"><div class="field__label">离校去向</div><div class="rows">' +
+      '<div class="row"><span class="row__k">去向</span><input type="text" data-in="dest" value="' + esc(f.dest) + '" placeholder="如：本市 · 家中"></div></div></div>' : '') +
+
+    '<div class="field"><div class="field__label">联系电话</div><div class="rows">' +
+      '<div class="row"><span class="row__k">手机号</span><input type="tel" data-in="phone" value="' + esc(f.phone) + '"></div></div></div>' +
+
+    '<div class="field"><div class="field__label">证明材料<i>病假建议上传</i></div><div class="rows">' +
+      '<button class="row" data-act="upload"><span class="row__k">已上传</span>' +
+      '<span class="row__v' + (f.materials ? '' : ' is-empty') + '">' + (f.materials ? f.materials + ' 张' : '未上传') +
+      '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></button></div></div>' +
+
+    '<div style="height:8px"></div></div>' +
+    '<div class="actionbar"><button class="cta" data-act="submit">提交申请</button></div></section>';
+}
+
+function detailScreen(id) {
+  const a = byId(id);
+  if (!a) return homeScreen();
+  const ds = displayStatus(a);
+
+  const N = [];
+  N.push({ t: '提交申请', s: mdhm(a.submittedAt), st: 'is-done' });
+  if (ds === 'PENDING') N.push({ t: '等待辅导员审批', s: STUDENT.teacher + ' · 处理中', st: 'is-now' });
+  else if (ds === 'REJECTED') N.push({ t: '审批未通过', s: STUDENT.teacher + ' · ' + mdhm(a.approvedAt), st: 'is-done' });
+  else if (ds === 'WITHDRAWN' || ds === 'CANCELLED') N.push({ t: '本人撤回', s: md(a.submittedAt), st: 'is-done' });
+  else {
+    N.push({ t: '辅导员审批', s: STUDENT.teacher + ' · ' + mdhm(a.approvedAt), st: 'is-done' });
+    if (ds === 'COMPLETED') {
+      N.push({ t: '请假开始', s: mdhm(a.start), st: 'is-done' });
+      N.push({ t: '完成销假', s: mdhm(a.completedAt), st: 'is-done' });
+    } else {
+      N.push({ t: '请假开始', s: mdhm(a.start) + (ds === 'APPROVED' ? ' 预计' : ' 已开始'), st: ds === 'APPROVED' ? 'is-idle' : 'is-done' });
+      N.push({ t: '请假结束', s: mdhm(a.end) + (ds === 'OVERDUE' ? ' 已到期' : ' 预计'), st: ds === 'OVERDUE' ? 'is-now' : 'is-idle' });
+    }
+  }
+  const tl = N.map(n => '<div class="tl__i ' + n.st + '"><span class="tl__l"></span>' +
+    '<div class="tl__t">' + n.t + '</div><div class="tl__s">' + n.s + '</div></div>').join('');
+
+  const kv = [];
+  kv.push(['请假场景', SCENE[a.scene], 0]);
+  kv.push(['请假类型', TYPE[a.type], 0]);
+  kv.push(['开始时间', mdhm(a.start) + ' ' + wk(a.start), 0]);
+  kv.push(['结束时间', mdhm(a.end) + ' ' + wk(a.end), 0]);
+  kv.push(['请假理由', esc(a.reason), 1]);
+  if (a.scene === 'OFF') kv.push(['离校去向', esc(a.dest), 1]);
+  kv.push(['联系电话', esc(a.phone), 0]);
+  if (a.materials) kv.push(['证明材料', a.materials + ' 张', 0]);
+  if (a.rejectReason) kv.push(['驳回原因', esc(a.rejectReason), 1]);
+  const kvHTML = kv.map(r => '<div class="kv__r' + (r[2] ? ' kv__r--stack' : '') + '">' +
+    '<span class="kv__k">' + r[0] + '</span><span class="kv__v">' + r[1] + '</span></div>').join('');
+
+  let act = '';
+  if (ds === 'IN_PROGRESS') {
+    act = '<button class="cta" data-act="checkout" data-id="' + a.id + '">' +
+      (a.scene === 'OFF' ? '返校定位并销假' : '确认结束本次请假') + '</button>' +
+      '<div class="links"><button data-act="extend" data-id="' + a.id + '">申请续假</button></div>';
+  } else if (ds === 'OVERDUE') {
+    act = '<button class="cta" data-act="checkout" data-id="' + a.id + '">立即补销假</button>';
+  } else if (ds === 'PENDING') {
+    act = '<button class="cta cta--ghost" data-act="withdraw" data-id="' + a.id + '">撤回申请</button>';
+  } else if (ds === 'APPROVED') {
+    act = '<button class="cta cta--ghost" data-act="cancel" data-id="' + a.id + '">取消申请</button>';
+  } else {
+    act = '<button class="cta" data-act="apply">再请一次</button>';
+  }
+
+  return '<section class="screen">' + navHTML({ title: '请假详情', back: true }) +
+    '<div class="s-body">' +
+    '<div class="state" style="padding-top:18px">' + sealHTML(ds) + '</div>' +
+    '<div style="padding:6px 20px 18px;border-bottom:1px solid var(--line)">' +
+      '<div class="range">' + md(a.start) + ' ' + hm(a.start) + '<em>—</em>' + md(a.end) + ' ' + hm(a.end) + '</div>' +
+      '<div style="margin-top:10px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-4)">' + a.id + '</div>' +
+    '</div>' +
+    '<div class="sec"><h2>审批流程</h2></div><div class="tl">' + tl + '</div>' +
+    '<div class="sec"><h2>申请信息</h2></div><div class="kv">' + kvHTML + '</div>' +
+    '<div style="height:12px"></div></div>' +
+    '<div class="actionbar">' + act + '</div></section>';
+}
+
+
+let checkTimer = null;
+function checkinScreen(id) {
+  const a = byId(id) || state.apps[0];
+  const ph = (state.checkin && state.checkin.phase) || 'locating';
+  const ok = ph === 'ok', fail = ph === 'fail';
+  const icon = fail
+    ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M20 6.5 9.2 17.3 4 12.1"/></svg>';
+  const coreIcon = ok || fail ? icon : '<svg viewBox="0 0 24 24"><path d="M12 21s6.5-5.4 6.5-10.4a6.5 6.5 0 1 0-13 0C5.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.4"/></svg>';
+  const title = fail ? '不在校区范围内' : ok ? '已确认在校区内' : '正在校验位置';
+  const desc = fail
+    ? '当前定位不在校区范围内，无法完成定位销假。可重新定位，或申请人工核验。'
+    : ok ? '正在完成销假…'
+    : '请保持在校园范围内，校验大约需要 2 秒。';
+
+  let foot = '';
+  if (fail) {
+    foot = '<div class="checkin__foot">' +
+      '<button class="cta" data-act="relocate" data-id="' + a.id + '">重新定位</button>' +
+      '<button class="sub" data-act="manual" data-id="' + a.id + '">申请人工核验</button></div>';
+  }
+
+  return '<section class="screen">' + navHTML({ title: '返校销假', back: true }) +
+    '<div class="checkin"><div class="checkin__main">' +
+      '<div class="radar' + (ok ? ' radar--ok' : fail ? ' radar--fail' : '') + '">' +
+        '<i class="radar__ring"></i><i class="radar__ring radar__ring--in"></i>' +
+        '<i class="radar__pulse"></i><span class="radar__core">' + coreIcon + '</span>' +
+      '</div>' +
+      '<h2>' + title + '</h2><p>' + desc + '</p>' +
+      '<div class="checkin__meta">' + (a ? a.id + ' · ' + (a.scene === 'OFF' ? '离校' : '校内') : '') + '</div>' +
+    '</div>' +
+    (foot || (ok ? '' : '<p class="checkin__note">定位仅用于本次销假校验，不保存位置轨迹。</p>')) +
+    '</div></section>';
+}
+
+function messagesScreen() {
+  const list = state.demo === 'fresh' ? [] : state.messages;
+  if (!list.length) {
+    return '<section class="screen">' + navHTML({ title: '消息' }) +
+      '<div class="s-body"><div style="padding:80px 20px;text-align:center;color:var(--ink-3);font-size:13px">还没有消息</div></div></section>';
+  }
+  return '<section class="screen">' + navHTML({ title: '消息' }) +
+    '<div class="s-body">' +
+    '<div class="sec" style="padding-top:14px"><h2>' + (unread() ? unread() + ' 条未读' : '全部已读') + '</h2>' +
+    (unread() ? '<button data-act="read-all">全部已读</button>' : '') + '</div>' +
+    list.map(m => '<div class="msg"><div class="msg__b">' +
+      '<div class="msg__t">' + esc(m.t) + (m.unread ? '<i class="dot"></i>' : '') + '</div>' +
+      '<div class="msg__d">' + esc(m.d) + '</div>' +
+      '<div class="msg__time">' + m.time + '</div></div></div>').join('') +
+    '</div></section>';
+}
+
+function mineScreen() {
+  const list = apps();
+  const done = list.filter(a => displayStatus(a) === 'COMPLETED').length;
+  const run = list.filter(a => displayStatus(a) === 'IN_PROGRESS').length;
+  const wait = list.filter(a => displayStatus(a) === 'PENDING').length;
+  const row = (k, v) => '<button class="row"><span class="row__k">' + k + '</span>' +
+    '<span class="row__v" style="color:var(--ink-3);font-weight:400">' + v + '</span></button>';
+  return '<section class="screen">' + navHTML({ title: '我的' }) +
+    '<div class="s-body">' +
+    '<div class="me"><div class="me__av">张</div><div>' +
+      '<div class="me__n">' + STUDENT.name + '</div>' +
+      '<div class="me__s">' + STUDENT.sid + ' · ' + STUDENT.cls + '</div></div></div>' +
+    '<div class="stats">' +
+      '<div><b>' + list.length + '</b><span>累计申请</span></div>' +
+      '<div><b>' + done + '</b><span>已销假</span></div>' +
+      '<div><b>' + run + '</b><span>进行中</span></div>' +
+    '</div>' +
+    '<div class="sec" style="padding-top:24px"><h2>账号</h2></div>' +
+    '<div class="kv">' + row('辅导员', STUDENT.teacher) + row('联系电话', STUDENT.phone) +
+      row('待审批', wait + ' 条') + '</div>' +
+    '<div class="sec"><h2>设置</h2></div>' +
+    '<div class="kv">' + row('未读提醒', '已开启') + row('关于校园请假', 'V1.0') + '</div>' +
+    '</div></section>';
+}
+
+/* ================= 5. 路由 ================= */
+const viewport = document.getElementById('viewport');
+const phone = document.getElementById('phone');
+const tabbar = document.getElementById('tabbar');
+const layer = document.getElementById('layer');
+const scrollPos = {};
+
+function keyOf() {
+  const top = state.stack[state.stack.length - 1];
+  return top ? top.k + ':' + (top.id || '') : state.tab;
+}
+function screenHTML() {
+  const top = state.stack[state.stack.length - 1];
+  if (!top) {
+    if (state.tab === 'records') return recordsScreen();
+    if (state.tab === 'messages') return messagesScreen();
+    if (state.tab === 'mine') return mineScreen();
+    return homeScreen();
+  }
+  if (top.k === 'detail') return detailScreen(top.id);
+  if (top.k === 'checkin') return checkinScreen(top.id);
+  return applyScreen();
+}
+function render(anim) {
+  const prev = viewport.querySelector('.s-body');
+  const pk = viewport.dataset.key;
+  if (prev && pk) scrollPos[pk] = prev.scrollTop;
+
+  const key = keyOf();
+  viewport.innerHTML = screenHTML();
+  viewport.dataset.key = key;
+  const body = viewport.querySelector('.s-body');
+  if (body) body.scrollTop = scrollPos[key] || 0;
+
+  const el = viewport.querySelector('.screen');
+  if (anim === 'push') {
+    el.animate([{ opacity: 0, transform: 'translateX(8%)' }, { opacity: 1, transform: 'none' }],
+      { duration: 240, easing: 'cubic-bezier(.2,0,0,1)' });
+  }
+  const push = state.stack.length > 0;
+  phone.classList.toggle('is-push', push);
+  tabbar.classList.toggle('is-hidden', push);
+  tabbar.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-on', !push && t.dataset.tab === state.tab));
+  const pill = document.getElementById('msgPill');
+  const n = unread();
+  pill.textContent = n;
+  pill.style.display = n ? 'block' : 'none';
+}
+
+/* ================= 6. 浮层 ================= */
+let layerCloser = null;
+function closeLayer() {
+  if (!layerCloser) return;
+  const fn = layerCloser; layerCloser = null; fn();
+}
+function openSheet(title, inner, onOk, okText) {
+  closeLayer();
+  layer.innerHTML = '<div class="mask"></div><div class="sheet"><div class="sheet__t">' + title + '</div>' +
+    '<div style="overflow-y:auto">' + inner + '</div>' +
+    '<button class="cta" style="margin-top:16px" data-act="sheet-ok">' + (okText || '确定') + '</button></div>';
+  layer.classList.add('is-on');
+  const mask = layer.querySelector('.mask'), sheet = layer.querySelector('.sheet');
+  requestAnimationFrame(() => { mask.classList.add('is-on'); sheet.classList.add('is-on'); });
+  layer.querySelector('[data-act="sheet-ok"]').onclick = () => { if (onOk && onOk() === false) return; closeLayer(); };
+  mask.onclick = closeLayer;
+  layerCloser = () => {
+    mask.classList.remove('is-on'); sheet.classList.remove('is-on');
+    setTimeout(() => { layer.innerHTML = ''; layer.classList.remove('is-on'); }, 240);
+  };
+}
+function dialog(o) {
+  closeLayer();
+  layer.innerHTML = '<div class="mask"></div><div class="dlg">' +
+    '<div class="dlg__t">' + esc(o.title) + '</div>' +
+    (o.desc ? '<div class="dlg__d">' + esc(o.desc) + '</div>' : '') +
+    '<div class="dlg__b"><button data-act="dlg-cancel">取消</button>' +
+    '<button data-act="dlg-ok" class="' + (o.danger ? 'is-danger' : '') + '">' + esc(o.ok || '确定') + '</button></div></div>';
+  layer.classList.add('is-on');
+  const mask = layer.querySelector('.mask'), dlg = layer.querySelector('.dlg');
+  requestAnimationFrame(() => { mask.classList.add('is-on'); dlg.classList.add('is-on'); });
+  mask.onclick = closeLayer;
+  layer.querySelector('[data-act="dlg-cancel"]').onclick = closeLayer;
+  layer.querySelector('[data-act="dlg-ok"]').onclick = () => { closeLayer(); setTimeout(() => o.onOk && o.onOk(), 120); };
+  layerCloser = () => {
+    mask.classList.remove('is-on'); dlg.classList.remove('is-on');
+    setTimeout(() => { layer.innerHTML = ''; layer.classList.remove('is-on'); }, 200);
+  };
+}
+let toastTimer = null;
+function toast(msg) {
+  let t = phone.querySelector('.toast');
+  if (!t) { t = document.createElement('div'); t.className = 'toast'; phone.appendChild(t); }
+  t.textContent = msg;
+  requestAnimationFrame(() => t.classList.add('is-on'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-on'), 2200);
+}
+function busy(text, ms, done) {
+  const el = document.createElement('div');
+  el.className = 'loading';
+  el.innerHTML = '<div class="spin"></div><p>' + text + '</p>';
+  phone.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('is-on'));
+  setTimeout(() => {
+    el.classList.remove('is-on');
+    setTimeout(() => el.remove(), 220);
+    done();
+  }, ms);
+}
+
+/* ================= 7. 动作 ================= */
+function goTab(t) { state.tab = t; state.stack = []; render(); }
+function push(e) { state.stack.push(e); render('push'); }
+function back() { if (state.stack.length) { state.stack.pop(); render(); } }
+
+function newForm(scene) {
+  const start = new Date(Math.ceil(state.now.getTime() / 600000) * 600000);
+  return { scene: scene || '', type: '', start: start, end: new Date(start.getTime() + 4 * 3600000),
+    reason: '', dest: '', phone: STUDENT.phone, materials: 0 };
+}
+function openApply(scene) { state.form = newForm(scene); push({ k: 'apply' }); }
+
+function submitApply() {
+  const f = state.form;
+  const mark = (k, on) => { const e = viewport.querySelector('[data-err="' + k + '"]'); if (e) e.hidden = !on; };
+  ['scene', 'type', 'time', 'reason'].forEach(k => mark(k, false));
+  let err = null;
+  if (!f.scene) err = ['scene', '请选择请假场景'];
+  else if (!f.type) err = ['type', '请选择请假类型'];
+  else if (f.end - f.start < 600000) err = ['time', '结束时间需晚于开始时间至少 10 分钟'];
+  else if (f.reason.trim().length < 5) err = ['reason', '请填写请假理由（不少于 5 个字）'];
+  if (err) {
+    mark(err[0], true);
+    const n = viewport.querySelector('[data-err="' + err[0] + '"]');
+    if (n) n.scrollIntoView ? n.parentElement.scrollIntoView({ block: 'center' }) : null;
+    toast(err[1]);
+    return;
+  }
+  const seq = state.apps.length + 1;
+  const id = 'CL' + state.now.getFullYear() + pad(state.now.getMonth() + 1) + pad(state.now.getDate()) + pad(seq) + pad(seq);
+  const app = {
+    id: id, scene: f.scene, type: f.type, start: f.start, end: f.end, status: 'PENDING',
+    submittedAt: new Date(state.now), reason: f.reason.trim(),
+    dest: f.scene === 'OFF' ? (f.dest || '—') : '—', phone: f.phone, materials: f.materials
+  };
+  busy('正在提交', 800, () => {
+    state.apps.unshift(app);
+    state.demo = 'auto';
+    state.heroId = id;
+    state.stack = [{ k: 'detail', id: id }];
+    render('push');
+    toast('已提交，等待辅导员审批');
+  });
+}
+
+function runCheck(a) {
+  clearTimeout(checkTimer);
+  state.checkin = { phase: 'locating' };
+  render();
+  checkTimer = setTimeout(() => {
+    if (state.locResult === 'fail') {
+      state.checkin = { phase: 'fail' };
+      render();
+      return;
+    }
+    a.status = 'COMPLETED';
+    a.completedAt = new Date(state.now);
+    state.demo = 'auto'; state.heroId = null;
+    state.checkin = { phase: 'ok' };
+    render();
+    checkTimer = setTimeout(() => {
+      state.stack = []; state.tab = 'home'; state.checkin = null;
+      render();
+      toast('定位校验通过，已销假');
+    }, 1100);
+  }, 1600);
+}
+function startCheckin(a) {
+  state.checkin = { phase: 'locating' };
+  push({ k: 'checkin', id: a.id });
+  runCheck(a);
+}
+function doCheckout(a) {
+  if (a.scene === 'OFF') { startCheckin(a); return; }
+  dialog({
+    title: '确认结束本次请假',
+    desc: '确认后本次请假立即结束。',
+    ok: '确认结束',
+    onOk() {
+      busy('正在提交…', 900, () => {
+        a.status = 'COMPLETED';
+        a.completedAt = new Date(state.now);
+        state.demo = 'auto'; state.heroId = null;
+        render();
+        toast('已确认结束');
+      });
+    }
+  });
+}
+function doWithdraw(a) {
+  dialog({ title: '撤回申请', desc: '撤回后需重新提交。', ok: '撤回', danger: true,
+    onOk() { a.status = 'WITHDRAWN'; state.demo = 'auto'; state.heroId = null; render(); toast('已撤回'); } });
+}
+function doCancel(a) {
+  dialog({ title: '取消申请', desc: '取消后该请假不会生效。', ok: '确认取消', danger: true,
+    onOk() { a.status = 'CANCELLED'; state.demo = 'auto'; state.heroId = null; render(); toast('已取消'); } });
+}
+
+/* 时间选择 */
+function dateVal(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function openTimePicker(field) {
+  const f = state.form, cur = f[field];
+  const quick = field === 'start'
+    ? [['now', '现在'], ['h1', '1 小时后'], ['t20', '今天 20:00'], ['m8', '明天 08:00']]
+    : [['h2', '2 小时后'], ['t20', '今天 20:00'], ['m12', '明天 12:00'], ['m18', '明天 18:00']];
+  const inner = '<div class="quick">' + quick.map(q => '<button data-q="' + q[0] + '">' + q[1] + '</button>').join('') + '</div>' +
+    '<div class="dt"><label><span>日期</span><input type="date" id="pDate" value="' + dateVal(cur) + '"></label>' +
+    '<label><span>时间</span><input type="time" id="pTime" value="' + hm(cur) + '"></label></div>' +
+    '<p style="margin:12px 0 0;font-size:11px;line-height:18px;color:var(--ink-3)">' +
+    (field === 'start' ? '开始时间最早为当前时间。' : '结束时间需晚于开始时间 10 分钟以上。') + '</p>';
+
+  openSheet(field === 'start' ? '选择开始时间' : '选择结束时间', inner, () => {
+    const d = document.getElementById('pDate').value, t = document.getElementById('pTime').value;
+    if (!d || !t) { toast('请选择日期与时间'); return false; }
+    const v = new Date(d + 'T' + t);
+    if (isNaN(v)) { toast('时间格式不正确'); return false; }
+    f[field] = v;
+    if (field === 'start' && f.end - f.start < 600000) f.end = new Date(v.getTime() + 4 * 3600000);
+    render();
+    return true;
+  });
+
+  layer.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+    const k = b.dataset.q;
+    let nd;
+    if (k === 'now') nd = new Date(state.now);
+    else if (k === 'h1') nd = new Date(state.now.getTime() + 3600000);
+    else if (k === 'h2') nd = new Date(state.now.getTime() + 7200000);
+    else if (k === 't20') nd = dt(state.now.getMonth() + 1, state.now.getDate(), 20, 0);
+    else if (k === 'm8') nd = new Date(dt(state.now.getMonth() + 1, state.now.getDate(), 8, 0).getTime() + 86400000);
+    else if (k === 'm12') nd = new Date(dt(state.now.getMonth() + 1, state.now.getDate(), 12, 0).getTime() + 86400000);
+    else nd = new Date(dt(state.now.getMonth() + 1, state.now.getDate(), 18, 0).getTime() + 86400000);
+    layer.querySelectorAll('[data-q]').forEach(x => x.classList.remove('is-on'));
+    b.classList.add('is-on');
+    document.getElementById('pDate').value = dateVal(nd);
+    document.getElementById('pTime').value = hm(nd);
+  });
+}
+
+/* 续假 */
+function openExtend(a) {
+  const inner = '<div class="range">原结束 ' + mdhm(a.end) + '</div>' +
+    '<div class="dt" style="margin-top:12px"><label><span>新结束日期</span><input type="date" id="eDate" value="' + dateVal(a.end) + '"></label>' +
+    '<label><span>时间</span><input type="time" id="eTime" value="' + hm(a.end) + '"></label></div>' +
+    '<p style="margin:12px 0 0;font-size:11px;line-height:18px;color:var(--ink-3)">续假需重新审批，审批期间仍按原结束时间处理。</p>';
+  openSheet('申请续假', inner, () => {
+    const d = document.getElementById('eDate').value, t = document.getElementById('eTime').value;
+    if (!d || !t) { toast('请选择新的结束时间'); return false; }
+    const v = new Date(d + 'T' + t);
+    if (isNaN(v) || v <= a.end) { toast('新结束时间需晚于原结束时间'); return false; }
+    busy('正在提交', 700, () => {
+      a.ext = { status: 'PENDING', end: v };
+      render();
+      toast('续假已提交，等待审批');
+    });
+    return true;
+  }, '提交续假');
+}
+
+/* ================= 8. 事件 ================= */
+phone.addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (tab) { goTab(tab.dataset.tab); return; }
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id, a = id ? byId(id) : null;
+
+  switch (act) {
+    case 'back':
+      if (state.stack.length && state.stack[state.stack.length - 1].k === 'checkin') {
+        clearTimeout(checkTimer); state.checkin = null;
+      }
+      back(); break;
+    case 'go-records': goTab('records'); break;
+    case 'open': push({ k: 'detail', id: id }); break;
+    case 'apply': openApply(el.dataset.scene); break;
+    case 'filter': state.filter = el.dataset.f; render(); break;
+    case 'read-all': state.messages.forEach(m => m.unread = false); render(); toast('已全部标为已读'); break;
+    case 'scene': state.form.scene = el.dataset.v; render(); break;
+    case 'type': state.form.type = el.dataset.v; render(); break;
+    case 'pick': openTimePicker(el.dataset.f); break;
+    case 'upload':
+      state.form.materials = Math.min(3, state.form.materials + 1);
+      render(); toast('已添加 1 张（演示）'); break;
+    case 'submit': submitApply(); break;
+    case 'checkout': doCheckout(a); break;
+    case 'withdraw': doWithdraw(a); break;
+    case 'cancel': doCancel(a); break;
+    case 'extend': openExtend(a); break;
+    case 'relocate': runCheck(a); break;
+    case 'manual':
+      a.manualPending = true;
+      state.stack = []; state.tab = 'home';
+      render();
+      toast('已申请人工核验，等待辅导员确认');
+      break;
+  }
+});
+
+phone.addEventListener('input', e => {
+  const k = e.target.dataset.in;
+  if (!k || !state.form) return;
+  state.form[k] = e.target.value;
+  if (k === 'reason') {
+    const c = phone.querySelector('[data-count]');
+    if (c) c.textContent = e.target.value.length;
+    const err = viewport.querySelector('[data-err="reason"]');
+    if (err && e.target.value.trim().length >= 5) err.hidden = true;
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (layerCloser) closeLayer();
+    else if (state.stack.length) back();
+  }
+});
+
+/* 演示 */
+document.querySelectorAll('[data-demo]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-demo]').forEach(x => x.classList.remove('is-on'));
+    b.classList.add('is-on');
+    state.demo = b.dataset.demo;
+    state.heroId = null;
+    state.tab = 'home'; state.stack = [];
+    state.now = dt(10, 20, 14, 30);
+    if (state.demo === 'pending') state.heroId = 'CL20261020002';
+    if (state.demo === 'overdue') state.now = dt(10, 20, 21, 10);
+    render();
+  });
+});
+
+document.querySelectorAll('[data-loc]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-loc]').forEach(x => x.classList.remove('is-on'));
+    b.classList.add('is-on');
+    state.locResult = b.dataset.loc;
+  });
+});
+
+/* 时钟 + 走秒 */
+const clock = document.getElementById('clock');
+setInterval(() => {
+  clock.textContent = hm(new Date());
+  if (state.stack.length) return;
+  const a = heroApp();
+  if (!a) return;
+  const ds = displayStatus(a);
+  if (ds !== 'IN_PROGRESS' && ds !== 'OVERDUE') return;
+  state.now = new Date(state.now.getTime() + 1000);
+  const host = viewport.querySelector('.ruler');
+  if (!host) return;
+  const total = a.end - a.start;
+  const pct = ds === 'OVERDUE' ? 1 : Math.max(0, Math.min(1, (state.now - a.start) / total));
+  const range = host.querySelector('.ruler__range');
+  const nowEl = host.querySelector('.ruler__now');
+  const lab = host.querySelector('.ruler__nowlab');
+  if (range) range.style.width = (pct * 100).toFixed(1) + '%';
+  if (nowEl) nowEl.style.left = (pct * 100).toFixed(1) + '%';
+  if (lab) { lab.style.left = (pct * 100).toFixed(1) + '%'; lab.textContent = '现在 ' + hm(state.now); }
+  const vEl = viewport.querySelector('.bigrow .v');
+  if (vEl) vEl.textContent = clockText(ds === 'IN_PROGRESS' ? a.end - state.now : state.now - a.end);
+  const reads = viewport.querySelector('.reads span:first-child b');
+  if (reads && ds === 'IN_PROGRESS') reads.textContent = partsText(state.now - a.start);
+}, 1000);
+
+render();
+})();
+</script>
+</body>
+</html>
