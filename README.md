@@ -38,12 +38,29 @@ CampusLeave/
 │  ├─ docs-early/                 早期总纲、学生端·教师端设计 V1.0、首页定位脑暴
 │  └─ 校园请假管理系统——业务流程与状态机设计 V1.1.md
 │
-└─ —— 小程序源码（DevTools 项目根）——
-   ├─ app.js / app.json / app.wxss  入口 + 全局纸感 token（--paper/--ink/--blue/--line）
-   ├─ pages/index/                 占位首页，待按定稿实现
-   ├─ project.config.json          appid wxa5d0a3b27a094adc
-   └─ sitemap.json
+└─ —— 小程序源码（DevTools 的 miniprogramRoot）——
+   ├─ miniprogram/
+   │  ├─ app.js / app.json / app.wxss   入口 + 全局纸感 token（--paper/--ink/--blue/--line）
+   │  ├─ pages/index/                   占位首页，待按定稿实现
+   │  └─ sitemap.json
+   ├─ project.config.json               DevTools 项目配置（appid wxa5d0a3b27a094adc）
+   └─ project.private.config.json       本机个人配置，不进版本库更合适
 ```
+
+---
+
+## 技术栈
+
+| 层 | 选型 | 出处 |
+|---|---|---|
+| 客户端 | **微信小程序原生**（WXML / WXSS / JS），不引 uni-app、Taro | 项目总纲 |
+| 组件框架 | `glass-easel` + `style: v2`，基础库 3.17.4 | `project.private.config.json` |
+| 后端 | **Java + Spring Boot 3.x** | 03_API 技术前提 |
+| 鉴权 | **JWT**，`POST /api/v1/auth/login` 换 token | 03_API |
+| 接口风格 | REST，统一前缀 `/api/v1`，前后端分离，小程序与学生/教师/管理员共用一套 API | 03_API |
+| 数据库 | **MySQL 8.0.16+**（用到 CHECK 与生成列，低于此版本约束不生效） | 02 数据库设计 |
+| 时区 / 字符集 | JVM 与 MySQL 统一 `Asia/Shanghai`；`utf8mb4` | 03_API、02 |
+| 尚未确定 | ORM（评审里提过 MyBatis-Plus、逻辑删除）、Java 版本、Maven 配置、Redis / 对象存储 | reviews/ |
 
 ---
 
