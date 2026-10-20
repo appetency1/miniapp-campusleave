@@ -18,6 +18,7 @@
   --warning:#A2560A; --warning-tint:#FFF6E5;
   --danger:#C0281E; --danger-tint:#FDEDEC;
   --r-card:12px; --r-btn:8px; --r-tag:3px;
+  --rail:#D2DEEF;
   --sp-x:20px;
   --font:"PingFang SC","HarmonyOS Sans SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
   --ease:cubic-bezier(.2,0,0,1);
@@ -72,7 +73,7 @@ h1,h2,h3,p{margin:0;}
 .screen--enter{transform:translateX(100%);}
 .screen--enter.is-on{transform:translateX(0);}
 .screen--under{transform:translateX(-24%);opacity:.4;}
-.s-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--sp-x) 24px;}
+.s-body{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0 var(--sp-x) 24px;}
 .s-body::-webkit-scrollbar{width:0}
 
 /* ===== 顶栏 ===== */
@@ -195,6 +196,42 @@ h1,h2,h3,p{margin:0;}
   background:var(--danger-tint);border-radius:2px;
   font-size:12.5px;line-height:19px;color:var(--danger);
 }
+
+/* ===== 首页：通栏状态带 ===== */
+.hband{
+  background:var(--brand-tint);
+  margin:0 calc(-1 * var(--sp-x));
+  padding:14px var(--sp-x) 18px;
+}
+.hband__meta{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:11px;line-height:16px;color:var(--ink-2);letter-spacing:.04em;
+}
+.hband__meta .cls{color:var(--ink-3);letter-spacing:.02em;}
+.hband__state{
+  margin-top:12px;font-size:12px;line-height:18px;font-weight:600;
+  color:var(--brand-deep);letter-spacing:2px;
+}
+.hband .slip__hero{margin-top:2px;}
+.hband .slip__hero b{font-size:50px;line-height:58px;letter-spacing:-1.5px;}
+.hband .slip__hero .u{font-size:13px;line-height:20px;}
+.hband .slip__hero--text{font-size:20px;line-height:30px;font-weight:700;color:var(--ink);}
+.hband .slip__hero--muted{color:var(--ink-2);}
+.hband .track{margin-top:14px;background:var(--rail);}
+.hband .tracklabs{margin-top:8px;font-size:10px;line-height:14px;}
+.hband .steps{margin-top:16px;}
+
+/* 两列信息带（细线，无卡片底） */
+.hfacts{
+  display:flex;margin:0 calc(-1 * var(--sp-x));
+  padding:14px var(--sp-x) 16px;
+  border-bottom:1px solid var(--line);
+}
+.hfacts > div{flex:1;min-width:0;}
+.hfacts > div + div{padding-left:16px;border-left:1px solid var(--line);}
+.hfacts span{display:block;font-size:11px;line-height:16px;color:var(--ink-3);letter-spacing:.06em;}
+.hfacts b{display:block;margin-top:5px;font-size:14px;line-height:22px;font-weight:600;
+          font-variant-numeric:tabular-nums;letter-spacing:-.1px;}
 
 
 .slip__sign{margin-top:14px;border-top:1px solid var(--line-weak);}
@@ -712,7 +749,10 @@ function parts(ms) {
   if (h > 0) return [{ n: h, u: '小时' }, { n: mi, u: '分' }];
   return [{ n: mi, u: '分钟' }];
 }
-function partsText(ms) { return parts(ms).map(p => p.n + ' ' + p.u).join(' '); }
+function partsText(ms) {
+  const ps = parts(ms).filter(p => p.n > 0);
+  return (ps.length ? ps : parts(ms)).map(p => p.n + ' ' + p.u).join(' ');
+}
 
 /* ============================================================
    3. 组件
@@ -874,6 +914,66 @@ function navHTML(o) {
     '</div>';
 }
 
+/* 首页通栏状态带 + 两列信息带 */
+function factsHTML(a, ds) {
+  let l, r;
+  if (ds === 'PENDING') {
+    l = ['提交', mdhm(a.submittedAt)];
+    r = ['审批', STUDENT.teacher];
+  } else if (ds === 'REJECTED') {
+    l = ['审批', STUDENT.teacher + ' · ' + mdhm(a.approvedAt)];
+    r = ['结果', '未通过'];
+  } else if (ds === 'WITHDRAWN' || ds === 'CANCELLED') {
+    l = ['提交', mdhm(a.submittedAt)];
+    r = ['状态', ds === 'WITHDRAWN' ? '本人撤回' : '本人取消'];
+  } else {
+    l = ['审批', STUDENT.teacher + ' · ' + mdhm(a.approvedAt)];
+    r = ['销假', (a.scene === 'OFF' ? '返校定位' : '自主确认') + (a.completedAt ? ' · ' + mdhm(a.completedAt) : '')];
+  }
+  return '<div class="hfacts">' +
+    '<div><span>' + l[0] + '</span><b>' + esc(l[1]) + '</b></div>' +
+    '<div><span>' + r[0] + '</span><b>' + esc(r[1]) + '</b></div></div>';
+}
+
+function bandHTML(a) {
+  const ds = displayStatus(a);
+  const od = ds === 'OVERDUE';
+  let hero = '', visual = '';
+
+  if (ds === 'IN_PROGRESS') {
+    hero = heroNums('还剩', a.end - state.now);
+    const pct = (state.now - a.start) / (a.end - a.start);
+    visual = track(pct) +
+      '<div class="tracklabs"><span>已过 ' + partsText(state.now - a.start) + '</span><span>共 ' + partsText(a.end - a.start) + '</span></div>';
+  } else if (od) {
+    hero = heroNums('逾期', state.now - a.end, { cls: 'slip__hero--danger' });
+    visual = track(1, true) +
+      '<div class="tracklabs"><span>' + hm(a.end) + ' 已到期</span><span>未销假</span></div>';
+  } else if (ds === 'PENDING') {
+    hero = heroText('等待' + STUDENT.teacher + '审批');
+    visual = steps([
+      { t: '已提交', s2: mdhm(a.submittedAt), s: 'is-done' },
+      { t: '辅导员审批', s2: '处理中', s: 'is-now' }
+    ]);
+  } else if (ds === 'APPROVED') {
+    hero = heroNums('还有', a.start - state.now);
+    visual = '<div class="tracklabs"><span>' + mdCN(a.start) + ' ' + hm(a.start) + ' 开始</span>' +
+      '<span>共 ' + partsText(a.end - a.start) + '</span></div>';
+  } else if (ds === 'COMPLETED') {
+    hero = heroText('本次请假已完成', 'slip__hero--muted');
+  } else if (ds === 'REJECTED') {
+    hero = heroText('申请未通过', 'slip__hero--muted');
+  } else {
+    hero = heroText('本次申请已关闭', 'slip__hero--muted');
+  }
+
+  return '<section class="hband">' +
+    '<div class="hband__meta"><span>' + (state.now.getMonth() + 1) + '月' + state.now.getDate() + '日 ' + wk(state.now) + '</span>' +
+    '<span class="cls">' + STUDENT.cls + '</span></div>' +
+    '<div class="hband__state">' + SCENE[a.scene] + ' · ' + TYPE[a.type] + '</div>' +
+    hero + visual + '</section>' + factsHTML(a, ds);
+}
+
 function homeScreen() {
   const a = heroApp();
   let body = '';
@@ -893,17 +993,18 @@ function homeScreen() {
       '<div class="act"><button class="btn btn--primary" data-act="apply">申请请假</button>' +
       '<div class="hint">提交后由辅导员审批</div></div>';
   } else {
-    body = slipHTML(a) + noticeHTML(a) + actHTML(a);
+    body = bandHTML(a) + noticeHTML(a) + actHTML(a);
   }
 
   const closed = state.apps.filter(x => ['COMPLETED', 'REJECTED', 'WITHDRAWN', 'CANCELLED'].indexOf(displayStatus(x)) >= 0);
-  const recent = (closed.length ? closed : state.apps).slice().sort((x, y) => y.start - x.start)[0];
+  const recentList = (closed.length ? closed : state.apps).slice().sort((x, y) => y.start - x.start).slice(0, 2);
   return '<section class="screen" data-screen="home">' +
     navHTML({ title: '校园请假', bell: true }) +
-    '<div class="meta"><span>' + (state.now.getMonth() + 1) + '月' + state.now.getDate() + '日 ' + wk(state.now) + '</span>' +
-    '<span><b>' + STUDENT.cls + '</b><span class="sep">·</span>' + STUDENT.name + '</span></div>' +
+    (a ? '' : '<div class="meta"><span>' + (state.now.getMonth() + 1) + '月' + state.now.getDate() + '日 ' + wk(state.now) + '</span>' +
+      '<span><b>' + STUDENT.cls + '</b><span class="sep">·</span>' + STUDENT.name + '</span></div>') +
     '<div class="s-body">' + body +
-    (recent ? '<div class="sec"><h2>最近记录</h2><button data-act="go-records">全部记录</button></div>' + recHTML(recent) : '') +
+    (recentList.length ? '<div class="sec"><h2>最近记录</h2><button data-act="go-records">全部记录</button></div>' +
+      recentList.map(recHTML).join('') : '') +
     '</div></section>';
 }
 

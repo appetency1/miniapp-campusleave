@@ -1,5 +1,7 @@
 .workbuddy/
 backup/
+# 废弃素材（文件名带「暂弃」的截图/导出图）
+*暂弃*.png
 node_modules/
 *.log
 .DS_Store
