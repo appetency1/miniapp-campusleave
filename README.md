@@ -60,7 +60,11 @@ CampusLeave/
 | 接口风格 | REST，统一前缀 `/api/v1`，前后端分离，小程序与学生/教师/管理员共用一套 API | 03_API |
 | 数据库 | **MySQL 8.0.16+**（用到 CHECK 与生成列，低于此版本约束不生效） | 02 数据库设计 |
 | 时区 / 字符集 | JVM 与 MySQL 统一 `Asia/Shanghai`；`utf8mb4` | 03_API、02 |
-| 尚未确定 | ORM（评审里提过 MyBatis-Plus、逻辑删除）、Java 版本、Maven 配置、Redis / 对象存储 | reviews/ |
+| ORM | **MyBatis-Plus 3.5.7**（`mybatis-plus-spring-boot3-starter`），Mapper 接口 + 少量 XML；**不做全局逻辑删除**（学生不能删历史，`deleted` 字段一期去掉） | 2026-10-20 决定 |
+| 运行环境 | **JDK 17**（Spring Boot 3 最低要求，LTS） | 2026-10-20 决定 |
+| 构建 | **Maven** | 2026-10-20 决定 |
+| 文件存储 | 本地 `uploads/` 目录 + 静态资源映射；DB 只存相对 URL（`leave_material.file_url`）；单文件 ≤ 10MB，限 jpg/png/pdf；**不引 OSS** | 03_API §4 |
+| 明确不引入 | Redis、消息队列、工作流引擎、微服务 | 总纲 |
 
 ---
 
