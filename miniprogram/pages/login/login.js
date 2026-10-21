@@ -12,7 +12,7 @@
 const { post } = require('../../utils/request')
 const { saveAuth, getToken } = require('../../utils/auth')
 const { DEMO_ACCOUNT } = require('../../utils/config')
-const { getBaseUrl, setBaseUrl } = require('../../utils/server')
+const { getBaseUrl, setBaseUrl, probe } = require('../../utils/server')
 
 Page({
   data: {
@@ -50,31 +50,59 @@ Page({
    * 切换后端地址（长按/点击底部「接口」行触发）。
    *
    * 场景：真机调试时后端地址必须是电脑的局域网 IP，换 WiFi / 连手机热点后 IP 会变。
-   * 这里给几个候选 + 手动输入，存 storage，立即生效，不用改代码重新编译。
+   * 提供「自动探测」——并发探一批常见网段，第一个通的直接用，不用手动敲 IP。
    */
   onServerTap() {
     const current = getBaseUrl()
-    const candidates = [
+    const items = [
+      '自动探测（推荐，先连同一个 WiFi）',
       '127.0.0.1:8080（开发者工具本机）',
       '10.225.223.179:8080（上次的 WLAN）',
-      '26.135.94.106:8080（Radmin VPN）',
       '手动输入…'
     ]
 
     wx.showActionSheet({
       alertText: '当前：' + current,
-      itemList: candidates,
+      itemList: items,
       success: (res) => {
-        if (res.tapIndex === candidates.length - 1) {
+        if (res.tapIndex === 0) {
+          this.autoProbe()
+          return
+        }
+        if (res.tapIndex === items.length - 1) {
           this.askCustomHost()
           return
         }
-        const picked = candidates[res.tapIndex].replace(/（.*$/, '')
+        const picked = items[res.tapIndex].replace(/（.*$/, '')
         setBaseUrl(picked)
         this.refreshApiHost()
         wx.showToast({ title: '已切换到 ' + picked, icon: 'none' })
       }
     })
+  },
+
+  /** 自动探测后端地址 */
+  async autoProbe() {
+    wx.showLoading({ title: '正在探测…', mask: true })
+    const host = await probe()
+    wx.hideLoading()
+
+    if (host) {
+      const saved = setBaseUrl(host)
+      this.refreshApiHost()
+      wx.showModal({
+        title: '已找到后端',
+        content: saved + '\n\n现在可以登录了。',
+        showCancel: false
+      })
+    } else {
+      wx.showModal({
+        title: '没有找到后端',
+        content: '说明手机和电脑不在同一个网络里，或电脑的 8080 被防火墙挡住。\n\n' +
+          '最稳的做法：手机开「个人热点」→ 电脑连这个热点 → 再点一次自动探测。',
+        showCancel: false
+      })
+    }
   },
 
   /** 手动输入 IP:端口 */

@@ -86,9 +86,16 @@ function request(url, method = 'GET', data = null, options = {}) {
       },
       fail(err) {
         // 网络层失败：域名被拦、后端没启动、超时
-        const hint = (err && err.errMsg && err.errMsg.indexOf('domain') >= 0)
-          ? '请求域名未配置，请勾选「不校验合法域名」'
-          : '网络异常，请检查后端是否已启动'
+        const raw = (err && err.errMsg) || ''
+        let hint
+        if (raw.indexOf('domain') >= 0) {
+          hint = '请求域名未配置，请勾选「不校验合法域名」'
+        } else if (raw.indexOf('timeout') >= 0) {
+          hint = '请求超时：手机连不上这台电脑，请让两者在同一网络（推荐手机开热点给电脑连）'
+        } else {
+          hint = '网络异常：手机连不上 ' + getBaseUrl().replace(/^https?:\/\//, '') +
+            '。可点登录页底部「接口」→ 自动探测'
+        }
         reject({ code: -1, message: hint, detail: err })
       },
       complete() {
