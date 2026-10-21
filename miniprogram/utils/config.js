@@ -11,4 +11,11 @@ const BASE_URL = 'http://localhost:8080/api/v1'
 /** 文件访问前缀（后端返回的是相对路径 /files/xxx，需要拼上服务地址） */
 const FILE_BASE = 'http://localhost:8080'
 
-module.exports = { BASE_URL, FILE_BASE }
+/**
+ * 演示账号（仅登录页的「演示账号」一键填充用）。
+ * 这是 sql/V1.1__seed_demo.sql 里内置的演示数据，不是真实用户凭据；
+ * 正式部署时应删掉登录页的填充入口与这两项配置。
+ */
+const DEMO_ACCOUNT = { username: '2023001001', password: '123456' }
+
+module.exports = { BASE_URL, FILE_BASE, DEMO_ACCOUNT }

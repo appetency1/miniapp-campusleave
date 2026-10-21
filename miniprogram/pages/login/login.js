@@ -11,6 +11,7 @@
  */
 const { post } = require('../../utils/request')
 const { saveAuth, getToken } = require('../../utils/auth')
+const { DEMO_ACCOUNT } = require('../../utils/config')
 
 Page({
   data: {
@@ -19,7 +20,9 @@ Page({
     /** 当前聚焦的字段名，用于把底线变墨色 */
     focus: '',
     submitting: false,
-    error: ''
+    error: '',
+    /** 登录页底部展示的演示账号文案 */
+    demoText: DEMO_ACCOUNT.username + ' / ' + DEMO_ACCOUNT.password
   },
 
   onLoad() {
@@ -45,9 +48,9 @@ Page({
     this.setData({ focus: '' })
   },
 
-  /** 一键填充演示账号（毕设演示便利，正式版可删） */
+  /** 一键填充演示账号（毕设演示便利，正式版可删；账号来自 utils/config.js） */
   fillDemo() {
-    this.setData({ username: '2023001001', password: '123456', error: '' })
+    this.setData({ username: DEMO_ACCOUNT.username, password: DEMO_ACCOUNT.password, error: '' })
   },
 
   /**

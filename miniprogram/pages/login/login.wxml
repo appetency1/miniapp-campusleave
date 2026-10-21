@@ -69,7 +69,7 @@
     <!-- 演示辅助：一键填充演示账号（毕设演示用，正式版可删） -->
     <view class="demo" bindtap="fillDemo">
       <text class="demo__t num">演示账号</text>
-      <text class="demo__v num">2023001001 / 123456</text>
+      <text class="demo__v num">{{demoText}}</text>
     </view>
   </view>
 
