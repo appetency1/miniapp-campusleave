@@ -323,19 +323,39 @@ GET /api/v1/student/home
   "code": 0,
   "data": {
     "now": "2026-10-17 11:20:00",
+    "student": {
+      "realName": "李同学", "studentNo": "2023001001",
+      "className": "计算机科学与技术1班", "major": "计算机科学与技术",
+      "grade": "2023", "counselorName": "张老师"
+    },
     "current": {
       "applicationId": 12, "applicationNo": "LA202610170001",
       "leaveScene": "OFF_CAMPUS", "leaveType": "SICK",
       "startTime": "2026-10-17 08:00:00", "endTime": "2026-10-17 18:00:00",
       "status": "APPROVED", "effectiveStatus": "IN_PROGRESS", "overdue": false,
-      "hasPendingExtension": false
+      "reason": "发烧就医", "destination": "市第一医院", "contactPhone": "13900000001",
+      "approvedAt": "2026-10-16 17:30:00", "approvedBy": "张老师",
+      "rejectReason": null, "hasPendingExtension": false,
+      "submittedAt": "2026-10-16 09:02:00", "completedAt": null,
+      "totalMillis": 36000000, "elapsedMillis": 12000000,
+      "remainingMillis": 24000000, "overdueMillis": 0,
+      "waitingMillis": 0, "beforeStartMillis": 0
     },
-    "recent": [ { "applicationId": 11, "summary": "校内 · 事假", "status": "COMPLETED", "startTime": "2026-10-10 09:00:00" } ]
+    "recent": [ { "applicationId": 11, "summary": "校内 · 事假", "status": "COMPLETED", "effectiveStatus": "COMPLETED", "startTime": "2026-10-10 09:00:00" } ],
+    "stats": { "totalApplications": 7, "approved": 5, "completed": 2, "currentOverdue": 1,
+               "offCampusCount": 3, "onCampusCount": 4, "averageDays": 0.3 }
   }
 }
 ```
 
 > `effectiveStatus` 由后端按 V1.2 §4.1 计算（WAITING_START / IN_PROGRESS / OVERDUE / 其他状态原样返回）。
+>
+> **M2 补充字段说明**（前端渲染所需，均为只读计算结果）：
+> - `student`：首页头部与「我的」页需要的姓名 / 学号 / 班级 / 辅导员，避免前端再发 3 个请求。
+> - `current` 的 `*Millis`：区间总长、已过、剩余、逾期、已等待、距开始，单位毫秒。
+>   前端直接用它们算刻度尺百分比与大数字，**不在前端做时区换算**（避免 iOS 日期解析差异）。
+> - `current.rejectReason`：驳回时取最新一条 `REJECT` 日志的 `comment`（主表无该字段）。
+> - `stats`：与 §5.13 同源，便于首页「本学期概览」直接渲染。
 
 ### 5.2 提交申请
 
@@ -384,12 +404,15 @@ POST /api/v1/student/applications
 ### 5.3 我的申请列表
 
 ```text
-GET /api/v1/student/applications?status=&page=1&size=10
+GET /api/v1/student/applications?filter=all
 权限：STUDENT（仅本人）
 ```
 
-- `status` 可选：PENDING / APPROVED / REJECTED / WITHDRAWN / CANCELLED / COMPLETED；不传为全部。
-- 列表项字段：id、applicationNo、leaveScene、leaveType、startTime、endTime、status、effectiveStatus、overdue、createdAt。
+- `filter` 六档（对应记录页筛选，M2 实现）：`all` 全部 / `active` 进行中（请假中+逾期）/ `pending` 待审批 / `approved` 已通过（待开始）/ `completed` 已销假 / `rejected` 已驳回。
+- 另有 `closed`（所有已终结）、`overdue`（仅逾期）两个保留值，供后续筛选扩展。
+- 列表项字段：`applicationId`、`applicationNo`、`leaveScene`、`leaveType`、`summary`（"离校 · 病假"）、`startTime`、`endTime`、`status`、`effectiveStatus`、`statusLabel`（展示态中文）、`subText`（一句话说明，如"还剩 3 小时 · 返校后定位销假"）。
+- 排序：按 `startTime` 倒序。
+- **筛选在后端做**（而非前端全量拉取后过滤），数据量大时也不会退化。
 
 ### 5.4 申请详情
 

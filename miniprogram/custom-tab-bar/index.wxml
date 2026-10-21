@@ -1,0 +1,25 @@
+<!--
+  custom-tab-bar/index.wxml
+  
+  结构极简：一行四个文字项，选中项下方一道蓝色短横线。
+  不用图标的原因：零图片资源、且纸感体系里图标会显得杂。
+-->
+<view class="tabbar">
+  <view
+    wx:for="{{list}}"
+    wx:key="pagePath"
+    class="tab {{selected === index ? 'tab--on' : ''}}"
+    data-index="{{index}}"
+    bindtap="onTap"
+  >
+    <view class="tab__wrap">
+      <text class="tab__t">{{item.text}}</text>
+      <!-- 消息未读角标 -->
+      <view wx:if="{{index === 2 && unread > 0}}" class="tab__badge num">
+        {{unread > 99 ? '99+' : unread}}
+      </view>
+    </view>
+    <!-- 选中态：蓝色 3rpx 短横线 -->
+    <view class="tab__bar"></view>
+  </view>
+</view>

@@ -1,0 +1,155 @@
+<!--
+  pages/student/detail/detail.wxml —— 请假详情
+
+  结构：自定义导航（返回 + 标题）→ 状态区 → 时间轴 → 申请信息 → 材料 → 底部操作栏
+  底部操作栏按后端返回的 actions 渲染（后端仍会二次校验，前端隐藏不等于安全）
+-->
+<view class="page">
+
+  <!-- 自定义导航 -->
+  <view class="nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav__back" bindtap="onBack">
+      <view class="nav__arrow"></view>
+    </view>
+    <view class="nav__t">请假详情</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">正在加载…</view>
+  <view wx:elif="{{error}}" class="empty">
+    <view>{{error}}</view>
+    <view class="retry" bindtap="load">重新加载</view>
+  </view>
+
+  <scroll-view wx:else class="body" scroll-y>
+    <view class="pad">
+
+      <!-- 状态区 -->
+      <view class="state {{stateCls}}">{{d.statusLabel}} · {{d.leaveSceneLabel}} · {{d.leaveTypeLabel}}</view>
+      <view class="range num">{{rangeText}}</view>
+      <view class="no num">编号 {{d.applicationNo}}</view>
+
+      <!-- 驳回原因 -->
+      <view wx:if="{{d.effectiveStatus === 'REJECTED' && d.approvalComment}}" class="notice" style="margin-top: 24rpx;">
+        {{d.approvalComment}}
+      </view>
+
+      <!-- 时间轴 -->
+      <view class="sec"><text class="sec__t">流程</text></view>
+      <view class="timeline">
+        <view wx:for="{{timeline}}" wx:key="t" class="tl {{item.st}}">
+          <view class="tl__d"></view>
+          <view class="tl__body">
+            <view class="tl__t">{{item.t}}</view>
+            <view wx:if="{{item.s}}" class="tl__s num">{{item.s}}</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 申请信息 -->
+      <view class="sec"><text class="sec__t">申请信息</text></view>
+      <view class="rows">
+        <view class="row">
+          <text class="row__l">请假场景</text>
+          <text class="row__v">{{d.leaveSceneLabel}}</text>
+        </view>
+        <view class="row">
+          <text class="row__l">请假类型</text>
+          <text class="row__v">{{d.leaveTypeLabel}}</text>
+        </view>
+        <view class="row">
+          <text class="row__l">开始时间</text>
+          <text class="row__v num">{{d.startTime}}</text>
+        </view>
+        <view class="row">
+          <text class="row__l">结束时间</text>
+          <text class="row__v num">{{d.endTime}}</text>
+        </view>
+        <view wx:if="{{d.destination}}" class="row">
+          <text class="row__l">去向</text>
+          <text class="row__v">{{d.destination}}</text>
+        </view>
+        <view wx:if="{{d.contactPhone}}" class="row">
+          <text class="row__l">联系电话</text>
+          <text class="row__v num">{{d.contactPhone}}</text>
+        </view>
+        <view wx:if="{{d.approvedBy}}" class="row">
+          <text class="row__l">审批人</text>
+          <text class="row__v">{{d.approvedBy}}</text>
+        </view>
+      </view>
+
+      <!-- 请假原因 -->
+      <view class="sec"><text class="sec__t">请假原因</text></view>
+      <view class="paragraph">{{d.reason}}</view>
+
+      <!-- 材料 -->
+      <block wx:if="{{materials.length}}">
+        <view class="sec"><text class="sec__t">材料（{{materials.length}}）</text></view>
+        <view class="mats">
+          <view wx:for="{{materials}}" wx:key="id" class="mat">
+            <text class="mat__n">{{item.name}}</text>
+            <text class="mat__s num">{{item.sizeText}}</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 销假记录 -->
+      <block wx:if="{{checkins.length}}">
+        <view class="sec"><text class="sec__t">销假记录</text></view>
+        <view class="rows">
+          <view wx:for="{{checkins}}" wx:key="id" class="row row--col">
+            <view class="row__top">
+              <text class="row__l">{{item.typeLabel}}</text>
+              <text class="row__v {{item.danger ? 'row__v--danger' : ''}}">{{item.resultLabel}}</text>
+            </view>
+            <view class="row__sub num">{{item.checkTime}}{{item.distanceText ? ' · ' + item.distanceText : ''}}</view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 续假 -->
+      <block wx:if="{{extension}}">
+        <view class="sec"><text class="sec__t">续假申请</text></view>
+        <view class="rows">
+          <view class="row">
+            <text class="row__l">申请延长至</text>
+            <text class="row__v num">{{extension.requestedEndTime}}</text>
+          </view>
+          <view class="row">
+            <text class="row__l">状态</text>
+            <text class="row__v">{{extension.statusLabel}}</text>
+          </view>
+          <view class="row">
+            <text class="row__l">原因</text>
+            <text class="row__v">{{extension.reason}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view style="height: 40rpx;"></view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部操作栏（有动作才出现） -->
+  <view wx:if="{{actions.length}}" class="bottom">
+    <button
+      wx:if="{{hasCheckin}}"
+      class="btn"
+      hover-class="is-active"
+      bindtap="onAction"
+      data-action="CHECKIN"
+    >{{checkinText}}</button>
+
+    <view class="bottom__links">
+      <block wx:for="{{actions}}" wx:key="key">
+        <text
+          wx:if="{{item.key !== 'CHECKIN'}}"
+          class="link-btn {{item.danger ? 'link-btn--danger' : ''}}"
+          data-action="{{item.key}}"
+          bindtap="onAction"
+        >{{item.label}}</text>
+      </block>
+    </view>
+  </view>
+
+</view>

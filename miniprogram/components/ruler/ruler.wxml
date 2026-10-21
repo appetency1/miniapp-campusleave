@@ -1,0 +1,43 @@
+<!--
+  components/ruler/ruler.wxml —— 刻度尺
+
+  这是整个学生端的视觉记忆点：把「请假区间」画成一把尺子。
+
+  三层叠起来：
+    1. 底槽  .rl__track   —— 底部 1rpx 基线 + 周期性刻度（12 等分短刻度 / 6 等分长刻度）
+    2. 进度  .rl__range   —— 从左侧铺到"现在"的蓝色渐变带，底部 2rpx 蓝线
+    3. 指针  .rl__now     —— 当前位置的竖线 + 顶部小方块，配"现在 11:20"文字
+
+  为什么用 CSS 渐变画刻度而不是图片：
+    零资源、任意宽度自适应、颜色跟随主题变量（红色逾期态只需换一个 class）。
+-->
+<view class="rl {{danger ? 'rl--danger' : ''}}">
+
+  <view class="rl__track">
+    <!-- 进度带：宽度由 percent 控制 -->
+    <view class="rl__range" style="width: {{percent}}%;"></view>
+
+    <!-- 刻度层：纯 CSS 背景渐变，pointer-events 不参与交互 -->
+    <view class="rl__grid"></view>
+
+    <!-- 当前时间指针 -->
+    <view class="rl__now" style="left: {{percent}}%;"></view>
+  </view>
+
+  <!-- 「现在 11:20」标签：靠近两端时改变对齐方式，避免溢出容器 -->
+  <view
+    wx:if="{{nowText}}"
+    class="rl__nowlab num"
+    style="left: {{percent}}%; {{percent > 88 ? 'transform: translateX(-100%);' : percent < 12 ? 'transform: none;' : ''}}"
+  >{{nowText}}</view>
+
+  <!-- 7 个刻度标签：首项左对齐、末项右对齐、中间居中 -->
+  <view class="rl__labs">
+    <text
+      wx:for="{{labels}}"
+      wx:key="index"
+      class="rl__lab num {{index === 0 ? 'rl__lab--first' : index === labels.length - 1 ? 'rl__lab--last' : ''}}"
+    >{{item}}</text>
+  </view>
+
+</view>

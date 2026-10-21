@@ -1,0 +1,125 @@
+/* components/ruler/ruler.wxss
+ * 刻度尺样式，数值与 formal-v2 一一对应（px → rpx 按 2 倍换算）
+ *   track 高 40px → 80rpx
+ *   细刻度 12 等分、长刻度 6 等分
+ */
+.rl {
+  position: relative;
+  margin-top: 52rpx;
+}
+
+/* ---- 轨道 ---- */
+.rl__track {
+  position: relative;
+  height: 80rpx;
+  border-bottom: 1rpx solid var(--line-2, #D8D3C6);
+}
+
+/* ---- 进度带（蓝色渐变 + 底部实线）---- */
+.rl__range {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 80rpx;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(37, 99, 201, 0) 0%, rgba(37, 99, 201, 0.13) 100%);
+  border-bottom: 4rpx solid var(--blue-500, #2563C9);
+}
+
+/* 逾期态换红色 */
+.rl--danger .rl__range {
+  background: linear-gradient(180deg, rgba(178, 58, 40, 0) 0%, rgba(178, 58, 40, 0.12) 100%);
+  border-bottom-color: var(--red-600, #B23A28);
+}
+
+/* ---- 刻度层 ----
+ * 两层叠加：
+ *   下层 12 等分的短刻度（高 16rpx）
+ *   上层 6 等分的长刻度（高 30rpx，颜色更深）
+ * 用 background-size 控制密度，无需任何图片
+ */
+.rl__grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background-image: linear-gradient(to right, rgba(21, 32, 46, 0.20) 1rpx, transparent 1rpx);
+  background-size: calc(100% / 12) 16rpx;
+  background-repeat: repeat-x;
+  background-position: left bottom;
+}
+.rl__grid::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30rpx;
+  background-image: linear-gradient(to right, rgba(21, 32, 46, 0.34) 1rpx, transparent 1rpx);
+  background-size: calc(100% / 6) 30rpx;
+  background-repeat: repeat-x;
+}
+
+/* ---- 当前时间指针 ---- */
+.rl__now {
+  position: absolute;
+  bottom: 0;
+  width: 4rpx;
+  height: 80rpx;
+  background: var(--blue-600, #1F55AD);
+  z-index: 3;
+}
+.rl--danger .rl__now {
+  background: var(--red-600, #B23A28);
+}
+/* 指针顶部小方块 */
+.rl__now::after {
+  content: "";
+  position: absolute;
+  left: -6rpx;
+  top: -6rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background: inherit;
+}
+
+/* ---- 「现在 11:20」标签 ---- */
+.rl__nowlab {
+  /* 组件内拿不到全局 .num，这里直接声明衬线字体（与定稿一致） */
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  position: absolute;
+  top: -40rpx;
+  transform: translateX(-50%);
+  font-size: 22rpx;
+  line-height: 1.4;
+  color: var(--blue-600, #1F55AD);
+  white-space: nowrap;
+}
+.rl--danger .rl__nowlab {
+  color: var(--red-600, #B23A28);
+}
+
+/* ---- 底部 7 个刻度标签 ---- */
+.rl__labs {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16rpx;
+}
+.rl__lab {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 22rpx;
+  color: var(--ink-3, #6B6559);
+  letter-spacing: 0.04em;
+  /* 居中项以自身中心对齐刻度，首尾项贴边 */
+  transform: translateX(-50%);
+}
+.rl__lab--first {
+  transform: none;
+}
+.rl__lab--last {
+  transform: translateX(-100%);
+}

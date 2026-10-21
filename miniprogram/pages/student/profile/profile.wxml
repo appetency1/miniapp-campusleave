@@ -1,0 +1,75 @@
+<!--
+  pages/student/profile/profile.wxml —— 我的
+
+  结构：姓名 + 学号班级 → 三项统计（细线分隔，不用卡片）→ 账号与设置
+-->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- 身份区 -->
+  <view class="me">
+    <view class="me__name">{{realName}}</view>
+    <view class="me__meta num">{{studentNo}}{{className ? ' · ' + className : ''}}</view>
+  </view>
+
+  <!-- 三项统计 -->
+  <view class="stats">
+    <view class="st">
+      <text class="st__v num">{{stats.totalApplications}}</text>
+      <text class="st__l">申请</text>
+    </view>
+    <view class="st__div"></view>
+    <view class="st">
+      <text class="st__v num">{{stats.completed}}</text>
+      <text class="st__l">已销假</text>
+    </view>
+    <view class="st__div"></view>
+    <view class="st">
+      <text class="st__v num {{stats.currentOverdue > 0 ? 'st__v--danger' : ''}}">{{stats.currentOverdue}}</text>
+      <text class="st__l">逾期</text>
+    </view>
+  </view>
+
+  <!-- 账号与设置 -->
+  <view class="sec">
+    <text class="sec__t">账号与设置</text>
+  </view>
+
+  <view class="rows">
+    <view class="row">
+      <text class="row__l">学号</text>
+      <text class="row__v num">{{studentNo}}</text>
+    </view>
+    <view class="row">
+      <text class="row__l">班级</text>
+      <text class="row__v">{{className || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="row__l">辅导员</text>
+      <text class="row__v">{{counselorName || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="row__l">本学期平均请假</text>
+      <text class="row__v num">{{stats.averageDays}} 天</text>
+    </view>
+  </view>
+
+  <view class="sec">
+    <text class="sec__t">关于</text>
+  </view>
+
+  <view class="rows">
+    <view class="row">
+      <text class="row__l">版本</text>
+      <text class="row__v num">1.0.0</text>
+    </view>
+    <view class="row">
+      <text class="row__l">定位说明</text>
+      <text class="row__v row__v--sm">仅销假时获取一次</text>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <button class="btn btn--plain logout" hover-class="is-active" bindtap="onLogout">退出登录</button>
+
+  <view class="tabbar-hold"></view>
+</view>

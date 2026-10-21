@@ -1,0 +1,106 @@
+/* pages/student/messages/messages.wxss
+ * 消息页：左侧竖线表示未读，不用红点/头像，保持纸感
+ */
+.page {
+  min-height: 100vh;
+  background: var(--paper);
+  padding-left: 40rpx;
+  padding-right: 40rpx;
+  box-sizing: border-box;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 40rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+.head__t {
+  font-size: 44rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+.head__a {
+  font-size: 24rpx;
+  color: var(--blue-600);
+}
+.head__a--off {
+  color: var(--ink-4);
+}
+
+.msgs {
+  display: flex;
+  flex-direction: column;
+}
+
+.msg {
+  display: flex;
+  gap: 20rpx;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+.msg:active {
+  background: var(--paper-2);
+}
+
+/* 未读竖线：默认透明，未读时蓝色 */
+.msg__bar {
+  flex: 0 0 auto;
+  width: 3rpx;
+  border-radius: 2rpx;
+  background: transparent;
+  margin-top: 4rpx;
+}
+.msg--unread .msg__bar {
+  background: var(--blue-500);
+}
+
+.msg__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.msg__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.msg__t {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--ink-2);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg--unread .msg__t {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.msg__time {
+  flex: 0 0 auto;
+  font-size: 22rpx;
+  color: var(--ink-4);
+}
+
+.msg__c {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.65;
+  color: var(--ink-3);
+}
+.msg--unread .msg__c {
+  color: var(--ink-2);
+}
+
+.retry {
+  margin-top: 20rpx;
+  font-size: 26rpx;
+  color: var(--blue-600);
+}

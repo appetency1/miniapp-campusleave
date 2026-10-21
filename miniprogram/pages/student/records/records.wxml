@@ -1,0 +1,63 @@
+<!--
+  pages/student/records/records.wxml —— 请假记录
+
+  结构：标题 → 六档筛选（横向滚动）→ 记录卡片列表
+  
+  卡片用「编号 + 状态 / 区间 / 摘要 / 副标题」四行，
+  编号用衬线体（定稿的记忆点），状态用色块 chip。
+-->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <view class="head">
+    <view class="head__t">请假记录</view>
+    <view class="head__s num">共 {{total}} 条</view>
+  </view>
+
+  <!-- 六档筛选：横向滚动，选中项墨色实心 -->
+  <scroll-view class="filters" scroll-x enable-flex show-scrollbar="{{false}}">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="filter {{active === item.key ? 'filter--on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onFilter"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <!-- 列表 -->
+  <view wx:if="{{loading}}" class="empty">正在加载…</view>
+  <view wx:elif="{{error}}" class="empty">
+    <view>{{error}}</view>
+    <view class="retry" bindtap="load">重新加载</view>
+  </view>
+  <view wx:elif="{{!list.length}}" class="empty">
+    这个筛选下还没有记录
+  </view>
+
+  <view wx:else class="cards">
+    <view
+      wx:for="{{list}}"
+      wx:key="applicationId"
+      class="card"
+      data-id="{{item.applicationId}}"
+      bindtap="onOpen"
+    >
+      <!-- 第一行：编号 + 状态 -->
+      <view class="card__top">
+        <text class="card__no num">{{item.no}}</text>
+        <text class="chip {{item.chip}}">{{item.statusLabel}}</text>
+      </view>
+
+      <!-- 第二行：区间 -->
+      <view class="card__range num">{{item.rangeText}}</view>
+
+      <!-- 第三行：类型摘要 -->
+      <view class="card__type">{{item.summary}}</view>
+
+      <!-- 第四行：动态说明 -->
+      <view wx:if="{{item.subText}}" class="card__sub {{item.subCls}}">{{item.subText}}</view>
+    </view>
+  </view>
+
+  <view class="tabbar-hold"></view>
+</view>

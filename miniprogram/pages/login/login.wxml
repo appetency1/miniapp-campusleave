@@ -1,0 +1,76 @@
+<!--
+  pages/login/login.wxml —— 登录页
+
+  版式依据 04_开发方案 D-03：
+    留白 → 校名（墨色粗体）→ LA · 学生端（衬线小字）→ 学号 / 密码（仅底线）
+    → 墨色实心主按钮 → 底部说明
+
+  交互细节：
+    - 输入框无边框、只有 1rpx 底线，聚焦时底线转墨色（纸感体系的核心手法）
+    - 登录中按钮显示"登录中"，并禁用重复点击
+-->
+<view class="wrap">
+
+  <!-- 顶部：品牌区（小程序右上角是系统胶囊，此处不做自绘导航） -->
+  <view class="brand">
+    <view class="brand__t">校园请假</view>
+    <view class="brand__s num">LA · 学生端</view>
+  </view>
+
+  <!-- 表单 -->
+  <view class="form">
+    <view class="field {{focus === 'username' ? 'field--on' : ''}}">
+      <view class="field__lb">学号</view>
+      <input
+        class="field__in num"
+        type="text"
+        value="{{username}}"
+        placeholder="请输入学号"
+        placeholder-class="ph"
+        maxlength="20"
+        bindinput="onUsernameInput"
+        bindfocus="onFocus"
+        bindblur="onBlur"
+        data-name="username"
+      />
+    </view>
+
+    <view class="field {{focus === 'password' ? 'field--on' : ''}}">
+      <view class="field__lb">密码</view>
+      <input
+        class="field__in"
+        password="{{true}}"
+        value="{{password}}"
+        placeholder="请输入密码"
+        placeholder-class="ph"
+        maxlength="32"
+        bindinput="onPasswordInput"
+        bindfocus="onFocus"
+        bindblur="onBlur"
+        data-name="password"
+        confirm-type="done"
+        bindconfirm="onLogin"
+      />
+    </view>
+
+    <!-- 错误提示：用红色细条，不弹 toast（toast 会被键盘挡住） -->
+    <view wx:if="{{error}}" class="err">{{error}}</view>
+
+    <button
+      class="btn login-btn {{submitting ? 'btn--disabled' : ''}}"
+      hover-class="is-active"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="onLogin"
+    >{{submitting ? '登录中' : '登 录'}}</button>
+
+    <view class="tip">账号由学校统一发放，忘记密码请联系辅导员</view>
+
+    <!-- 演示辅助：一键填充演示账号（毕设演示用，正式版可删） -->
+    <view class="demo" bindtap="fillDemo">
+      <text class="demo__t num">演示账号</text>
+      <text class="demo__v num">2023001001 / 123456</text>
+    </view>
+  </view>
+
+</view>

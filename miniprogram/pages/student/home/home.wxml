@@ -1,0 +1,182 @@
+<!--
+  pages/student/home/home.wxml —— 首页五态
+
+  结构顺序（与 formal-v2 一致）：
+    问候 + 一行元信息
+    → 状态行（请假中 · 离校 · 事假）
+    → 时间区（区间 / 大数字 / 刻度尺 / 读数 / 四步流程）
+    → 操作区（主按钮 + 文字按钮）
+    → 事实行（审批 / 销假）
+    → 最近记录 / 本学期概览 / 请假须知 / 场景卡
+
+  注意：navigationStyle 是 custom，所以顶部要手动留出状态栏高度（statusBarHeight）。
+-->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <!-- ===== 头部 ===== -->
+  <view class="greet">
+    <view class="greet__hi">{{greeting}}</view>
+    <view class="greet__meta num">{{dateLine}}</view>
+  </view>
+
+  <!-- ===== 加载 / 错误 ===== -->
+  <view wx:if="{{loading}}" class="empty">正在加载…</view>
+  <view wx:elif="{{error}}" class="empty">
+    <view>{{error}}</view>
+    <view class="retry" bindtap="load">重新加载</view>
+  </view>
+
+  <block wx:else>
+
+    <!-- ===== 有当前请假：主卡片 ===== -->
+    <block wx:if="{{hasHero}}">
+
+      <!-- 状态行：请假中 · 离校 · 事假 -->
+      <view class="state {{stateCls}}">{{stateWord}}</view>
+
+      <view class="timeblock">
+        <!-- 区间 -->
+        <view class="range num">{{rangeText}}</view>
+
+        <!-- 大数字（还剩 / 逾期 / 已等待 / 还有） -->
+        <view wx:if="{{bigLabel}}" class="bigrow">
+          <text class="bigrow__lb num">{{bigLabel}}</text>
+          <text class="bigrow__v num {{bigDanger ? 'bigrow__v--danger' : ''}}">{{bigText}}</text>
+        </view>
+        <view wx:else class="bigtext {{stateCls}}">{{bigText}}</view>
+
+        <!-- 刻度尺（只有请假中 / 逾期才有） -->
+        <ruler
+          wx:if="{{showRuler}}"
+          percent="{{rulerPercent}}"
+          danger="{{rulerDanger}}"
+          labels="{{rulerLabels}}"
+          nowText="{{rulerNowText}}"
+        />
+
+        <!-- 读数：已过 x · 共 y -->
+        <view wx:if="{{readLeftStrong || readRight}}" class="reads num">
+          <text>{{readLeftPre}}<text class="reads__b">{{readLeftStrong}}</text>{{readLeftRest}}</text>
+          <text>{{readRight}}</text>
+        </view>
+
+        <!-- 四步流程（仅待审批） -->
+        <view wx:if="{{showFlow}}" class="flow">
+          <view
+            wx:for="{{flowSteps}}"
+            wx:key="t"
+            class="flow__s {{item.st}}"
+          >
+            <view class="flow__d"></view>
+            <text class="flow__t">{{item.t}}</text>
+            <text class="flow__s2 num">{{item.s}}</text>
+          </view>
+        </view>
+
+        <!-- 驳回原因 -->
+        <view wx:if="{{rejectReason}}" class="notice" style="margin-top: 24rpx;">{{rejectReason}}</view>
+      </view>
+
+      <!-- 操作区 -->
+      <view class="action">
+        <button
+          class="btn {{ctaGhost ? 'btn--ghost' : ''}}"
+          hover-class="is-active"
+          bindtap="onCta"
+        >{{ctaText}}</button>
+
+        <view wx:if="{{links.length}}" class="links">
+          <block wx:for="{{links}}" wx:key="text">
+            <view wx:if="{{index > 0}}" class="links__div"></view>
+            <text
+              class="link-btn {{item.danger ? 'link-btn--danger' : ''}}"
+              data-action="{{item.action}}"
+              bindtap="onLink"
+            >{{item.text}}</text>
+          </block>
+        </view>
+      </view>
+
+      <!-- 事实行：审批 张老师 10.16 17:30 · 销假 返校定位 -->
+      <view wx:if="{{facts.length}}" class="facts num">
+        <block wx:for="{{facts}}" wx:key="label">
+          <text wx:if="{{index > 0}}" class="facts__dot">·</text>
+          <text>{{item.label}} <text class="facts__b">{{item.value}}</text></text>
+        </block>
+      </view>
+
+    </block>
+
+    <!-- ===== 无当前请假：场景卡（态 D / E） ===== -->
+    <block wx:if="{{showScene}}">
+      <view class="state state--muted">今天没有请假</view>
+
+      <view class="empty2">
+        <view class="empty2__t">要离校，还是只在校内活动？</view>
+
+        <view class="picks">
+          <view class="pick" data-scene="OFF" bindtap="onApply">
+            <view class="pick__t">离校请假</view>
+            <view class="pick__s">返校定位销假</view>
+          </view>
+          <view class="pick" data-scene="ON" bindtap="onApply">
+            <view class="pick__t">校内请假</view>
+            <view class="pick__s">结束后自主确认</view>
+          </view>
+        </view>
+
+        <view class="hint">提交后由辅导员审批{{counselorName ? '，当前辅导员 ' + counselorName : ''}}</view>
+      </view>
+    </block>
+
+    <!-- ===== 本学期概览（态 D） ===== -->
+    <block wx:if="{{showOverview}}">
+      <view class="overview">
+        <view class="overview__t">本学期请假</view>
+        <view class="overview__r num">
+          <view class="ov"><text class="ov__l">离校</text><text class="ov__b">{{overview.off}}</text><text class="ov__u">次</text></view>
+          <view class="ov"><text class="ov__l">校内</text><text class="ov__b">{{overview.on}}</text><text class="ov__u">次</text></view>
+          <view class="ov"><text class="ov__l">平均</text><text class="ov__b">{{overview.avg}}</text><text class="ov__u">天</text></view>
+        </view>
+      </view>
+    </block>
+
+    <!-- ===== 请假须知（态 E） ===== -->
+    <block wx:if="{{showRules}}">
+      <view class="sec" style="margin-top: 52rpx;">
+        <text class="sec__t">请假须知</text>
+      </view>
+      <view class="rules">
+        <view wx:for="{{rules}}" wx:key="no" class="rule">
+          <text class="rule__i num">{{item.no}}</text>
+          <text class="rule__t">{{item.text}}</text>
+        </view>
+      </view>
+      <view class="rules-note">以上须知由管理员端实时增改，保存后即时生效</view>
+    </block>
+
+    <!-- ===== 最近记录 ===== -->
+    <block wx:if="{{recent.length}}">
+      <view class="sec">
+        <text class="sec__t">最近记录</text>
+        <text class="sec__a" bindtap="onAllRecords">全部记录</text>
+      </view>
+      <view class="recs">
+        <view
+          wx:for="{{recent}}"
+          wx:key="id"
+          class="rec"
+          data-id="{{item.id}}"
+          bindtap="onOpenRecord"
+        >
+          <text class="rec__d num">{{item.date}}</text>
+          <text class="rec__t">{{item.summary}}</text>
+          <text class="rec__s {{item.chip}}">{{item.statusText}}</text>
+        </view>
+      </view>
+    </block>
+
+  </block>
+
+  <view class="tabbar-hold"></view>
+</view>

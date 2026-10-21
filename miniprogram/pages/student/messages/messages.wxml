@@ -1,0 +1,49 @@
+<!--
+  pages/student/messages/messages.wxml —— 消息中心
+
+  设计：不分组、不用头像、不用卡片。
+  每行 = 左边一条竖线（未读蓝 / 已读透明）+ 标题 + 时间 + 正文。
+  未读用左侧竖线而不是小红点，和纸感体系更搭。
+-->
+<view class="page" style="padding-top: {{statusBarHeight}}px;">
+
+  <view class="head">
+    <view class="head__t">消息</view>
+    <view
+      wx:if="{{unread > 0}}"
+      class="head__a"
+      bindtap="onReadAll"
+    >全部已读（{{unread}}）</view>
+    <view wx:else class="head__a head__a--off">全部已读</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">正在加载…</view>
+  <view wx:elif="{{error}}" class="empty">
+    <view>{{error}}</view>
+    <view class="retry" bindtap="load">重新加载</view>
+  </view>
+  <view wx:elif="{{!list.length}}" class="empty">暂时没有消息</view>
+
+  <view wx:else class="msgs">
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="msg {{item.isRead ? '' : 'msg--unread'}}"
+      data-id="{{item.id}}"
+      bindtap="onTapMsg"
+    >
+      <!-- 未读竖线 -->
+      <view class="msg__bar"></view>
+
+      <view class="msg__body">
+        <view class="msg__top">
+          <text class="msg__t">{{item.title}}</text>
+          <text class="msg__time num">{{item.timeText}}</text>
+        </view>
+        <view class="msg__c">{{item.content}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tabbar-hold"></view>
+</view>
