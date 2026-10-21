@@ -17,7 +17,7 @@
  * 约定：resolve 的是后端 data 字段本身（已经脱掉了 code/message 外壳），
  *       reject 的是 { code, message, data } —— 页面里 catch 后取 message 展示即可。
  */
-const { BASE_URL } = require('./config')
+const { getBaseUrl } = require('./server')
 const { getToken, clearAuth } = require('./auth')
 
 /** 是否已经在跳登录页（防止多个请求同时 401 时重复 reLaunch） */
@@ -49,7 +49,8 @@ function request(url, method = 'GET', data = null, options = {}) {
     }
 
     wx.request({
-      url: BASE_URL + url,
+      // 每次都取一次：登录页可运行时切换后端地址（换网络后不用改代码）
+      url: getBaseUrl() + url,
       method,
       data: data || {},
       timeout: 15000,

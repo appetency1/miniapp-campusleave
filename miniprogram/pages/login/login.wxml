@@ -76,10 +76,17 @@
     <view class="tip">账号由学校统一发放，忘记密码请联系辅导员</view>
   </view>
 
-  <!-- 演示辅助：一键填充演示账号（毕设演示用，正式版可删） -->
-  <view class="demo" bindtap="fillDemo">
+  <!-- 演示辅助：一键填充演示账号（毕设演示用，正式版可删）
+       长按这一行 → 切换后端地址（换网络后不用改代码重新编译） -->
+  <view class="demo" bindtap="fillDemo" bindlongpress="onServerTap">
     <text class="demo__t num">演示账号</text>
     <text class="demo__v num">{{demoText}}</text>
+  </view>
+
+  <!-- 当前接口地址：联调时一眼看到请求打到哪台机器（正式版可删） -->
+  <view class="api" bindtap="onServerTap">
+    <text class="api__k">接口</text>
+    <text class="api__v num">{{apiHost}}</text>
   </view>
 
 </view>

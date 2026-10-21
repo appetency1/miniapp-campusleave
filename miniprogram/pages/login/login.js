@@ -12,6 +12,7 @@
 const { post } = require('../../utils/request')
 const { saveAuth, getToken } = require('../../utils/auth')
 const { DEMO_ACCOUNT } = require('../../utils/config')
+const { getBaseUrl, setBaseUrl } = require('../../utils/server')
 
 Page({
   data: {
@@ -22,14 +23,76 @@ Page({
     submitting: false,
     error: '',
     /** 登录页底部展示的演示账号文案 */
-    demoText: DEMO_ACCOUNT.username + ' / ' + DEMO_ACCOUNT.password
+    demoText: DEMO_ACCOUNT.username + ' / ' + DEMO_ACCOUNT.password,
+    /** 当前接口地址（去掉 /api/v1，只显示 host，方便一眼核对） */
+    apiHost: ''
   },
 
   onLoad() {
     // 已登录（比如从别的入口回来）直接进首页
     if (getToken()) {
       wx.reLaunch({ url: '/pages/student/home/home' })
+      return
     }
+    this.refreshApiHost()
+  },
+
+  onShow() {
+    this.refreshApiHost()
+  },
+
+  /** 刷新底部显示的接口地址 */
+  refreshApiHost() {
+    this.setData({ apiHost: getBaseUrl().replace(/^https?:\/\//, '').replace(/\/api\/v1$/, '') })
+  },
+
+  /**
+   * 切换后端地址（长按/点击底部「接口」行触发）。
+   *
+   * 场景：真机调试时后端地址必须是电脑的局域网 IP，换 WiFi / 连手机热点后 IP 会变。
+   * 这里给几个候选 + 手动输入，存 storage，立即生效，不用改代码重新编译。
+   */
+  onServerTap() {
+    const current = getBaseUrl()
+    const candidates = [
+      '127.0.0.1:8080（开发者工具本机）',
+      '10.225.223.179:8080（上次的 WLAN）',
+      '26.135.94.106:8080（Radmin VPN）',
+      '手动输入…'
+    ]
+
+    wx.showActionSheet({
+      alertText: '当前：' + current,
+      itemList: candidates,
+      success: (res) => {
+        if (res.tapIndex === candidates.length - 1) {
+          this.askCustomHost()
+          return
+        }
+        const picked = candidates[res.tapIndex].replace(/（.*$/, '')
+        setBaseUrl(picked)
+        this.refreshApiHost()
+        wx.showToast({ title: '已切换到 ' + picked, icon: 'none' })
+      }
+    })
+  },
+
+  /** 手动输入 IP:端口 */
+  askCustomHost() {
+    wx.showModal({
+      title: '后端地址',
+      editable: true,
+      placeholderText: '如 192.168.43.12:8080',
+      content: getBaseUrl().replace(/^https?:\/\//, '').replace(/\/api\/v1$/, ''),
+      success: (res) => {
+        if (!res.confirm) return
+        const v = (res.content || '').trim()
+        if (!v) return
+        const saved = setBaseUrl(v)
+        this.refreshApiHost()
+        wx.showToast({ title: '已保存，重新登录生效', icon: 'none' })
+      }
+    })
   },
 
   onUsernameInput(e) {

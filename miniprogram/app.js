@@ -8,7 +8,7 @@
  * 注意（D-03 决策）：登录方式就是账号密码，不使用 wx.login。
  * 小程序只负责把用户填的学号密码发给后端换 JWT，不涉及微信身份。
  */
-const { BASE_URL } = require('./utils/config')
+const { getBaseUrl } = require('./utils/server')
 const { getToken, clearAuth } = require('./utils/auth')
 
 App({
@@ -34,7 +34,7 @@ App({
   },
 
   globalData: {
-    baseUrl: BASE_URL,
+    get baseUrl() { return getBaseUrl() },
     launchAt: 0,
     /** 当前登录用户（登录成功后由 login 页写入，供「我的」页展示） */
     user: null

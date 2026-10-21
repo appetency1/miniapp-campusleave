@@ -174,3 +174,22 @@
   font-size: 22rpx;
   color: var(--ink-3);
 }
+
+/* 当前接口地址：极轻的一行，联调时看请求打到哪 */
+.api {
+  margin-top: 12rpx;
+  padding-bottom: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+}
+.api__k {
+  font-size: 20rpx;
+  color: var(--ink-4);
+  letter-spacing: 0.08em;
+}
+.api__v {
+  font-size: 20rpx;
+  color: var(--ink-4);
+}
