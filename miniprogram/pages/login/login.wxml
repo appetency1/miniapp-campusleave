@@ -1,21 +1,30 @@
 <!--
   pages/login/login.wxml —— 登录页
 
-  版式依据 04_开发方案 D-03：
-    留白 → 校名（墨色粗体）→ LA · 学生端（衬线小字）→ 学号 / 密码（仅底线）
+  版式（重设计稿 A「刻度尺引子」）：
+    顶部一道刻度尺（把首页的记忆点前置到入口）+ 蓝点表示「此刻」
+    → 校名（衬线大字）→ LA · 学生端（等宽小字）
+    → 学号 / 密码（仅底线，聚焦时底线转墨色）
     → 墨色实心主按钮 → 底部说明
+    → 演示账号（虚线分隔，贴在最底）
 
-  交互细节：
-    - 输入框无边框、只有 1rpx 底线，聚焦时底线转墨色（纸感体系的核心手法）
-    - 登录中按钮显示"登录中"，并禁用重复点击
+  刻度尺用 CSS 渐变画刻度，零图片资源，与 components/ruler 同一套画法。
 -->
 <view class="wrap">
 
-  <!-- 顶部：品牌区（小程序右上角是系统胶囊，此处不做自绘导航） -->
-  <view class="brand">
-    <view class="brand__t">校园请假</view>
-    <view class="brand__s num">LA · 学生端</view>
+  <!-- 品牌标记：刻度尺 -->
+  <view class="mark">
+    <view class="mark__ln"></view>
+    <!-- 短刻度：12 等分 -->
+    <view class="mark__ticks"></view>
+    <!-- 长刻度：6 等分 -->
+    <view class="mark__ticks2"></view>
+    <!-- 蓝点：此刻 -->
+    <view class="mark__dot"></view>
   </view>
+
+  <view class="ttl">校园请假</view>
+  <view class="sub num">LA · 学生端</view>
 
   <!-- 表单 -->
   <view class="form">
@@ -65,12 +74,12 @@
     >{{submitting ? '登录中' : '登 录'}}</button>
 
     <view class="tip">账号由学校统一发放，忘记密码请联系辅导员</view>
+  </view>
 
-    <!-- 演示辅助：一键填充演示账号（毕设演示用，正式版可删） -->
-    <view class="demo" bindtap="fillDemo">
-      <text class="demo__t num">演示账号</text>
-      <text class="demo__v num">{{demoText}}</text>
-    </view>
+  <!-- 演示辅助：一键填充演示账号（毕设演示用，正式版可删） -->
+  <view class="demo" bindtap="fillDemo">
+    <text class="demo__t num">演示账号</text>
+    <text class="demo__v num">{{demoText}}</text>
   </view>
 
 </view>

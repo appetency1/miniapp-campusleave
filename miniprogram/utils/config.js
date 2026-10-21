@@ -1,15 +1,31 @@
 /**
  * utils/config.js —— 环境配置
  *
- * 开发期：指向本机后端。微信开发者工具里必须勾选
- *        「详情 → 本地设置 → 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书」，
- *        否则 http://localhost 的请求会被拦截。
- * 上线时：改成 https 域名，并在 mp 后台配置 request 合法域名（本项目不真正上架，保持 localhost 即可）。
+ * ⚠️ 真机调试必须用「电脑的局域网 IP」，不能用 localhost：
+ *    手机上的 localhost 指的是「手机自己」，不是你的电脑。
+ *    开发者工具模拟器用 localhost 可以，真机一定不通。
+ *
+ * 当前配置（局域网 IP，开发者工具和真机都能用）：
+ *    http://10.225.223.179:8080/api/v1
+ *
+ * 换网络后 IP 会变，用下面任一方式拿到新 IP 再改这里：
+ *    Windows：ipconfig → WLAN 的 IPv4 地址
+ *    命令行：ipconfig | findstr IPv4
+ *
+ * 真机调试三件套（缺一不可）：
+ *    ① 手机与电脑连同一个 WiFi
+ *    ② 开发者工具「详情 → 本地设置 → 不校验合法域名」勾上
+ *    ③ 用「真机调试」模式（不是普通预览二维码；普通预览不豁免 http 域名校验）
+ *    ④ Windows 防火墙放行 8080 入站（本机已有 java 的允许规则）
+ *
+ * 正式上线时改成 https 域名，并在 mp 后台配置 request 合法域名。
  */
-const BASE_URL = 'http://localhost:8080/api/v1'
+
+/** 小程序接口前缀 */
+const BASE_URL = 'http://10.225.223.179:8080/api/v1'
 
 /** 文件访问前缀（后端返回的是相对路径 /files/xxx，需要拼上服务地址） */
-const FILE_BASE = 'http://localhost:8080'
+const FILE_BASE = 'http://10.225.223.179:8080'
 
 /**
  * 演示账号（仅登录页的「演示账号」一键填充用）。

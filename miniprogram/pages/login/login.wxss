@@ -1,41 +1,104 @@
 /* pages/login/login.wxss
- * 纸感登录页：大量留白 + 细底线输入 + 墨色实心按钮
- * 不用卡片、不用阴影、不用大圆角（这些在定稿里都被否决过）
+ * 登录页 · 重设计稿 A「刻度尺引子」
+ * 色板/字体/圆角沿用 formal-v2 定稿，只改构图与节奏。
+ * 不用卡片、不用阴影、不用大圆角（这些在定稿里都被否决过）。
  */
 .wrap {
   min-height: 100vh;
   background: var(--paper);
-  /* 顶部留白 96rpx（约 48px），避开系统胶囊的视觉压力 */
-  padding: 180rpx 40rpx 60rpx;
+  /* 顶部留白：避开系统胶囊，再留出呼吸位 */
+  padding: 150rpx 40rpx 48rpx;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ---- 品牌区 ---- */
-.brand {
-  margin-bottom: 90rpx;
+/* ==================== 刻度尺标记 ==================== */
+.mark {
+  position: relative;
+  height: 34rpx;
+  margin-bottom: 44rpx;
 }
-.brand__t {
-  font-size: 52rpx;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ink);
+
+/* 基线 */
+.mark__ln {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1rpx;
+  background: var(--line-2);
+}
+
+/* 短刻度：12 等分 */
+.mark__ticks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16rpx;
+  background-image: linear-gradient(to right, rgba(21, 32, 46, 0.20) 1rpx, transparent 1rpx);
+  background-size: calc(100% / 12) 16rpx;
+  background-repeat: repeat-x;
+}
+
+/* 长刻度：6 等分，颜色更深 */
+.mark__ticks2 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30rpx;
+  background-image: linear-gradient(to right, rgba(21, 32, 46, 0.34) 1rpx, transparent 1rpx);
+  background-size: calc(100% / 6) 30rpx;
+  background-repeat: repeat-x;
+}
+
+/* 蓝点：此刻（放在 1/3 处） */
+.mark__dot {
+  position: absolute;
+  left: 33.3%;
+  bottom: -6rpx;
+  width: 12rpx;
+  height: 12rpx;
+  background: var(--blue-600);
+}
+/* 蓝点外圈的浅色方块（呼应首页刻度尺的指针造型） */
+.mark__dot::after {
+  content: "";
+  position: absolute;
+  left: -6rpx;
+  top: -6rpx;
+  width: 24rpx;
+  height: 24rpx;
+  background: var(--blue-600);
+  opacity: 0.16;
+}
+
+/* ==================== 标题 ==================== */
+.ttl {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  font-size: 56rpx;
   line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
 }
-.brand__s {
-  margin-top: 12rpx;
+
+.sub {
+  margin-top: 14rpx;
   font-size: 22rpx;
   letter-spacing: 0.14em;
   color: var(--ink-3);
 }
 
-/* ---- 表单 ---- */
+/* ==================== 表单 ==================== */
 .form {
-  display: flex;
-  flex-direction: column;
+  margin-top: 64rpx;
 }
 
 .field {
-  margin-bottom: 46rpx;
+  margin-bottom: 44rpx;
   /* 只有底部 1rpx 线，聚焦时颜色变深 */
   border-bottom: 1rpx solid var(--line-2);
   transition: border-color 0.2s ease;
@@ -48,11 +111,11 @@
   font-size: 22rpx;
   letter-spacing: 0.1em;
   color: var(--ink-3);
-  margin-bottom: 10rpx;
+  margin-bottom: 8rpx;
 }
 
 .field__in {
-  height: 72rpx;
+  height: 74rpx;
   font-size: 32rpx;
   color: var(--ink);
   /* 输入框本身不要背景和边框，让底线成为唯一分隔 */
@@ -67,7 +130,7 @@
 
 /* 错误提示 */
 .err {
-  margin: -14rpx 0 26rpx;
+  margin: -12rpx 0 24rpx;
   font-size: 24rpx;
   color: var(--red-600);
   line-height: 1.5;
@@ -75,7 +138,7 @@
 
 /* 登录按钮：墨色实心，高 96rpx，圆角 12rpx(=6px) */
 .login-btn {
-  margin-top: 26rpx;
+  margin-top: 24rpx;
   letter-spacing: 0.28em;
   /* 覆盖小程序 button 默认样式 */
   padding: 0;
@@ -84,22 +147,23 @@
 
 /* 底部说明 */
 .tip {
-  margin-top: 34rpx;
+  margin-top: 30rpx;
   text-align: center;
   font-size: 24rpx;
   color: var(--ink-3);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-/* 演示账号提示：极轻的一条，不抢视觉 */
+/* ==================== 演示账号 ==================== */
+/* 贴在最底部：margin-top auto 把剩余空间推给它 */
 .demo {
-  margin-top: 120rpx;
+  margin-top: auto;
+  padding-top: 20rpx;
+  border-top: 1rpx dashed var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 14rpx;
-  padding: 16rpx;
-  border-top: 1rpx dashed var(--line);
 }
 .demo__t {
   font-size: 22rpx;

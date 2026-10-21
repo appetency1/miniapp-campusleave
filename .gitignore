@@ -10,3 +10,7 @@ node_modules/
 backend/target/
 # 含真实密码的本地配置（提交 example 模板即可）
 backend/src/main/resources/application-dev.yml
+
+# 自动化验证的截图产物（可重新生成，不入库）
+outputs/
+node_modules/
