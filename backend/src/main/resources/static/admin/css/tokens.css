@@ -1,0 +1,150 @@
+/* 校园请假 · 后台 token
+   纸 / 线 / 墨 三件套沿用学生端 formal-v2，桌面尺度在此扩展。
+   蓝色只服务三处：时间轴现在刻度、状态点、focus 环。 */
+
+:root {
+  /* ---- 表面 ---- */
+  --paper: #FBFAF7;
+  --paper-2: #F5F3EC;
+  --surface: #FFFFFF;
+  --hover: rgba(21, 32, 46, .028);
+  --sel: #F5F3EC;
+
+  /* ---- 墨 ---- */
+  --ink: #15202E;
+  --ink-hover: #0B1521;
+  --ink-2: #55606F;
+  --ink-3: #6B6559;
+  --ink-4: #8E887B;
+
+  /* ---- 线 ---- */
+  --line: #E7E3D9;
+  --line-2: #D8D3C6;
+
+  /* ---- 状态色 ---- */
+  --blue-50: #EFF4FD;
+  --blue-100: #DCE8FA;
+  --blue-500: #2563C9;
+  --blue-600: #1F55AD;
+  --blue-700: #194089;
+  --amber-600: #9A5B0B;
+  --amber-50: #FDF3E3;
+  --red-600: #B23A28;
+  --red-50: #FBECE9;
+  --teal-600: #0B7A6B;
+  --teal-50: #E6F4F1;
+
+  /* ---- 字体 ---- */
+  --sans: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+  --mono: "Noto Serif SC", "Source Han Serif SC", "Songti SC", STSong, SimSun, Cambria, Georgia, serif;
+
+  /* ---- 尺度 ---- */
+  --d-sidebar: 224px;
+  --d-sidebar-mini: 64px;
+  --d-gutter-x: 32px;
+  --d-gutter-y: 24px;
+  --d-maxw: 1440px;
+  --row: 44px;
+  --row-2: 52px;
+  --head: 40px;
+  --ctl: 36px;
+  --ctl-sm: 32px;
+  --drawer: 480px;
+  --pane-list: 448px;
+
+  /* ---- 字阶 ---- */
+  --fs-micro: 11px;  --lh-micro: 16px;
+  --fs-cap: 12px;    --lh-cap: 18px;
+  --fs-body: 13px;   --lh-body: 20px;
+  --fs-lead: 14px;   --lh-lead: 22px;
+  --fs-h2: 15px;     --lh-h2: 22px;
+  --fs-h1: 22px;     --lh-h1: 30px;
+  --fs-num: 28px;    --lh-num: 36px;
+
+  /* ---- 状态语义（唯一来源，不要在页面里直接写 hex） ---- */
+  --st-pending: var(--amber-600);   /* 待审批 · ■ */
+  --st-waiting: var(--blue-600);    /* 待开始 · □ */
+  --st-progress: var(--blue-700);   /* 请假中 · ■ */
+  --st-overdue: var(--red-600);     /* 逾期   · ■ */
+  --st-closed: var(--ink-4);        /* 已终结 · □ */
+  --st-verified: var(--teal-600);   /* 已核实 · 仅用于核验结论条 */
+
+  /* ---- 形状与动效 ---- */
+  --r: 6px;
+  --dot: 6px;
+  --bar-band: 4px;
+  --bar-compare: 6px;
+  --t-fast: 120ms;
+  --t-sel: 120ms;
+  --t-fade: 140ms;
+  --t-panel: 240ms;
+  --ease: cubic-bezier(.2, .8, .25, 1);
+
+  /* ---- 断点（文档常量：@media 里 var() 无效，CSS 必须硬编码小数） ----
+     1440 / 1420 ：侧栏 224 + 列表 448 + 详情 703
+     <1420      ：侧栏折 64 → 1366 页面详情 789、标尺封顶 720
+     <1260      ：主从列表 448 → 400
+     <1216      ：主从切单栏（列表点击进详情，Esc 返回）
+     媒体查询写 1419.98 / 1259.98 / 1215.98，写整数会在临界值提前一档。
+     --d-maxw 只约束表单类单列页（新建/编辑/设置）；主从页与记录页铺满不限宽。 */
+  --bp-sidebar-mini: 1420px;
+  --bp-list-narrow: 1260px;
+  --bp-master-single: 1216px;
+  --pane-list-sm: 400px;
+  --pane-detail-min: 680px;  /* 仅判定阈值，禁止写成元素 min-width */
+  --measure: 560px;
+  --ruler-w: 639px;          /* 文档常量，不要写进 CSS 宽高 */
+  --ruler-max: 720px;        /* 实现写 width:min(100%, var(--ruler-max)) */
+  --detail-block-max: 720px; /* 结构化块（时间轴/核验结论）；与 --ruler-max 同值不同义，勿合并 */
+  --kvl: 96px;               /* kv 标签列宽，左对齐 */
+  --kvg: 16px;               /* kv 列距；值起始 x = 112 */
+
+  /* 记录表七列：百分比（已冻结，不再改）。
+     px 方案在 1216 档七列合计 1152 > 内容宽 1088 会溢出 64（Win 滚动条下 81），必须按比例。
+     换算依据（1440 档内容宽 1152）：268/144/120/232/104/152/132 → 下表，合计 100.00%
+     最窄档校核（Win 1216 / 内容宽 1071）：249/134/112/216/97/141/123，对 124/126/104/94/94/136/110 全部有余量。
+     时间列 232 是并集宽度：单行、双行都装得下（双行 94，单行 204）。 */
+  --col-main: 23.26%;        /* 单号 + 学生（双行） */
+  --col-cls: 12.50%;         /* 班级 */
+  --col-type: 10.42%;        /* 场景 · 类型 */
+  --col-ti: 20.14%;          /* 时间区间 */
+  --col-st: 9.03%;           /* 状态 */
+  --col-appr: 13.19%;        /* 审批人 · 审批时间 */
+  --col-sub: 11.46%;         /* 提交时间 */
+  --thumb: 96px;
+  --thumb-gap: 12px;
+}
+
+/* ================= 基础 ================= */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, select, textarea { font: inherit; color: inherit; }
+table { border-collapse: collapse; width: 100%; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
+
+/* 数字 / 编号 / 日期：衬线 + 等宽数字 */
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: .01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

@@ -123,33 +123,85 @@ public class StudentQueryService {
         data.put("student", student);
 
         data.put("current", hero == null ? null : currentBlock(hero, now));
+        // 除主卡片外还有几条待处理：首页顶部提示"另有 N 条"，避免处理完一条后莫名跳到另一条
+        data.put("othersPending", othersPendingCount(all, hero, now));
         data.put("recent", recentBlock(all, hero, now));
         data.put("stats", statsBlock(all, now));
         return data;
     }
 
-    /** 挑选首页主卡片 */
+    /**
+     * 挑选首页主卡片。
+     *
+     * <p><b>优先级必须是明确的</b>，不能"按创建时间取第一条活跃"——
+     * 那样会出现在同时有「请假中」和「逾期」时，随机挑中逾期那条，
+     * 看起来就像"我明明在请假，怎么说我逾期了"。
+     *
+     * <p>正确顺序（越靠前越该被关注）：
+     * <ol>
+     *   <li>IN_PROGRESS 请假中 —— 正在进行的事，最该显示</li>
+     *   <li>OVERDUE 逾期 —— 需要补救</li>
+     *   <li>PENDING 待审批 —— 等别人处理，取最新提交的一条</li>
+     *   <li>WAITING_START 已通过待开始 —— 取最先开始的一条</li>
+     *   <li>其余（已结束）—— 取最近一条，用于"本次请假已完成"的即时反馈</li>
+     * </ol>
+     */
     private LeaveApplication pickHero(List<LeaveApplication> all, LocalDateTime now) {
-        Optional<LeaveApplication> active = all.stream()
-                .filter(a -> EffectiveStatus.of(a, now).isActive())
-                .findFirst();   // all 已按创建时间倒序
-        if (active.isPresent()) {
-            return active.get();
+        Optional<LeaveApplication> inProgress = all.stream()
+                .filter(a -> EffectiveStatus.of(a, now) == EffectiveStatus.IN_PROGRESS)
+                .findFirst();
+        if (inProgress.isPresent()) {
+            return inProgress.get();
         }
+
+        Optional<LeaveApplication> overdue = all.stream()
+                .filter(a -> EffectiveStatus.of(a, now) == EffectiveStatus.OVERDUE)
+                .findFirst();
+        if (overdue.isPresent()) {
+            return overdue.get();
+        }
+
         Optional<LeaveApplication> pending = all.stream()
                 .filter(a -> "PENDING".equals(a.getStatus()))
                 .findFirst();
         if (pending.isPresent()) {
             return pending.get();
         }
+
+        // 待开始：取最先开始的那条（而不是最新提交的）
         Optional<LeaveApplication> waiting = all.stream()
                 .filter(a -> EffectiveStatus.of(a, now) == EffectiveStatus.WAITING_START)
-                .findFirst();
+                .min(Comparator.comparing(LeaveApplication::getStartTime));
         if (waiting.isPresent()) {
             return waiting.get();
         }
-        // 没有进行中的：给最近一条已终结的（首页会显示"本次请假已完成/申请未通过"）
-        return all.isEmpty() ? null : all.get(0);
+
+        // 没有需要处理的 → **返回 null**，首页显示"今天没有请假"。
+        //
+        // 这里曾经写成"退回最近一条已终结的记录"，导致：
+        //   取消/撤回一条之后，首页会翻出一条几天前的历史记录当主卡片，
+        //   还配上"再请一次"按钮 —— 用户会觉得"怎么永远回不到默认界面"。
+        // 日常使用的预期是：处理完就该看到一个干净的"今天没有请假"。
+        return null;
+    }
+
+    /**
+     * 除了主卡片之外，还有几条「需要处理」的申请。
+     *
+     * <p>这个数字要显示在首页上——否则用户处理完一条，页面突然变成另一条，
+     * 会以为系统在乱跳。告诉他"另外还有 2 条"，跳转就变成了预期行为。
+     */
+    private int othersPendingCount(List<LeaveApplication> all, LeaveApplication hero, LocalDateTime now) {
+        return (int) all.stream()
+                .filter(a -> !Objects.equals(a.getId(), hero == null ? null : hero.getId()))
+                .filter(a -> {
+                    EffectiveStatus es = EffectiveStatus.of(a, now);
+                    return es == EffectiveStatus.IN_PROGRESS
+                            || es == EffectiveStatus.OVERDUE
+                            || es == EffectiveStatus.PENDING
+                            || es == EffectiveStatus.WAITING_START;
+                })
+                .count();
     }
 
     /** 首页主卡片数据块 */

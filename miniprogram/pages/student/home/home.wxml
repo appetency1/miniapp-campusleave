@@ -34,6 +34,12 @@
       <!-- 状态行：请假中 · 离校 · 事假 -->
       <view class="state {{stateCls}}">{{stateWord}}</view>
 
+      <!-- 还有几条待处理：避免"处理完一条突然跳到另一条"让人以为系统乱跳 -->
+      <view wx:if="{{othersPending > 0}}" class="others" bindtap="onAllRecords">
+        另有 {{othersPending}} 条待处理
+        <text class="others__arrow">›</text>
+      </view>
+
       <view class="timeblock">
         <!-- 区间 -->
         <view class="range num">{{rangeText}}</view>

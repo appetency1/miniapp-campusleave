@@ -46,6 +46,24 @@
   color: var(--ink-3);
 }
 
+/* 另有 N 条待处理 */
+.others {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 12rpx;
+  padding: 6rpx 14rpx;
+  border: 1rpx solid var(--line-2);
+  border-radius: var(--r);
+  font-size: 21rpx;
+  color: var(--ink-3);
+}
+.others__arrow {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--ink-4);
+}
+
 /* ==================== 时间区 ==================== */
 .timeblock {
   margin-top: 12rpx;

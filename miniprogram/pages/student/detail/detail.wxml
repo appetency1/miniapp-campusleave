@@ -123,6 +123,10 @@
             <text class="row__l">原因</text>
             <text class="row__v">{{extension.reason}}</text>
           </view>
+          <view wx:if="{{extension.canWithdraw}}" class="row">
+            <text class="row__l">操作</text>
+            <text class="link-btn link-btn--danger" bindtap="withdrawExtension">撤回续假</text>
+          </view>
         </view>
       </block>
 

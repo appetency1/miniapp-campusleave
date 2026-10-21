@@ -31,7 +31,6 @@ Page({
 
     // 主卡片
     hasHero: false,          // 有没有"当前请假"要展示
-    showClosedHero: false,   // 刚结束的请假（24h 内）
     stateWord: '',
     stateCls: '',
     sceneType: '',           // "请假中 · 离校 · 事假"
@@ -77,6 +76,8 @@ Page({
 
     // 最近记录
     recent: [],
+    /** 除主卡片外还有几条待处理 */
+    othersPending: 0,
     counselorName: '',
     className: '',
     /** 驳回原因（仅「已驳回」态有值） */
@@ -143,6 +144,7 @@ Page({
       greeting: F.greeting(now) + '，' + (student.realName || user.realName || '同学'),
       dateLine,
       counselorName: student.counselorName || '',
+      othersPending: d.othersPending || 0,
       className: student.className || '',
       recent: (d.recent || []).map(r => ({
         id: r.applicationId,
@@ -162,15 +164,23 @@ Page({
     const hero = d.current
 
     if (!hero) {
-      // ---- 态 E：零记录 ----
+      // ---- 没有需要处理的请假 ----
+      // 有历史 → 场景卡 + 本学期概览 + 最近记录（态 D）
+      // 零记录 → 场景卡 + 请假须知（态 E）
+      const hasHistory = (stats.totalApplications || 0) > 0
       Object.assign(view, {
         hasHero: false,
-        showClosedHero: false,
         showScene: true,
-        showOverview: false,
-        showRules: true,
-        recent: [],
-        currentRaw: null
+        showOverview: hasHistory,
+        showRules: !hasHistory,
+        currentRaw: null,
+        othersPending: 0,
+        // 清掉主卡片相关字段：虽然 wxml 里它们包在 wx:if="{{hasHero}}" 内不会渲染，
+        // 但留着旧值会让 data 里出现"没有主卡片却还写着请假中"的脏状态
+        stateWord: '', stateCls: '', rangeText: '', bigLabel: '', bigText: '',
+        showRuler: false, flowSteps: [], facts: [], ctaText: '', links: [],
+        readLeftPre: '', readLeftStrong: '', readLeftRest: '', readRight: '',
+        rejectReason: ''
       })
       this.setData(view)
       return
@@ -178,25 +188,6 @@ Page({
 
     const es = hero.effectiveStatus
     const chip = F.statusChip(es)
-    const isClosed = ['COMPLETED', 'REJECTED', 'WITHDRAWN', 'CANCELLED'].indexOf(es) >= 0
-
-    // 已结束的申请：只有"刚结束 24 小时内"才作为主卡片展示，否则回到场景卡（态 D）
-    if (isClosed) {
-      const refTime = F.parseTime(hero.completedAt || hero.endTime)
-      const within24h = (now.getTime() - refTime.getTime()) < 24 * 3600 * 1000
-      if (!within24h) {
-        Object.assign(view, {
-          hasHero: false,
-          showClosedHero: false,
-          showScene: true,
-          showOverview: true,
-          showRules: false,
-          currentRaw: null
-        })
-        this.setData(view)
-        return
-      }
-    }
 
     // ---- 主卡片 ----
     const sceneType = chip.label + ' · ' + F.sceneLabel(hero.leaveScene) + ' · ' + F.typeLabel(hero.leaveType)
@@ -271,7 +262,7 @@ Page({
         { t: '生效', s: F.md(hero.startTime), st: '' },
         { t: '销假', s: '—', st: '' }
       ]
-      ctaText = '查看申请详情'
+      ctaText = '查看详情'
       ctaGhost = true
       ctaAction = 'detail'
       links = [{ text: '撤回申请', danger: true, action: 'withdraw' }]
@@ -286,16 +277,17 @@ Page({
       readLeftStrong = F.mdCN(hero.startTime) + ' ' + F.hm(hero.startTime)
       readLeftRest = ' 开始'
       readRight = '共 ' + F.partsText(hero.totalMillis)
-      ctaText = '查看申请详情'
+      ctaText = '查看详情'
       ctaGhost = true
       ctaAction = 'detail'
-      links = [{ text: '取消申请', danger: true, action: 'cancel' }]
+      // 已通过 = 假已批下来，这里取消的是"本次请假"，不是"申请"
+      links = [{ text: '取消本次请假', danger: true, action: 'cancel' }]
       facts = [
         { label: '审批', value: (hero.approvedBy || '辅导员') + ' ' + (hero.approvedAt ? F.mdhm(hero.approvedAt) : '') },
         { label: '销假', value: hero.leaveScene === 'OFF_CAMPUS' ? '返校定位' : '自主确认' }
       ]
     } else {
-      // ---- 刚结束（24h 内）：已完成 / 已驳回 / 已关闭 ----
+      // ---- 兜底：后端理论上不会把已结束的申请当主卡片返回，这里只作防御 ----
       bigLabel = ''
       bigText = es === 'COMPLETED' ? '本次请假已完成'
         : es === 'REJECTED' ? '申请未通过' : '本次申请已关闭'
@@ -309,7 +301,6 @@ Page({
 
     Object.assign(view, {
       hasHero: true,
-      showClosedHero: isClosed,
       stateWord: sceneType,
       stateCls: chip.cls,
       rangeText,

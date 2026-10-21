@@ -149,9 +149,13 @@ Page({
         PENDING: '审批中', APPROVED: '已通过', REJECTED: '已驳回', WITHDRAWN: '已撤回'
       }
       extension = {
+        id: d.extension.id,
+        status: d.extension.status,
         requestedEndTime: d.extension.requestedEndTime,
         reason: d.extension.reason,
-        statusLabel: extStatusMap[d.extension.status] || d.extension.status
+        statusLabel: extStatusMap[d.extension.status] || d.extension.status,
+        // 只有待审批的续假可以撤回（后端也会再校验）
+        canWithdraw: d.extension.status === 'PENDING'
       }
     }
 
@@ -260,6 +264,28 @@ Page({
           setTimeout(() => this.load(), 600)
         } catch (e) {
           wx.showToast({ title: e.message || '操作失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  /** 撤回续假（详情页续假区块） */
+  withdrawExtension() {
+    const ext = this.data.extension
+    if (!ext || !ext.id) return
+    wx.showModal({
+      title: '撤回续假',
+      content: '撤回后这条续假申请将关闭，如需延长要重新提交。',
+      confirmText: '撤回',
+      confirmColor: '#B23A28',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await post('/student/extensions/' + ext.id + '/withdraw', { reason: '本人撤回续假' })
+          wx.showToast({ title: '已撤回续假', icon: 'success' })
+          setTimeout(() => this.load(), 600)
+        } catch (e) {
+          wx.showToast({ title: e.message || '撤回失败', icon: 'none' })
         }
       }
     })
