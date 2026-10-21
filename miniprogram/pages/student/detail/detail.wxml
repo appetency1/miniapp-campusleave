@@ -152,4 +152,32 @@
     </view>
   </view>
 
+  <!-- ==================== 续假面板（底部弹出） ==================== -->
+  <view wx:if="{{extVisible}}" class="sheet-mask" bindtap="closeExtension"></view>
+
+  <view wx:if="{{extVisible}}" class="sheet">
+    <view class="sheet__t">申请续假</view>
+    <view class="sheet__sub num">当前批准结束：{{d.endTime}}</view>
+
+    <view class="sheet__row">
+      <text class="sheet__k">延长至</text>
+      <picker mode="date" value="{{extDate}}" bindchange="onExtDate">
+        <view class="sheet__v num">{{extDateLabel}}</view>
+      </picker>
+      <picker mode="time" value="{{extClock}}" bindchange="onExtClock">
+        <view class="sheet__v num">{{extClock}}</view>
+      </picker>
+    </view>
+
+    <view class="sheet__lb">续假原因</view>
+    <textarea class="sheet__ta" value="{{extReason}}" maxlength="100"
+              placeholder="说明为什么需要延长" placeholder-class="ph"
+              bindinput="onExtReason" />
+
+    <view class="sheet__acts">
+      <button class="btn btn--plain" hover-class="is-active" bindtap="closeExtension">取消</button>
+      <button class="btn" hover-class="is-active" bindtap="submitExtension">提交续假</button>
+    </view>
+  </view>
+
 </view>

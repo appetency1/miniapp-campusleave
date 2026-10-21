@@ -1,0 +1,149 @@
+<!--
+  pages/student/apply/apply.wxml —— 申请请假
+
+  结构照 formal-v2 申请页：场景 → 类型 → 时间 → 理由 → 去向（仅离校）→ 电话 → 材料 → 底部提交
+
+  交互要点：
+    - 场景/类型用"选择块"而非下拉，减少一次点击
+    - 时间用 原生 date/time picker，并给「今天/明天/后天」快捷项
+    - 理由实时计字数，不足 5 字提交时逐项标红
+-->
+<view class="page">
+
+  <!-- 自定义导航 -->
+  <view class="nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav__back" bindtap="onBack"><view class="nav__arrow"></view></view>
+    <view class="nav__t">申请请假</view>
+  </view>
+
+  <scroll-view class="body" scroll-y>
+    <view class="pad">
+
+      <!-- 场景 -->
+      <view class="field">
+        <view class="field__lb">请假场景</view>
+        <view class="picks">
+          <view class="pick {{form.scene === 'OFF_CAMPUS' ? 'pick--on' : ''}}"
+                data-v="OFF_CAMPUS" bindtap="onScene">
+            <view class="pick__t">离校</view>
+            <view class="pick__s">返校定位销假</view>
+          </view>
+          <view class="pick {{form.scene === 'ON_CAMPUS' ? 'pick--on' : ''}}"
+                data-v="ON_CAMPUS" bindtap="onScene">
+            <view class="pick__t">校内</view>
+            <view class="pick__s">结束后自主确认</view>
+          </view>
+        </view>
+        <view wx:if="{{err.scene}}" class="err">请选择请假场景</view>
+      </view>
+
+      <!-- 类型 -->
+      <view class="field">
+        <view class="field__lb">请假类型</view>
+        <view class="seg">
+          <view wx:for="{{types}}" wx:key="value"
+                class="seg__i {{form.leaveType === item.value ? 'seg__i--on' : ''}}"
+                data-v="{{item.value}}" bindtap="onType">{{item.label}}</view>
+        </view>
+      </view>
+
+      <!-- 时间 -->
+      <view class="field">
+        <view class="field__lb">
+          请假时间
+          <text class="field__hint">结束需晚于开始</text>
+        </view>
+
+        <!-- 快捷项 -->
+        <view class="quick">
+          <text wx:for="{{quickDays}}" wx:key="label"
+                class="quick__i {{form.dayOffset === index ? 'quick__i--on' : ''}}"
+                data-i="{{index}}" bindtap="onQuickDay">{{item}}</text>
+        </view>
+
+        <view class="timerow">
+          <text class="timerow__k">开始</text>
+          <picker mode="date" value="{{form.startDate}}" bindchange="onStartDate">
+            <view class="timerow__v num">{{form.startDateLabel}}</view>
+          </picker>
+          <picker mode="time" value="{{form.startClock}}" bindchange="onStartClock">
+            <view class="timerow__v num">{{form.startClock}}</view>
+          </picker>
+        </view>
+
+        <view class="timerow">
+          <text class="timerow__k">结束</text>
+          <picker mode="date" value="{{form.endDate}}" bindchange="onEndDate">
+            <view class="timerow__v num">{{form.endDateLabel}}</view>
+          </picker>
+          <picker mode="time" value="{{form.endClock}}" bindchange="onEndClock">
+            <view class="timerow__v num">{{form.endClock}}</view>
+          </picker>
+        </view>
+
+        <view wx:if="{{err.time}}" class="err">{{err.time}}</view>
+      </view>
+
+      <!-- 理由 -->
+      <view class="field">
+        <view class="field__lb">
+          请假理由
+          <text class="field__hint">不少于 5 个字</text>
+        </view>
+        <view class="ta">
+          <textarea class="ta__in" value="{{form.reason}}" maxlength="120"
+                    placeholder="说明原因，便于辅导员判断"
+                    placeholder-class="ph"
+                    bindinput="onReason" auto-height />
+          <view class="ta__count num">{{form.reason.length}}/120</view>
+        </view>
+        <view wx:if="{{err.reason}}" class="err">请填写请假理由（不少于 5 个字）</view>
+      </view>
+
+      <!-- 离校去向（仅离校） -->
+      <view wx:if="{{form.scene === 'OFF_CAMPUS'}}" class="field">
+        <view class="field__lb">离校去向</view>
+        <input class="line-in" value="{{form.destination}}" maxlength="60"
+               placeholder="如：本市 · 家中" placeholder-class="ph"
+               bindinput="onDestination" />
+      </view>
+
+      <!-- 联系电话 -->
+      <view class="field">
+        <view class="field__lb">联系电话</view>
+        <input class="line-in num" type="number" value="{{form.contactPhone}}" maxlength="11"
+               placeholder="请假期间可联系到你的号码" placeholder-class="ph"
+               bindinput="onPhone" />
+      </view>
+
+      <!-- 材料 -->
+      <view class="field">
+        <view class="field__lb">
+          证明材料
+          <text class="field__hint">病假建议上传，非必传</text>
+        </view>
+
+        <view wx:for="{{materials}}" wx:key="fileUrl" class="mat">
+          <text class="mat__n">{{item.materialLabel}} · {{item.fileName}}</text>
+          <text class="mat__x" data-i="{{index}}" bindtap="onRemoveMaterial">移除</text>
+        </view>
+
+        <view class="mat-add" bindtap="onPickMaterial">
+          <text class="mat-add__i">＋</text>
+          <text class="mat-add__t">{{uploading ? '上传中…' : '添加图片或 PDF'}}</text>
+        </view>
+        <view wx:if="{{err.material}}" class="err">{{err.material}}</view>
+      </view>
+
+      <view style="height: 40rpx;"></view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部提交 -->
+  <view class="bottom">
+    <button class="btn {{submitting ? 'btn--disabled' : ''}}" hover-class="is-active"
+            disabled="{{submitting}}" bindtap="onSubmit">
+      {{submitting ? '提交中…' : '提交申请'}}
+    </button>
+  </view>
+</view>

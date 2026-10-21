@@ -1,0 +1,244 @@
+/* pages/student/apply/apply.wxss
+ * 申请页：自定义导航 + 可滚动表单 + 底部固定提交条
+ * 表单控件一律"标签在上、输入在下"，靠 1rpx 细线分区，不用卡片
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+/* ---- 导航 ---- */
+.nav {
+  flex: 0 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+.nav__back {
+  position: absolute;
+  left: 20rpx;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav__arrow {
+  width: 18rpx;
+  height: 18rpx;
+  border-left: 3rpx solid var(--ink);
+  border-bottom: 3rpx solid var(--ink);
+  transform: rotate(45deg);
+}
+.nav__t {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---- 内容 ---- */
+.body { flex: 1; min-height: 0; }
+.pad { padding: 0 40rpx; }
+
+.field {
+  padding-top: 34rpx;
+  padding-bottom: 6rpx;
+}
+.field__lb {
+  font-size: 24rpx;
+  color: var(--ink-2);
+  margin-bottom: 16rpx;
+}
+.field__hint {
+  margin-left: 12rpx;
+  font-size: 20rpx;
+  color: var(--ink-4);
+}
+
+/* 错误提示 */
+.err {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: var(--red-600);
+  line-height: 1.5;
+}
+
+/* ---- 场景：两块选择 ---- */
+.picks {
+  display: flex;
+  gap: 18rpx;
+}
+.pick {
+  flex: 1;
+  padding: 24rpx 22rpx;
+  border: 1rpx solid var(--line-2);
+  border-radius: var(--r);
+  transition: border-color .18s ease, background .18s ease;
+}
+.pick--on {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+.pick__t {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.pick__s {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* ---- 类型：三段 ---- */
+.seg {
+  display: flex;
+  border: 1rpx solid var(--line-2);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.seg__i {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 26rpx;
+  color: var(--ink-2);
+  border-right: 1rpx solid var(--line-2);
+}
+.seg__i:last-child { border-right: none; }
+.seg__i--on {
+  background: var(--ink);
+  color: #FCFBF8;
+  font-weight: 500;
+}
+
+/* ---- 时间 ---- */
+.quick {
+  display: flex;
+  gap: 14rpx;
+  margin-bottom: 8rpx;
+}
+.quick__i {
+  padding: 8rpx 20rpx;
+  border: 1rpx solid var(--line-2);
+  border-radius: var(--r);
+  font-size: 22rpx;
+  color: var(--ink-2);
+}
+.quick__i--on {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.timerow {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+.timerow__k {
+  flex: 0 0 auto;
+  width: 68rpx;
+  font-size: 24rpx;
+  color: var(--ink-3);
+}
+.timerow__v {
+  font-size: 28rpx;
+  color: var(--ink);
+  padding: 4rpx 0;
+  border-bottom: 1rpx dashed var(--line-2);
+}
+
+/* ---- 理由 ---- */
+.ta {
+  position: relative;
+  border-bottom: 1rpx solid var(--line-2);
+  padding-bottom: 8rpx;
+}
+.ta__in {
+  width: 100%;
+  min-height: 130rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.ta__count {
+  position: absolute;
+  right: 0;
+  bottom: 6rpx;
+  font-size: 20rpx;
+  color: var(--ink-4);
+}
+
+/* ---- 单行输入 ---- */
+.line-in {
+  height: 72rpx;
+  font-size: 28rpx;
+  color: var(--ink);
+  border-bottom: 1rpx solid var(--line-2);
+}
+.ph {
+  color: var(--ink-4);
+  font-size: 26rpx;
+}
+
+/* ---- 材料 ---- */
+.mat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+.mat__n {
+  flex: 1;
+  font-size: 24rpx;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mat__x {
+  flex: 0 0 auto;
+  font-size: 22rpx;
+  color: var(--red-600);
+}
+
+.mat-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  padding: 24rpx 0;
+  border: 1rpx dashed var(--line-2);
+  border-radius: var(--r);
+}
+.mat-add__i {
+  font-size: 28rpx;
+  color: var(--ink-3);
+}
+.mat-add__t {
+  font-size: 24rpx;
+  color: var(--ink-3);
+}
+
+/* ---- 底部提交 ---- */
+.bottom {
+  flex: 0 0 auto;
+  padding: 20rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: 1rpx solid var(--line);
+}

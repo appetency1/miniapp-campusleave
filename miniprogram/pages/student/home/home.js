@@ -14,7 +14,7 @@
  * 另外，刚销假完（24 小时内）会显示「本次请假已完成 + 再请一次」，
  * 这是即时反馈，比立刻跳回场景卡更符合预期。
  */
-const { get } = require('../../../utils/request')
+const { get, post } = require('../../../utils/request')
 const { getToken, getUser } = require('../../../utils/auth')
 const F = require('../../../utils/format')
 
@@ -388,21 +388,37 @@ Page({
 
   /**
    * 动作分发。
-   * M2 阶段：detail 跳详情页；checkin / apply / withdraw / cancel 属于 M3 流程，先给提示。
+   * checkin：离校跳销假页；校内用二次确认 + 直接调接口（无需定位）
+   * apply：跳申请页并预选场景
+   * 其余（续假/撤回/取消）都进详情页操作，保证按钮与状态守卫只有一处实现
    */
   handleAction(action) {
-    const hero = this.data.currentRaw
+    const hero = this.data.currentRaw || {}
     switch (action) {
       case 'detail':
-        wx.navigateTo({ url: '/pages/student/detail/detail?id=' + (hero || {}).applicationId })
+        wx.navigateTo({ url: '/pages/student/detail/detail?id=' + hero.applicationId })
         break
+
       case 'checkin':
+        if (hero.leaveScene === 'OFF_CAMPUS') {
+          wx.navigateTo({
+            url: '/pages/student/checkin/checkin?id=' + hero.applicationId + '&no=' + (hero.applicationNo || '')
+          })
+        } else {
+          this.confirmOnCampusCheckin(hero)
+        }
+        break
+
       case 'apply':
+        wx.navigateTo({ url: '/pages/student/apply/apply' })
+        break
+
       case 'extension':
       case 'withdraw':
       case 'cancel':
-        wx.showToast({ title: '该功能将在下一步（M3）完成', icon: 'none' })
+        wx.navigateTo({ url: '/pages/student/detail/detail?id=' + hero.applicationId })
         break
+
       case 'none':
         break
       default:
@@ -410,10 +426,29 @@ Page({
     }
   },
 
-  /** 场景卡：去申请请假（M3 实现） */
+  /** 校内请假：二次确认后直接完成（不需要定位） */
+  confirmOnCampusCheckin(hero) {
+    wx.showModal({
+      title: '确认结束本次请假',
+      content: '确认后本次请假将标记为已完成，不可撤销。',
+      confirmText: '确认结束',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await post('/student/applications/' + hero.applicationId + '/checkin/on-campus')
+          wx.showToast({ title: '已结束', icon: 'success' })
+          this.load()
+        } catch (e) {
+          wx.showToast({ title: e.message || '操作失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  /** 场景卡：去申请请假，带上预选场景 */
   onApply(e) {
-    const scene = e.currentTarget.dataset.scene
-    wx.showToast({ title: F.sceneLabel(scene === 'OFF' ? 'OFF_CAMPUS' : 'ON_CAMPUS') + '请假将在 M3 完成', icon: 'none' })
+    const scene = e.currentTarget.dataset.scene === 'ON' ? 'ON_CAMPUS' : 'OFF_CAMPUS'
+    wx.navigateTo({ url: '/pages/student/apply/apply?scene=' + scene })
   },
 
   /** 最近记录点击 */

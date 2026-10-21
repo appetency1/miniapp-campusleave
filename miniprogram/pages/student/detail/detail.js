@@ -7,9 +7,12 @@
  * 操作按钮由后端 actions 字段决定显示哪些 —— 前端不自己判断状态，
  * 避免"界面能点但接口 422"的割裂。
  */
-const { get } = require('../../../utils/request')
+const { get, post } = require('../../../utils/request')
 const { getToken } = require('../../../utils/auth')
 const F = require('../../../utils/format')
+
+/** 两位补零 */
+const pad2 = (n) => (n < 10 ? '0' + n : '' + n)
 
 Page({
   data: {
@@ -26,7 +29,14 @@ Page({
     hasCheckin: false,
     checkinText: '',
     loading: true,
-    error: ''
+    error: '',
+
+    /** 续假面板 */
+    extVisible: false,
+    extDate: '',
+    extDateLabel: '',
+    extClock: '',
+    extReason: ''
   },
 
   onLoad(options) {
@@ -172,11 +182,155 @@ Page({
 
   /**
    * 操作分发。
-   * M2：全部提示"下一步完成"；M3 逐个接上真实接口。
+   *
+   * 设计原则：按钮的"可不可点"由后端 actions 决定，但每个操作仍然走后端接口二次校验，
+   * 前端不做状态判断——避免"界面能点但接口 422"的割裂。
    */
   onAction(e) {
     const action = e.currentTarget.dataset.action
-    wx.showToast({ title: '该操作将在下一步（M3）完成', icon: 'none' })
+    const d = this.data.d
+
+    switch (action) {
+      case 'CHECKIN':
+        if (d.leaveScene === 'OFF_CAMPUS') {
+          wx.navigateTo({
+            url: '/pages/student/checkin/checkin?id=' + d.applicationId + '&no=' + (d.applicationNo || '')
+          })
+        } else {
+          this.confirmOnCampus()
+        }
+        break
+
+      case 'WITHDRAW':
+        this.confirmThen('撤回申请', '撤回后本次申请将关闭，需要重新提交。', '/student/applications/' + d.applicationId + '/withdraw')
+        break
+
+      case 'CANCEL':
+        this.confirmThen('取消申请', '取消后本次请假将失效。', '/student/applications/' + d.applicationId + '/cancel')
+        break
+
+      case 'EXTENSION':
+        this.openExtension()
+        break
+
+      case 'MANUAL_REVIEW':
+        // 核验表单在销假页（那里有定位上下文）
+        wx.navigateTo({
+          url: '/pages/student/checkin/checkin?id=' + d.applicationId + '&no=' + (d.applicationNo || '')
+        })
+        break
+
+      default:
+        break
+    }
+  },
+
+  /** 二次确认后调接口（撤回 / 取消共用） */
+  confirmThen(title, content, url) {
+    wx.showModal({
+      title,
+      content,
+      confirmText: '确认',
+      confirmColor: '#B23A28',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await post(url, { reason: title === '撤回申请' ? '本人撤回' : '本人取消' })
+          wx.showToast({ title: '已' + (title === '撤回申请' ? '撤回' : '取消'), icon: 'success' })
+          setTimeout(() => this.load(), 600)
+        } catch (e) {
+          wx.showToast({ title: e.message || '操作失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  /** 校内确认结束 */
+  confirmOnCampus() {
+    const d = this.data.d
+    wx.showModal({
+      title: '确认结束本次请假',
+      content: '确认后本次请假将标记为已完成，不可撤销。',
+      confirmText: '确认结束',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await post('/student/applications/' + d.applicationId + '/checkin/on-campus')
+          wx.showToast({ title: '已结束', icon: 'success' })
+          setTimeout(() => this.load(), 600)
+        } catch (e) {
+          wx.showToast({ title: e.message || '操作失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  // ==================== 续假 ====================
+
+  /** 打开续假面板，默认把结束时间设成原结束时间 + 1 天 */
+  openExtension() {
+    const d = this.data.d
+    const base = F.parseTime(d.endTime)
+    const next = new Date(base.getTime() + 86400000)
+    const date = next.getFullYear() + '-' + pad2(next.getMonth() + 1) + '-' + pad2(next.getDate())
+
+    this.setData({
+      extVisible: true,
+      extDate: date,
+      extDateLabel: (next.getMonth() + 1) + '月' + next.getDate() + '日 ' + F.week(next),
+      extClock: F.hm(base),
+      extReason: ''
+    })
+  },
+
+  onExtDate(e) {
+    const p = F.parseTime(e.detail.value)
+    this.setData({
+      extDate: e.detail.value,
+      extDateLabel: (p.getMonth() + 1) + '月' + p.getDate() + '日 ' + F.week(p)
+    })
+  },
+
+  onExtClock(e) {
+    this.setData({ extClock: e.detail.value })
+  },
+
+  onExtReason(e) {
+    this.setData({ extReason: e.detail.value })
+  },
+
+  closeExtension() {
+    this.setData({ extVisible: false })
+  },
+
+  /** 提交续假：时间必须晚于原结束时间（后端还会再校验一次） */
+  async submitExtension() {
+    const d = this.data.d
+    const t = this.data.extDate + ' ' + this.data.extClock + ':00'
+    const target = F.parseTime(t)
+    const origin = F.parseTime(d.endTime)
+    const baseline = origin.getTime() > Date.now() ? origin : new Date()
+
+    if (target.getTime() <= baseline.getTime()) {
+      wx.showToast({ title: '续假后的结束时间必须晚于原结束时间', icon: 'none' })
+      return
+    }
+    if ((this.data.extReason || '').trim().length < 3) {
+      wx.showToast({ title: '请填写续假原因', icon: 'none' })
+      return
+    }
+
+    try {
+      await post('/student/applications/' + d.applicationId + '/extensions', {
+        requestedEndTime: t,
+        reason: this.data.extReason.trim()
+      })
+      wx.showToast({ title: '已提交，等待审批', icon: 'success' })
+      this.setData({ extVisible: false })
+      setTimeout(() => this.load(), 600)
+    } catch (e) {
+      wx.showToast({ title: e.message || '提交失败', icon: 'none' })
+    }
   },
 
   onBack() {

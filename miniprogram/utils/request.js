@@ -115,4 +115,45 @@ function put(url, data, options) {
   return request(url, 'PUT', data, options)
 }
 
-module.exports = { request, get, post, put }
+/**
+ * 文件上传（wx.uploadFile）。
+ *
+ * 与 request 的区别：uploadFile 不能用 JSON body，且返回的 data 是字符串需要手动 parse。
+ * 这里同样做了 code/message 拆包，调用方拿到的就是 data 字段。
+ *
+ * @param {string} filePath 本地临时文件路径（wx.chooseMedia 返回）
+ * @param {object} formData 额外表单字段，如 { bizType: 'MATERIAL' }
+ */
+function upload(filePath, formData = {}) {
+  const token = getToken()
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: getBaseUrl() + '/files',
+      filePath,
+      name: 'file',
+      formData,
+      header: token ? { Authorization: 'Bearer ' + token } : {},
+      success(res) {
+        let body = {}
+        try {
+          body = JSON.parse(res.data)
+        } catch (e) {
+          reject({ code: -1, message: '上传响应解析失败' })
+          return
+        }
+        if (res.statusCode === 401) {
+          goLogin()
+          reject({ code: 40101, message: '登录已失效' })
+          return
+        }
+        if (body.code === 0) resolve(body.data)
+        else reject({ code: body.code, message: body.message || '上传失败' })
+      },
+      fail() {
+        reject({ code: -1, message: '上传失败，请检查网络' })
+      }
+    })
+  })
+}
+
+module.exports = { request, get, post, put, upload }

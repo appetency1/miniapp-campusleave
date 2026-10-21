@@ -5,7 +5,9 @@
     "pages/student/messages/messages",
     "pages/student/profile/profile",
     "pages/login/login",
-    "pages/student/detail/detail"
+    "pages/student/detail/detail",
+    "pages/student/apply/apply",
+    "pages/student/checkin/checkin"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FBFAF7",

@@ -1,0 +1,77 @@
+<!--
+  pages/student/checkin/checkin.wxml —— 返校销假
+
+  三态（照 formal-v2）：
+    定位中   → 雷达环脉冲动画 + "正在定位…"
+    已通过   → 环变静、核心换墨色、"已确认在校区内" + 距离；1.1s 后自动回首页
+    范围外   → 环变红、"不在校区范围内" + 距离；可重新定位或申请人工核验
+    定位失败 → 同上样式，文案说明原因
+
+  底部：演示用的「模拟位置」下拉（仅 mockLocation=true 时出现）
+-->
+<view class="page">
+
+  <view class="nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav__back" bindtap="onBack"><view class="nav__arrow"></view></view>
+    <view class="nav__t">返校销假</view>
+  </view>
+
+  <view class="main">
+
+    <!-- 雷达环 -->
+    <view class="radar {{state === 'ok' ? 'radar--ok' : (state === 'fail' || state === 'error') ? 'radar--fail' : ''}}">
+      <view class="radar__ring"></view>
+      <view class="radar__ring radar__ring--in"></view>
+      <view class="radar__pulse"></view>
+      <view class="radar__core">
+        <!-- 定位图标：圆点 + 十字，纯 CSS -->
+        <view wx:if="{{state === 'ok'}}" class="ico ico--ok"></view>
+        <view wx:elif="{{state === 'fail' || state === 'error'}}" class="ico ico--fail"></view>
+        <view wx:else class="ico"></view>
+      </view>
+    </view>
+
+    <!-- 文案 -->
+    <view class="title">{{title}}</view>
+    <view class="desc">{{desc}}</view>
+    <view class="meta num">{{appNo}}{{sceneLabel ? ' · ' + sceneLabel : ''}}</view>
+
+    <!-- 通过后的倒计时提示 -->
+    <view wx:if="{{state === 'ok'}}" class="hint num">正在返回首页…</view>
+
+    <!-- 范围外：两个动作 -->
+    <view wx:if="{{state === 'fail'}}" class="acts">
+      <button class="btn" hover-class="is-active" bindtap="locate">重新定位</button>
+      <button class="btn btn--plain" hover-class="is-active" bindtap="onManualReview">申请人工核验</button>
+    </view>
+
+    <view wx:if="{{state === 'error'}}" class="acts">
+      <button class="btn" hover-class="is-active" bindtap="locate">重试定位</button>
+      <button class="btn btn--plain" hover-class="is-active" bindtap="onManualReview">申请人工核验</button>
+    </view>
+
+    <view wx:if="{{state === 'locating'}}" class="note">定位仅用于本次销假校验，不保存位置轨迹。</view>
+
+    <!-- 人工核验表单 -->
+    <view wx:if="{{reviewMode}}" class="review">
+      <view class="review__lb">说明情况（辅导员会看到）</view>
+      <textarea class="review__in" value="{{reviewReason}}" maxlength="100"
+                placeholder="如：定位漂移，人已到校门口"
+                placeholder-class="ph" bindinput="onReviewInput" />
+      <view class="review__acts">
+        <text class="link-btn" bindtap="cancelReview">取消</text>
+        <text class="link-btn link-btn--primary" bindtap="submitReview">提交核验申请</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 演示面板：模拟位置（仅 mockLocation=true 时显示）-->
+  <view wx:if="{{showMock}}" class="mock">
+    <text class="mock__k num">模拟位置</text>
+    <picker range="{{mockOptions}}" value="{{mockIndex}}" bindchange="onMockChange">
+      <view class="mock__v">{{mockOptions[mockIndex]}}</view>
+    </picker>
+  </view>
+
+</view>
