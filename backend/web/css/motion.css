@@ -21,7 +21,7 @@
 }
 /* 页根只动 opacity，从 0 起（整页首次出现，不是"重新落墨"） */
 .page--enter {
-  animation: pageEnter var(--t-fast) var(--ease) both;
+  animation: pageEnter var(--t-fade) var(--ease) both;
 }
 
 /* 页头一寸落墨：只位移不改透明度（父级已经在淡入，
@@ -45,13 +45,37 @@
 .md-list.is-enter > .lgroup-head {
   animation: listIn var(--t-mid) var(--ease) both;
 }
-/* 错落 24ms × k，k = min(序号, 5)。封顶 5 步：24×5 + 180 = 300 ≤ 320。
-   第 6 项及以后共用第 5 步的 delay。 */
+/* 错落 70ms × k，k = min(序号, 6)。封顶 6 步：70×6 + 420 = 840ms。
+   第 7 项及以后共用第 6 步的 delay。 */
 .md-list.is-enter > .li:nth-of-type(2)  { animation-delay: calc(var(--m-stagger) * 1); }
 .md-list.is-enter > .li:nth-of-type(3)  { animation-delay: calc(var(--m-stagger) * 2); }
 .md-list.is-enter > .li:nth-of-type(4)  { animation-delay: calc(var(--m-stagger) * 3); }
 .md-list.is-enter > .li:nth-of-type(5)  { animation-delay: calc(var(--m-stagger) * 4); }
-.md-list.is-enter > .li:nth-of-type(n+6) { animation-delay: calc(var(--m-stagger) * 5); }
+.md-list.is-enter > .li:nth-of-type(6)  { animation-delay: calc(var(--m-stagger) * 5); }
+.md-list.is-enter > .li:nth-of-type(n+7) { animation-delay: calc(var(--m-stagger) * 6); }
+
+/* 工作台的待办列表：同样是"一屏 6 条"，同样要看得见一条条落位。
+   之前这一屏是瞬间出现的 —— 页头有落墨、别的页有错落，唯独它不动。 */
+.wb-list.is-enter > .todo {
+  animation: listIn var(--t-mid) var(--ease) both;
+}
+.wb-list.is-enter > .todo:nth-of-type(2) { animation-delay: calc(var(--m-stagger) * 1); }
+.wb-list.is-enter > .todo:nth-of-type(3) { animation-delay: calc(var(--m-stagger) * 2); }
+.wb-list.is-enter > .todo:nth-of-type(4) { animation-delay: calc(var(--m-stagger) * 3); }
+.wb-list.is-enter > .todo:nth-of-type(5) { animation-delay: calc(var(--m-stagger) * 4); }
+.wb-list.is-enter > .todo:nth-of-type(6) { animation-delay: calc(var(--m-stagger) * 5); }
+.wb-list.is-enter > .todo:nth-of-type(n+7) { animation-delay: calc(var(--m-stagger) * 6); }
+
+/* 管理概览右栏：待处理事项 / 系统提醒。
+   这两组的行是同类兄弟（各自包在 .ah-side-list 里），所以 nth-child 序号是对的。 */
+.ah-side-list.is-enter > * {
+  animation: listIn var(--t-mid) var(--ease) both;
+}
+.ah-side-list.is-enter > *:nth-child(2) { animation-delay: calc(var(--m-stagger) * 1); }
+.ah-side-list.is-enter > *:nth-child(3) { animation-delay: calc(var(--m-stagger) * 2); }
+.ah-side-list.is-enter > *:nth-child(4) { animation-delay: calc(var(--m-stagger) * 3); }
+.ah-side-list.is-enter > *:nth-child(5) { animation-delay: calc(var(--m-stagger) * 4); }
+.ah-side-list.is-enter > *:nth-child(n+6) { animation-delay: calc(var(--m-stagger) * 5); }
 
 /* 空态 .empty 不加淡入 —— 审计 V1 否决：
    空态出现在搜索/筛选/切 tab 路径上，会被逐键重播。
@@ -92,20 +116,23 @@
    没有这个类时路径就是满绘状态，重绘不会重播。 */
 /* <path pathLength="1"> 已经在 admin.js 里打上，所以进度可以归一成 0–1，
    不需要 getTotalLength()，也不需要 JS 量长度。 */
+/* 时长走 --t-draw（760ms）而不是交互档的 --t-slow（320ms）：
+   320ms 是"点一下要立刻有回音"的量级，用在"把七天折线画出来"上等于没画 ——
+   用户只来得及看到一道残影。760ms + --ease-draw 的起手慢，才读得出"笔在走"。 */
 .ah-chart.is-draw .ah-trend-line {
   stroke-dasharray: 1;
-  animation: ahLine var(--t-slow) var(--ease) both;
+  animation: ahLine var(--t-draw) var(--ease-draw) both;
 }
 .ah-chart.is-draw .ah-trend-line--on {
-  animation-delay: var(--m-stagger);
+  animation-delay: 90ms;
 }
 .ah-chart.is-draw .ah-trend-area {
-  animation: ahArea var(--t-panel) var(--ease-tog) var(--m-delay-area) both;
+  animation: ahArea var(--t-draw-area) var(--ease-tog) var(--m-delay-area) both;
 }
 .ah-chart.is-draw .ah-trend-dots {
-  animation: ahDots var(--t-fast) var(--ease-tog) var(--m-delay-dots) both;
+  animation: ahDots var(--m-draw-dots) var(--ease-tog) var(--m-delay-dots) both;
 }
-/* 网格线 / 轴标签 / 图例不动。三个动作并行收尾，不是串行相加。 */
+/* 网格线 / 轴标签 / 图例不动。三者依次入场、末尾对齐（≈840ms 收尾）。 */
 
 /* ---------- 8. 环形图：分段落墨（扇区是 fill 路径，没有 stroke） ---------- */
 @keyframes ahSeg {
@@ -113,13 +140,15 @@
   to   { opacity: 1; }
 }
 /* 用 opacity 而不是描边：<path d="M… A… L… A… Z" fill="…"> 没有 stroke，
-   描边生长对它是空操作。读感是"套色印刷一段一段盖上去"。 */
+   描边生长对它是空操作。读感是"套色印刷一段一段盖上去"。
+   单段 460ms + 110ms 错落：24ms 的错落在 460ms 的段落里根本看不出来，
+   那不是错落，那是同时出现。 */
 .ah-chart.is-draw .ah-donut-seg {
-  animation: ahSeg var(--t-mid) var(--ease-tog) both;
+  animation: ahSeg var(--t-draw-seg) var(--ease-tog) both;
 }
-.ah-chart.is-draw .ah-donut-seg:nth-of-type(2) { animation-delay: calc(var(--m-stagger) * 1); }
-.ah-chart.is-draw .ah-donut-seg:nth-of-type(3) { animation-delay: calc(var(--m-stagger) * 2); }
-.ah-chart.is-draw .ah-donut-seg:nth-of-type(4) { animation-delay: calc(var(--m-stagger) * 3); }
+.ah-chart.is-draw .ah-donut-seg:nth-of-type(2) { animation-delay: var(--m-draw-stagger); }
+.ah-chart.is-draw .ah-donut-seg:nth-of-type(3) { animation-delay: calc(var(--m-draw-stagger) * 2); }
+.ah-chart.is-draw .ah-donut-seg:nth-of-type(4) { animation-delay: calc(var(--m-draw-stagger) * 3); }
 
 /* ---------- 9. 下拉菜单：打开 120ms，关闭瞬时 ---------- */
 @keyframes ddIn {
@@ -128,7 +157,7 @@
 }
 .dd.is-open .dd-menu {
   transform-origin: top right;
-  animation: ddIn var(--t-fast) var(--ease) both;
+  animation: ddIn var(--t-sel) var(--ease) both;
 }
 /* 关闭不加退场：display:none 是瞬时的。"我现在就要它消失"，
    240ms 退场会让人觉得点击没生效（连点两次时尤其明显）。 */
@@ -158,7 +187,7 @@
    用 :not(:empty) 而不是加类：文案写入时选择器开始匹配，动画自然触发一次。 */
 .form-err:not(:empty),
 .action-note--err {
-  animation: errIn var(--t-fast) var(--ease-tog) both;
+  animation: errIn var(--t-sel) var(--ease-tog) both;
 }
 /* 审批失败的行内红字：复用 --red-600（状态语义色），不加抖动/红闪/边框脉冲 */
 .action-note--err { color: var(--red-600); }

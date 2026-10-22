@@ -398,17 +398,21 @@
         el('a', { class: 'wb-card-more', href: '#/admin/apps', text: '全部 ›' })
       ])
     ]);
+    /* 待办 / 提醒各用一个独立容器：错落需要"同类型的兄弟节点"才能按序排延迟。
+       直接挂在卡片里，卡片头也是一个 div，序号会错位。 */
+    var todoList = el('div', { class: 'ah-side-list' });
     [
       { icon: 'nav-checklist', label: '待审批申请', value: todo.pending || 0, tone: 'amber', href: '#/admin/apps' },
       { icon: 'nav-shield', label: '异常核验', value: todo.pendingReview || 0, tone: 'red', href: '#/admin/review' },
       { icon: 'nav-doc', label: '待处理续假', value: todo.pendingExtension || 0, tone: 'blue', href: '#/admin/apps' }
     ].forEach(function (t) {
-      todoCard.appendChild(el('a', { class: 'ah-todo-row', href: t.href }, [
+      todoList.appendChild(el('a', { class: 'ah-todo-row', href: t.href }, [
         ui.pngIcon(t.icon, 17),
         el('span', { class: 'ah-todo-label', text: t.label }),
         el('span', { class: 'ah-badge ah-badge--' + t.tone, text: String(t.value) })
       ]));
     });
+    todoCard.appendChild(todoList);
     side.appendChild(todoCard);
 
     var alertCard = el('div', { class: 'wb-card side-card' }, [
@@ -416,8 +420,9 @@
         el('span', { class: 'wb-card-title', text: '系统提醒' })
       ])
     ]);
+    var alertList = el('div', { class: 'ah-side-list' });
     (alerts.length ? alerts : [{ tone: 'info', text: '暂无提醒', note: '', time: '' }]).forEach(function (a) {
-      alertCard.appendChild(el('div', { class: 'ah-alert-row' }, [
+      alertList.appendChild(el('div', { class: 'ah-alert-row' }, [
         el('span', { class: 'ah-alert-dot ah-alert-dot--' + (a.tone || 'info') }),
         el('div', { class: 'ah-alert-body' }, [
           el('div', { class: 'ah-alert-text', text: a.text }),
@@ -425,6 +430,7 @@
         ])
       ]));
     });
+    alertCard.appendChild(alertList);
     side.appendChild(alertCard);
 
     side.appendChild(el('div', { class: 'ah-promo' }, [
@@ -432,6 +438,12 @@
       el('div', { class: 'ah-promo-note', text: '让管理更简单，让关怀更近一步' }),
       el('div', { class: 'ah-promo-art' })
     ]));
+
+    /* 右栏两组列表逐条落位（与图表绘制同时进行，页面是"拼装"出来的） */
+    if (ADMIN.motion && ADMIN.motion.enterList) {
+      ADMIN.motion.enterList(todoList);
+      ADMIN.motion.enterList(alertList);
+    }
   };
 
   function adminRange(s0, e0) {

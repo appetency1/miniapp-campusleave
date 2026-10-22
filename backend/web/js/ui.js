@@ -411,7 +411,10 @@
         if (returnFocus && returnFocus.focus) returnFocus.focus();
         scrim.remove();
         panel.remove();
-      }, 260);
+        /* 620ms = 抽屉关闭动画（--t-panel 560ms）+ 60ms 余量。
+           原来写 260ms 是配 240ms 的动画；时长改长后这里不改，
+           面板会在滑到一半时被抽走 —— 关闭动画会被"砍掉半截"。 */
+      }, 620);
     }
 
     function onKey(e) {
@@ -629,7 +632,9 @@
        注意不用 assertive —— 它会打断当前朗读。 */
     var t = el('div', { class: 'toast', attrs: { role: 'status' }, text: text });
     document.body.appendChild(t);
+    /* 停留 1600ms，退出动画 --t-mid 420ms → 2020ms 时还在淡出，
+       所以移除时机要晚于它，这里给到 2300ms。 */
     setTimeout(function () { t.classList.add('is-out'); }, 1600);
-    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2100);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2300);
   }
 })();

@@ -278,6 +278,34 @@ async function main() {
   check('折线图有 is-draw 门控与描边路径', charts.has && charts.lines >= 2, JSON.stringify(charts))
   check('环形图扇区已打 ah-donut-seg 标记', charts.segs >= 1, JSON.stringify(charts))
 
+  /* ---------- v2：节奏防回退（把时长钉死，改快了就 FAIL） ---------- */
+  const pace = await cdp.eval(`(function(){
+    function v(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+    var line = document.querySelector('.ah-trend-line');
+    var seg  = document.querySelector('.ah-donut-seg');
+    var drawer = document.querySelector('.drawer');
+    var scrim = document.querySelector('.scrim');
+    return {
+      tFast: v('--t-fast'), tSel: v('--t-sel'), tFade: v('--t-fade'),
+      tMid: v('--t-mid'), tPanel: v('--t-panel'), tSlow: v('--t-slow'),
+      tDraw: v('--t-draw'), stagger: v('--m-stagger'),
+      lineDur: line ? getComputedStyle(line).animationDuration : null,
+      segDur: seg ? getComputedStyle(seg).animationDuration : null,
+      lineEase: line ? getComputedStyle(line).animationTimingFunction : null
+    };
+  })()`)
+  const ms = s => s ? Math.round(parseFloat(s) * (String(s).includes('ms') ? 1 : 1000)) : -1
+  check('时长阶梯已是 v2（--t-mid ≥ 400ms）', ms(pace.tMid) >= 400, 't-mid=' + pace.tMid)
+  check('面板级 ≥ 550ms', ms(pace.tPanel) >= 550, 't-panel=' + pace.tPanel)
+  check('数据绘制档 ≥ 850ms', ms(pace.tDraw) >= 850, 't-draw=' + pace.tDraw)
+  check('错落间隔 ≥ 60ms（24ms 看不出来）', ms(pace.stagger) >= 60, 'stagger=' + pace.stagger)
+  check('折线描边实际时长 ≥ 850ms', ms(pace.lineDur) >= 850, 'line=' + pace.lineDur)
+  check('环形扇区实际时长 ≥ 550ms', ms(pace.segDur) >= 550, 'seg=' + pace.segDur)
+  check('折线用的是 --ease-draw（不是强 ease-out）',
+    !/0\.2,\s*0\.8/.test(pace.lineEase || ''), 'ease=' + pace.lineEase)
+
   // 10) 页面无 JS 异常
   const errs = cdp.events.filter(e => e.method === 'Runtime.exceptionThrown')
     .map(e => e.params.exceptionDetails.exception?.description || e.params.exceptionDetails.text)

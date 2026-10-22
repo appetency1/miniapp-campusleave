@@ -317,6 +317,9 @@
         return;
       }
       rows.slice(0, 6).forEach(function (a) { listBox.appendChild(todoRow(a, isReview)); });
+      /* 待办逐条落位：一次性门控在 motion.js 里（动画结束自动摘类）。
+         切 tab 重建列表时同样会重播一次 —— 那是"换了一批内容"，该让人看见。 */
+      if (ADMIN.motion && ADMIN.motion.enterList) ADMIN.motion.enterList(listBox);
     }
     paintList();
 

@@ -25,9 +25,8 @@
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
-  /* cubic-bezier(.2,.8,.25,1) —— 与 tokens.css 的 --ease 是同一条曲线。
-     数值抄一份在这里，是因为 rAF 里拿不到 CSS 的 timing function。
-     改曲线时两处一起改（tokens.css 的 --ease 与这里的 4 个常量）。 */
+  /* rAF 里拿不到 CSS 的 timing function，所以曲线数值在这里抄一份。
+     改曲线时 tokens.css 与这里的常量一起改。 */
   function makeBezier(x1, y1, x2, y2) {
     function a(a1, a2) { return 1 - 3 * a2 + 3 * a1; }
     function b(a1, a2) { return 3 * a2 - 6 * a1; }
@@ -48,14 +47,23 @@
       return calc(t, y1, y2);
     };
   }
-  var ease = makeBezier(.2, .8, .25, 1);
+  /* cubic-bezier(.32,0,.18,1) —— 与 tokens.css 的 --ease-draw 同曲线。
+     数字滚动用这条而不是 --ease：--ease 会让数字在头 25% 时间就冲到接近终值，
+     中间过程几乎看不见；--ease-draw 起手慢，一格一格才数得出来。
+     改的时候 tokens.css 的 --ease-draw 与这里的常量一起改。
+     （JS 里的 --ease 常量已随本次修订移除：数字改用 draw 曲线，CSS 那边 --ease
+      仍给按钮/页头等入场用。） */
+  var easeDraw = makeBezier(.32, 0, .18, 1);
 
   /* ---------------- 1. 数字滚动 ---------------- */
   /* 只做三处 + 环形图中心总计：
      .stat-v（表格页顶部四格）、.stat-value > span:first-child（指标带，
      不含 .stat-arrow）、.ah-stat-value（管理概览四卡）、.ah-donut-total。 */
   var CU_SEL = '.stat-v, .stat-value > span:first-child, .ah-stat-value, .ah-donut-total';
-  var CU_DUR = 320; // = --t-slow，固定，不随数值大小缩放
+  /* 900ms：与 --t-slow 同值。原 320ms 太赶，数字一格一格跳过去几乎看不清中间态；
+     用户反馈"一眨眼的事，根本看不清"。与图表绘制同页，两者要能同时看完 ——
+     数字先落定，线还在画。 */
+  var CU_DUR = 900; // = --t-slow（数据绘制档），不是交互档
 
   function animateNumber(node, to) {
     var start = 0;
@@ -63,7 +71,7 @@
     function frame(now) {
       if (!start) start = now;
       var p = Math.min(1, (now - start) / CU_DUR);
-      node.textContent = String(Math.round(ease(p) * to));
+      node.textContent = String(Math.round(easeDraw(p) * to));
       if (p < 1) requestAnimationFrame(frame);
       else node.textContent = String(to);
     }
@@ -127,7 +135,10 @@
       done();
     });
     // 兜底：reduced-motion（.01ms 可能不派发 animationend）、空列表、子项被提前换掉
-    setTimeout(done, 500);
+    // 1400ms = 列表整组动画上限（错落 70×6 + 单项 420 = 840ms）+ 余量。
+    // 原来写 500ms 是配"180ms + 24ms 错落"的；时长改长后这里不改，
+    // 动画会被提前掐断 —— 表现为"后面几行永远出不来"。
+    setTimeout(done, 1400);
   }
 
   /* ---------------- 4. 慢加载骨架 ---------------- */
@@ -228,9 +239,9 @@
 
   function flashToast(msg) {
     if (!msg) return;
-    // 320ms = --t-slow：正好等页根淡入(120ms)与页头落墨(180ms)结束，
-    // 避免两个淡入抢注意力。设成 0 会和入场重叠。
-    setTimeout(function () { ui.toast(msg); }, 320);
+    // 600ms：等页根淡入（--t-fade 300ms）落定再出声，
+    // 否则 toast 和页面入场两个淡入抢注意力。设成 0 会重演"闪一下"。
+    setTimeout(function () { ui.toast(msg); }, 600);
   }
 
   /* ---------------- 对外 ---------------- */
