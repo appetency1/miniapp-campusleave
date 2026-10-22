@@ -90,7 +90,13 @@ public class StudentCommandService {
             throw new BizException(ErrorCode.TIME_INVALID, "开始时间不能早于当前时间");
         }
 
-        // ③ 与本人有效申请（PENDING / APPROVED）不得重叠
+        // ③ 离校必须写清去向（辅导员要知道人往哪去，安全兜底）
+        if ("OFF_CAMPUS".equals(req.getLeaveScene())
+                && (req.getDestination() == null || req.getDestination().trim().length() < 2)) {
+            throw new BizException(ErrorCode.BAD_PARAM, "离校请假必须填写去向");
+        }
+
+        // ④ 与本人有效申请（PENDING / APPROVED）不得重叠
         //    重叠判定：start < 已有.end && end > 已有.start
         Long overlap = applicationMapper.selectCount(
                 Wrappers.<LeaveApplication>lambdaQuery()
@@ -102,7 +108,7 @@ public class StudentCommandService {
             throw new BizException(ErrorCode.TIME_OVERLAP);
         }
 
-        // ④ 落库（application_no 唯一，冲突时重试）
+        // ⑤ 落库（application_no 唯一，冲突时重试）
         LeaveApplication app = new LeaveApplication();
         app.setStudentId(sp.getId());
         app.setLeaveScene(req.getLeaveScene());

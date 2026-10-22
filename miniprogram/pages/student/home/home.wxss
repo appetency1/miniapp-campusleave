@@ -241,9 +241,21 @@
   border: 1rpx solid var(--line-2);
   border-radius: var(--r);
   background: transparent;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.16s ease;
 }
 .pick:active {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+.pick__ico {
+  width: 44rpx;
+  height: 44rpx;
+  margin-bottom: 14rpx;
+  display: block;
+}
+/* 按下反馈：轻微缩放，避免"点了没反应"的生硬感 */
+.pick--press {
+  transform: scale(0.975);
   border-color: var(--ink);
   background: var(--paper-2);
 }

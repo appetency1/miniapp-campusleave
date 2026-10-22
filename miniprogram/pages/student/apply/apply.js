@@ -1,20 +1,22 @@
 /**
  * pages/student/apply/apply.js —— 申请请假
  *
- * 提交流程（对应 03_API §5.2）：
- *   前端校验 → 上传材料（可选）→ POST /student/applications（带 Idempotency-Key）→ 回详情页
- *
- * 为什么前端也要校验一遍：
- *   前端校验是为了体验（即时标红，不用等一次往返）；后端校验是为了正确性。
- *   两边都写不是冗余——前端可以被绕过，后端不能被绕过。
- *
- * 时间处理：picker 只给 "yyyy-MM-dd" 和 "HH:mm"，拼成后端要的 "yyyy-MM-dd HH:mm:ss"。
+ * 交互约定（针对实测反馈重做）：
+ *   1. 从首页「离校请假 / 校内请假」进来时，**场景已确定**，页面不再让你重选；
+ *      只有从"再请一次"这类通用入口进来才显示场景选择。
+ *   2. 时间改成**整行点开一个多列选择器**（日期 + 时间同屏），不再"点日期改日期、
+ *      点时间改时间"；快捷项（今天/明天/后天）只负责挪日期，时间保持不变。
+ *   3. 离校去向用**省/市/区选择器 + 详细地址**，不允许整段自由文本。
+ *   4. 联系电话**只收数字**且必须 11 位（前后端都校验）。
+ *   5. 所有可点元素都有按压/过渡反馈，错误提示淡入。
  */
 const { post, upload } = require('../../../utils/request')
 const { getToken } = require('../../../utils/auth')
 const F = require('../../../utils/format')
 
-/** 生成幂等键（同一次提交重试不会产生两条申请） */
+const pad = (n) => (n < 10 ? '0' + n : '' + n)
+
+/** 幂等键：同一次提交重试不会产生两条申请 */
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0
@@ -23,31 +25,49 @@ function uuid() {
   })
 }
 
-const pad = (n) => (n < 10 ? '0' + n : '' + n)
+const SCENE_TEXT = {
+  OFF_CAMPUS: { label: '离校请假', sub: '返校定位销假' },
+  ON_CAMPUS: { label: '校内请假', sub: '结束后自主确认' }
+}
 
 Page({
   data: {
     statusBarHeight: 20,
+
+    /** 场景是否已确定（从首页卡片进来就是确定的） */
+    sceneLocked: false,
+    sceneLabel: '',
+    sceneSub: '',
+
     types: [
       { value: 'SICK', label: '病假' },
       { value: 'PERSONAL', label: '事假' },
       { value: 'OTHER', label: '其他' }
     ],
     quickDays: ['今天', '明天', '后天'],
+
+    /** 时间选择器：二维 range = [日期列, 时间列] */
+    range: [[], []],
+    dateCols: [],
+    timeCols: [],
+    startIdx: [0, 0],
+    endIdx: [0, 0],
+    startText: '',
+    endText: '',
+    dayOffset: 0,
+
+    /** 去向：省/市/区 + 详细地址 */
+    region: [],
+    regionText: '',
+    addressDetail: '',
+
     form: {
       scene: 'OFF_CAMPUS',
       leaveType: 'SICK',
-      dayOffset: 0,
-      startDate: '',
-      startClock: '08:00',
-      startDateLabel: '',
-      endDate: '',
-      endClock: '18:00',
-      endDateLabel: '',
       reason: '',
-      destination: '',
       contactPhone: ''
     },
+
     materials: [],
     uploading: false,
     submitting: false,
@@ -60,91 +80,135 @@ Page({
       return
     }
     const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
-    this.setData({ statusBarHeight: info.statusBarHeight || 20 })
 
-    // 从首页场景卡进来时预选场景（OFF_CAMPUS / ON_CAMPUS）
-    if (options && options.scene) {
-      this.setData({ 'form.scene': options.scene })
-    }
-    this.applyQuickDay(0)
-  },
-
-  /** 把 Date 拆成 picker 需要的两段 */
-  toParts(d) {
-    const date = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
-    return { date, label: (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + F.week(d) }
-  },
-
-  /** 快捷项：今天/明天/后天（同时移动开始与结束日期，时间不变） */
-  applyQuickDay(offset) {
-    const now = new Date()
-    const start = new Date(now.getTime() + offset * 86400000)
-    const end = new Date(start.getTime())
-    const sp = this.toParts(start)
-    const ep = this.toParts(end)
+    // 从首页卡片进来 → 场景已定，锁定
+    const locked = options && options.scene && SCENE_TEXT[options.scene]
+    const scene = locked ? options.scene : 'OFF_CAMPUS'
+    const st = SCENE_TEXT[scene]
 
     this.setData({
-      'form.dayOffset': offset,
-      'form.startDate': sp.date,
-      'form.startDateLabel': sp.label,
-      'form.endDate': ep.date,
-      'form.endDateLabel': ep.label,
-      'err.time': ''
+      statusBarHeight: info.statusBarHeight || 20,
+      sceneLocked: !!locked,
+      sceneLabel: st.label,
+      sceneSub: st.sub,
+      'form.scene': scene
     })
+
+    this.buildTimeColumns()
+    this.initDefaultTime()
   },
 
+  /** 生成未来 30 天 + 30 分钟粒度的时间列 */
+  buildTimeColumns() {
+    const dateCols = []
+    const now = new Date()
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
+      dateCols.push((d.getMonth() + 1) + '月' + d.getDate() + '日 ' + F.week(d))
+    }
+    const timeCols = []
+    for (let h = 0; h < 24; h++) {
+      timeCols.push(pad(h) + ':00')
+      timeCols.push(pad(h) + ':30')
+    }
+    this.setData({ dateCols, timeCols, range: [dateCols, timeCols] })
+  },
+
+  /**
+   * 默认时间：开始取「现在向上取整到下一个半点」，结束取开始 + 4 小时。
+   * 避免"一打开就提示开始时间早于当前时间"。
+   */
+  initDefaultTime() {
+    const now = new Date()
+    const totalHalf = now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0) + 1
+    const startHalf = Math.min(totalHalf, 47)
+    const endHalf = Math.min(totalHalf + 8, 47)   // +4 小时
+
+    this.applyTime('start', [0, startHalf])
+    this.applyTime('end', [0, endHalf])
+  },
+
+  /** 把 [日期索引, 时间索引] 写成可读文案 */
+  applyTime(which, idx) {
+    const d = this.data.dateCols[idx[0]]
+    const t = this.data.timeCols[idx[1]]
+    if (which === 'start') {
+      this.setData({ startIdx: idx, startText: d + ' ' + t })
+    } else {
+      this.setData({ endIdx: idx, endText: d + ' ' + t })
+    }
+  },
+
+  onStartChange(e) {
+    this.applyTime('start', e.detail.value)
+    this.setData({ 'err.time': '', dayOffset: -1 })
+  },
+
+  onEndChange(e) {
+    this.applyTime('end', e.detail.value)
+    this.setData({ 'err.time': '' })
+  },
+
+  /** 快捷项只挪日期，时间不动 */
   onQuickDay(e) {
-    this.applyQuickDay(Number(e.currentTarget.dataset.i))
+    const i = Number(e.currentTarget.dataset.i)
+    this.applyTime('start', [i, this.data.startIdx[1]])
+    this.applyTime('end', [i, this.data.endIdx[1]])
+    this.setData({ dayOffset: i, 'err.time': '' })
   },
 
+  // ==================== 其他字段 ====================
+
+  /** 点「更改」解锁场景，露出两块选择器 */
+  onUnlockScene() {
+    this.setData({ sceneLocked: false })
+  },
+
+  /** 未锁定场景时才允许切换 */
   onScene(e) {
-    this.setData({ 'form.scene': e.currentTarget.dataset.v, 'err.scene': '' })
+    const v = e.currentTarget.dataset.v
+    const st = SCENE_TEXT[v]
+    this.setData({
+      'form.scene': v,
+      sceneLabel: st.label,
+      sceneSub: st.sub,
+      'err.scene': ''
+    })
   },
 
   onType(e) {
     this.setData({ 'form.leaveType': e.currentTarget.dataset.v })
   },
 
-  onStartDate(e) {
-    const p = this.toParts(F.parseTime(e.detail.value))
-    this.setData({ 'form.startDate': e.detail.value, 'form.startDateLabel': p.label, 'err.time': '' })
-  },
-
-  onEndDate(e) {
-    const p = this.toParts(F.parseTime(e.detail.value))
-    this.setData({ 'form.endDate': e.detail.value, 'form.endDateLabel': p.label, 'err.time': '' })
-  },
-
-  onStartClock(e) {
-    this.setData({ 'form.startClock': e.detail.value, 'err.time': '' })
-  },
-
-  onEndClock(e) {
-    this.setData({ 'form.endClock': e.detail.value, 'err.time': '' })
-  },
-
   onReason(e) {
     this.setData({ 'form.reason': e.detail.value, 'err.reason': '' })
   },
 
-  onDestination(e) {
-    this.setData({ 'form.destination': e.detail.value })
+  /** 省/市/区 */
+  onRegion(e) {
+    const v = e.detail.value || []
+    this.setData({
+      region: v,
+      regionText: v.join(' '),
+      'err.region': ''
+    })
   },
 
+  onAddress(e) {
+    this.setData({ addressDetail: e.detail.value, 'err.region': '' })
+  },
+
+  /** 电话：只保留数字，最多 11 位 */
   onPhone(e) {
-    this.setData({ 'form.contactPhone': e.detail.value })
+    const digits = String(e.detail.value || '').replace(/\D/g, '').slice(0, 11)
+    this.setData({ 'form.contactPhone': digits, 'err.phone': '' })
+    return digits
   },
 
   // ==================== 材料 ====================
 
-  /**
-   * 选文件并上传。
-   * 用 chooseMedia 而不是 chooseMessageFile：图片直接调相机/相册，体验更顺；
-   * PDF 走 chooseMessageFile（从聊天记录里选）。
-   */
   onPickMaterial() {
     if (this.data.uploading) return
-
     wx.showActionSheet({
       itemList: ['拍照/相册（图片）', '从聊天记录选 PDF'],
       success: (res) => {
@@ -159,9 +223,7 @@ Page({
       count: 3,
       mediaType: ['image'],
       sizeType: ['compressed'],
-      success: (res) => {
-        res.tempFiles.forEach((f) => this.doUpload(f.tempFilePath, f.size))
-      }
+      success: (res) => res.tempFiles.forEach((f) => this.doUpload(f.tempFilePath, f.size))
     })
   },
 
@@ -170,9 +232,7 @@ Page({
       count: 1,
       type: 'file',
       extension: ['pdf'],
-      success: (res) => {
-        res.tempFiles.forEach((f) => this.doUpload(f.path, f.size))
-      }
+      success: (res) => res.tempFiles.forEach((f) => this.doUpload(f.path, f.size))
     })
   },
 
@@ -189,8 +249,7 @@ Page({
         fileName: r.fileName,
         fileUrl: r.fileUrl,
         fileSize: r.fileSize,
-        mimeType: r.mimeType,
-        materialLabel: '诊断证明'
+        mimeType: r.mimeType
       }])
       this.setData({ materials, uploading: false })
     } catch (e) {
@@ -207,21 +266,27 @@ Page({
 
   // ==================== 提交 ====================
 
-  /**
-   * 校验 + 提交。
-   * 校验顺序与后端一致，错误信息逐项展示（不弹 toast，避免被键盘挡住）。
-   */
-  async onSubmit() {
-    if (this.data.submitting) return
+  /** 把 [日期索引, 时间索引] 拼成后端要的 "yyyy-MM-dd HH:mm:ss" */
+  toBackendTime(idx) {
+    const d = this.data.dateCols[idx[0]]      // "10月22日 周四"
+    const t = this.data.timeCols[idx[1]]      // "08:00"
+    const m = /^(\d+)月(\d+)日/.exec(d)
+    const now = new Date()
+    let year = now.getFullYear()
+    // 跨年：现在是 12 月、选的是 1 月
+    if (now.getMonth() === 11 && Number(m[1]) === 1) year += 1
+    return year + '-' + pad(Number(m[1])) + '-' + pad(Number(m[2])) + ' ' + t + ':00'
+  },
+
+  validate() {
     const f = this.data.form
     const err = {}
 
     if (!f.scene) err.scene = true
     if ((f.reason || '').trim().length < 5) err.reason = true
 
-    // 拼时间
-    const startStr = f.startDate + ' ' + f.startClock + ':00'
-    const endStr = f.endDate + ' ' + f.endClock + ':00'
+    const startStr = this.toBackendTime(this.data.startIdx)
+    const endStr = this.toBackendTime(this.data.endIdx)
     const start = F.parseTime(startStr)
     const end = F.parseTime(endStr)
 
@@ -231,11 +296,37 @@ Page({
       err.time = '开始时间不能早于当前时间'
     }
 
+    // 离校必须选去向：省市必选，详细地址要写清
+    if (f.scene === 'OFF_CAMPUS') {
+      if (!this.data.region || this.data.region.length < 2) {
+        err.region = '请选择离校去向（省 / 市 / 区）'
+      } else if ((this.data.addressDetail || '').trim().length < 2) {
+        err.region = '请填写详细地址，方便辅导员掌握去向'
+      }
+    }
+
+    // 电话：11 位手机号
+    if (!/^1[3-9]\d{9}$/.test(f.contactPhone || '')) {
+      err.phone = '请填写 11 位手机号'
+    }
+
+    return { err, startStr, endStr }
+  },
+
+  async onSubmit() {
+    if (this.data.submitting) return
+
+    const { err, startStr, endStr } = this.validate()
     if (Object.keys(err).length) {
       this.setData({ err })
       wx.showToast({ title: '请检查标红的项', icon: 'none' })
       return
     }
+
+    const f = this.data.form
+    const destination = f.scene === 'OFF_CAMPUS'
+      ? (this.data.region.join('') + ' ' + this.data.addressDetail.trim()).trim()
+      : null
 
     this.setData({ submitting: true })
     try {
@@ -245,7 +336,7 @@ Page({
         startTime: startStr,
         endTime: endStr,
         reason: f.reason.trim(),
-        destination: f.scene === 'OFF_CAMPUS' ? f.destination : null,
+        destination,
         contactPhone: f.contactPhone,
         materials: this.data.materials.map((m) => ({
           materialType: m.materialType,
@@ -256,20 +347,17 @@ Page({
         }))
       }
 
-      // Idempotency-Key：同一次点击重试不会生成两条申请
       const data = await post('/student/applications', payload, {
         header: { 'Idempotency-Key': uuid() }
       })
 
       wx.showToast({ title: '已提交，等待审批', icon: 'success' })
       setTimeout(() => {
-        // 用 redirectTo：提交页不该留在栈里（返回会回到一个已提交的表单）
         wx.redirectTo({ url: '/pages/student/detail/detail?id=' + data.id })
       }, 700)
     } catch (e) {
       this.setData({ submitting: false })
       const msg = e.message || '提交失败'
-      // 时间重叠 / 未配辅导员等业务错误，直接显示在时间区下方更好定位
       if (e.code === 40903 || e.code === 42204 || e.code === 40002) {
         this.setData({ 'err.time': msg })
       }

@@ -120,12 +120,15 @@
       <view class="empty2">
         <view class="empty2__t">要离校，还是只在校内活动？</view>
 
+        <!-- 两张卡带图标（定稿：离校=门、校内=屋顶），图标为内联 SVG 转 data URI，零外部资源 -->
         <view class="picks">
-          <view class="pick" data-scene="OFF" bindtap="onApply">
+          <view class="pick" hover-class="pick--press" data-scene="OFF" bindtap="onApply">
+            <image class="pick__ico" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxRjU1QUQiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik01LjQgMjAuNlY0LjRhMSAxIDAgMCAxIDEtMWg5LjJhMSAxIDAgMCAxIDEgMXYxNi4yIi8+PHBhdGggZD0iTTIuOCAyMC42aDE4LjQiLz48cGF0aCBkPSJNMTIuNiAxMi4yaC4wMSIvPjwvc3ZnPg==" mode="aspectFit" />
             <view class="pick__t">离校请假</view>
             <view class="pick__s">返校定位销假</view>
           </view>
-          <view class="pick" data-scene="ON" bindtap="onApply">
+          <view class="pick" hover-class="pick--press" data-scene="ON" bindtap="onApply">
+            <image class="pick__ico" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxRjU1QUQiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00LjQgMjAuNlY2LjJMMTIgMy40bDcuNiAyLjh2MTQuNCIvPjxwYXRoIGQ9Ik0yLjggMjAuNmgxOC40Ii8+PHBhdGggZD0iTTkuNCAyMC42di00LjRoNS4ydjQuNCIvPjwvc3ZnPg==" mode="aspectFit" />
             <view class="pick__t">校内请假</view>
             <view class="pick__s">结束后自主确认</view>
           </view>

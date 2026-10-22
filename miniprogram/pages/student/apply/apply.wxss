@@ -1,6 +1,12 @@
 /* pages/student/apply/apply.wxss
- * 申请页：自定义导航 + 可滚动表单 + 底部固定提交条
- * 表单控件一律"标签在上、输入在下"，靠 1rpx 细线分区，不用卡片
+ * 申请页
+ *
+ * 交互反馈统一在这里定义：
+ *   .press           通用按压（缩放 + 变深），给卡片/快捷项/加号用
+ *   .timerow--press  整行时间行的按压底色
+ *   .seg__i--press   分段按压
+ *   .err             错误提示淡入（避免突然跳出一行把布局顶飞）
+ *   页面进场 fadeUp
  */
 .page {
   display: flex;
@@ -28,6 +34,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  transition: background 0.18s ease, transform 0.16s ease;
+}
+.nav__back--press {
+  background: var(--paper-2);
+  transform: scale(0.94);
 }
 .nav__arrow {
   width: 18rpx;
@@ -42,9 +54,16 @@
   color: var(--ink);
 }
 
-/* ---- 内容 ---- */
+/* ---- 页面进场 ---- */
 .body { flex: 1; min-height: 0; }
-.pad { padding: 0 40rpx; }
+.pad {
+  padding: 0 40rpx;
+  animation: fadeUp 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 .field {
   padding-top: 34rpx;
@@ -61,12 +80,54 @@
   color: var(--ink-4);
 }
 
-/* 错误提示 */
+/* ---- 错误提示：淡入 ---- */
 .err {
   margin-top: 10rpx;
   font-size: 22rpx;
   color: var(--red-600);
   line-height: 1.5;
+  animation: errIn 0.2s ease both;
+}
+@keyframes errIn {
+  from { opacity: 0; transform: translateY(-6rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 通用按压 ---- */
+.press {
+  transform: scale(0.977);
+  opacity: 0.92;
+}
+
+/* ---- 场景已确定：只读摘要 ---- */
+.locked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 30rpx;
+  padding: 24rpx 26rpx;
+  border: 1rpx solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--paper-2);
+}
+.locked__l {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
+}
+.locked__t {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+.locked__s {
+  font-size: 22rpx;
+  color: var(--ink-3);
+}
+.locked__change {
+  font-size: 24rpx;
+  color: var(--blue-600);
+  padding: 6rpx 4rpx;
 }
 
 /* ---- 场景：两块选择 ---- */
@@ -79,7 +140,7 @@
   padding: 24rpx 22rpx;
   border: 1rpx solid var(--line-2);
   border-radius: var(--r);
-  transition: border-color .18s ease, background .18s ease;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.16s ease;
 }
 .pick--on {
   border-color: var(--ink);
@@ -112,6 +173,7 @@
   font-size: 26rpx;
   color: var(--ink-2);
   border-right: 1rpx solid var(--line-2);
+  transition: background 0.16s ease, color 0.16s ease;
 }
 .seg__i:last-child { border-right: none; }
 .seg__i--on {
@@ -119,8 +181,11 @@
   color: #FCFBF8;
   font-weight: 500;
 }
+.seg__i--press {
+  background: var(--paper-2);
+}
 
-/* ---- 时间 ---- */
+/* ---- 快捷日期 ---- */
 .quick {
   display: flex;
   gap: 14rpx;
@@ -132,31 +197,47 @@
   border-radius: var(--r);
   font-size: 22rpx;
   color: var(--ink-2);
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.16s ease;
 }
 .quick__i--on {
   border-color: var(--ink);
   color: var(--ink);
   font-weight: 500;
+  background: var(--paper-2);
 }
 
+/* ---- 时间 / 地区：整行可点 ---- */
 .timerow {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 22rpx 0;
+  padding: 24rpx 0;
   border-bottom: 1rpx solid var(--line);
+  transition: background 0.16s ease;
+}
+.timerow--press {
+  background: var(--paper-2);
 }
 .timerow__k {
   flex: 0 0 auto;
-  width: 68rpx;
+  width: 72rpx;
   font-size: 24rpx;
   color: var(--ink-3);
 }
 .timerow__v {
+  flex: 1;
   font-size: 28rpx;
   color: var(--ink);
-  padding: 4rpx 0;
-  border-bottom: 1rpx dashed var(--line-2);
+}
+.timerow__v--ph {
+  color: var(--ink-4);
+  font-size: 26rpx;
+}
+.timerow__arrow {
+  flex: 0 0 auto;
+  font-size: 28rpx;
+  line-height: 1;
+  color: var(--ink-4);
 }
 
 /* ---- 理由 ---- */
@@ -164,6 +245,7 @@
   position: relative;
   border-bottom: 1rpx solid var(--line-2);
   padding-bottom: 8rpx;
+  transition: border-color 0.2s ease;
 }
 .ta__in {
   width: 100%;
@@ -184,9 +266,11 @@
 /* ---- 单行输入 ---- */
 .line-in {
   height: 72rpx;
+  margin-top: 8rpx;
   font-size: 28rpx;
   color: var(--ink);
   border-bottom: 1rpx solid var(--line-2);
+  transition: border-color 0.2s ease;
 }
 .ph {
   color: var(--ink-4);
@@ -225,6 +309,7 @@
   padding: 24rpx 0;
   border: 1rpx dashed var(--line-2);
   border-radius: var(--r);
+  transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
 }
 .mat-add__i {
   font-size: 28rpx;
