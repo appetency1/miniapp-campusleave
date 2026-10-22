@@ -17,17 +17,32 @@
   var ADMIN = (window.ADMIN = window.ADMIN || {});
   var BASE = '/api/v1';
   var TOKEN_KEY = 'cl_admin_token';
+  var ROLE_KEY = 'cl_console_role';
 
   /* 先给一个空壳：任何页面在数据到达前读 STORE 也不会炸（画出来是空列表）。
      app.js 的 boot 会保证"数据到位后才进主界面"，这里只是兜底。 */
   window.STORE = window.STORE || {
+    role: '',
+    me: { realName: '', username: '' },
     teacher: { name: '', no: '', department: '', classes: [], classList: [] },
     workbench: { pendingCount: 0, inProgressCount: 0, abnormalCount: 0, overdueCount: 0, todos: [] },
     apps: [],
     extensions: [],
     students: [],
-    stats: { totalApplications: 0, approved: 0, completed: 0, currentOverdue: 0 }
+    stats: { totalApplications: 0, approved: 0, completed: 0, currentOverdue: 0 },
+    admin: { users: [], classes: [], bindings: [], configs: [], stats: {} }
   };
+
+  /** 当前登录角色：TEACHER 或 ADMIN，决定菜单和数据源 */
+  function role() {
+    try { return sessionStorage.getItem(ROLE_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setRole(r) {
+    try {
+      if (r) sessionStorage.setItem(ROLE_KEY, r);
+      else sessionStorage.removeItem(ROLE_KEY);
+    } catch (e) { /* 忽略 */ }
+  }
 
   function token() {
     try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
@@ -72,21 +87,24 @@
 
   function get(path) { return request(path); }
   function post(path, body) { return request(path, { method: 'POST', body: body || {} }); }
+  function put(path, body) { return request(path, { method: 'PUT', body: body || {} }); }
+  function del(path) { return request(path, { method: 'DELETE' }); }
 
-  /** 登录：成功后写入 token */
+  /** 登录：成功后写入 token 与角色（角色决定之后拉哪套数据、渲染哪套菜单） */
   function login(username, password) {
     return request('/auth/login', { method: 'POST', body: { username: username, password: password } })
       .then(function (data) {
         if (data.user.role !== 'TEACHER' && data.user.role !== 'ADMIN') {
-          throw new Error('该账号不是教师账号，请用小程序端登录');
+          throw new Error('该账号不是教师或管理员账号，请用小程序端登录');
         }
         setToken(data.token);
+        setRole(data.user.role);
         return data.user;
       });
   }
 
-  /** 一次性拉取后台需要的全部数据到 window.STORE */
-  function loadStore() {
+  /** 教师端：6 份数据一次拉齐 */
+  function loadTeacherStore() {
     return Promise.all([
       get('/teacher/profile'),
       get('/teacher/workbench'),
@@ -95,17 +113,68 @@
       get('/teacher/students?size=200'),
       get('/teacher/stats')
     ]).then(function (r) {
-      window.STORE = {
+      setStore({
+        role: 'TEACHER',
+        me: { realName: r[0].name || '', username: r[0].no || '' },
         teacher: r[0],
         workbench: r[1],
         apps: r[2].list || [],
         extensions: r[3].list || [],
         students: r[4].list || [],
-        stats: r[5],
-        loadedAt: Date.now()
-      };
+        stats: r[5]
+      });
       return window.STORE;
     });
+  }
+
+  /** 管理端：账号 / 班级 / 绑定 / 配置 / 统计 */
+  function loadAdminStore() {
+    return Promise.all([
+      get('/auth/me'),
+      get('/admin/users?size=200'),
+      get('/admin/classes?size=200'),
+      get('/admin/teacher-classes'),
+      get('/admin/configs'),
+      get('/admin/stats')
+    ]).then(function (r) {
+      var me = r[0] || {};
+      setStore({
+        role: 'ADMIN',
+        me: me,
+        // 顶栏与班级范围切换读的是 teacher.name / teacher.classes，这里给等价字段
+        teacher: {
+          name: me.realName || me.username || '',
+          no: me.username || '',
+          department: '系统管理员',
+          classes: [],
+          classList: []
+        },
+        // 教师端的数据结构留空，避免误进教师页面时读 undefined 崩掉
+        workbench: { pendingCount: 0, inProgressCount: 0, abnormalCount: 0, overdueCount: 0, todos: [] },
+        apps: [],
+        extensions: [],
+        students: [],
+        stats: r[5] || {},
+        admin: {
+          users: (r[1] && r[1].list) || [],
+          classes: (r[2] && r[2].list) || [],
+          bindings: r[3] || [],
+          configs: r[4] || [],
+          stats: r[5] || {}
+        }
+      });
+      return window.STORE;
+    });
+  }
+
+  /** 一次性拉取当前角色需要的全部数据到 window.STORE */
+  function loadStore() {
+    return role() === 'ADMIN' ? loadAdminStore() : loadTeacherStore();
+  }
+
+  function setStore(next) {
+    next.loadedAt = Date.now();
+    window.STORE = next;
   }
 
   /** 审批等写操作之后调用：重新拉一次，保证列表与工作台计数同步 */
@@ -114,9 +183,13 @@
   ADMIN.api = {
     token: token,
     setToken: setToken,
+    role: role,
+    setRole: setRole,
     request: request,
     get: get,
     post: post,
+    put: put,
+    del: del,
     login: login,
     loadStore: loadStore,
     refresh: refresh

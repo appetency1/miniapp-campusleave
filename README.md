@@ -19,6 +19,49 @@
 
 ---
 
+## 怎么跑起来
+
+### 1. 后端（必须先起）
+
+**双击项目根目录的 `start-backend.cmd`。** 控制台出现 `Started CampusLeaveApplication`
+就是好了，然后打开 <http://localhost:8080/admin/>。
+
+那个黑窗口就是服务本体——**关掉窗口 = 停止服务**，别以为它可以最小化后随手关。
+
+其他启动方式：
+
+| 方式 | 命令 | 适用 |
+|---|---|---|
+| 双击脚本（推荐） | `start-backend.cmd` | 日常开发，一个窗口对应一个服务 |
+| IDEA | 运行 `CampusLeaveApplication` | 要断点调试 |
+| 打包运行 | `cd backend && mvn -DskipTests package && java -jar target/campus-leave-backend-1.0.0.jar` | 演示 / 部署，不依赖 Maven |
+
+> **8080 同时只能有一个进程。** 启动报 `Port 8080 was already in use`，
+> 说明已经有一个在跑（可能就是你上次开的那个窗口），先去关掉它，不要开第二个。
+> 用 `netstat -ano | findstr :8080` 能看到占用的 PID。
+
+### 2. 管理后台（Web）
+
+后端起来后直接访问 <http://localhost:8080/admin/>，不用单独起前端服务。
+演示账号：教师 `T2023001` / `123456`，管理员 `admin` / `123456`。
+
+> 改了 `backend/web/` 下的前端文件后要重新跑一次 `mvn compile`
+> （或 `cp -r backend/web backend/target/classes/static/admin`），
+> 否则浏览器拿到的还是上一次的副本。
+
+### 3. 小程序
+
+微信开发者工具打开项目根目录；把 `miniprogram/utils/config.js` 里的 IP
+改成电脑当前局域网地址，用「真机调试」模式。
+
+### 4. 数据库
+
+MySQL 8+，依次执行 `sql/V1.0__schema.sql`、`V1.0__seed.sql`、`V1.1__seed_demo.sql`。
+`backend/src/main/resources/application-dev.yml` 里的连接信息改成你本机的
+（该文件含密码，已在 `.gitignore` 里，不进库）。
+
+---
+
 ## 目录
 
 > 两个 Web 端（教师端 + 管理端）的前端源码都在 **`backend/web/`**，

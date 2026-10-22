@@ -189,8 +189,30 @@
     }
   ];
 
+  /* 管理端菜单：只做基础数据维护，不碰审批（审批是教师职责） */
+  var MENU_ADMIN = [
+    {
+      title: '基础数据',
+      items: [
+        { key: 'admin-users', label: '账号', glyph: '账', href: '#/admin/users' },
+        { key: 'admin-classes', label: '班级', glyph: '班', href: '#/admin/classes' },
+        { key: 'admin-bindings', label: '辅导员绑定', glyph: '绑', href: '#/admin/bindings' },
+        { key: 'admin-configs', label: '系统配置', glyph: '配', href: '#/admin/configs' }
+      ]
+    }
+  ];
+
+  /** 当前角色对应的菜单。角色存在 sessionStorage 里，刷新后仍能识别。 */
+  function menuOf() {
+    return ADMIN.api.role() === 'ADMIN' ? MENU_ADMIN : MENU;
+  }
+
   function activeKey() {
     var p = router.current() || '';
+    if (p.indexOf('/admin/users') === 0) return 'admin-users';
+    if (p.indexOf('/admin/classes') === 0) return 'admin-classes';
+    if (p.indexOf('/admin/bindings') === 0) return 'admin-bindings';
+    if (p.indexOf('/admin/configs') === 0) return 'admin-configs';
     if (p.indexOf('/pending') === 0) return 'pending';
     if (p.indexOf('/review') === 0) return 'review';
     if (p.indexOf('/records') === 0) return 'records';
@@ -204,7 +226,7 @@
     if (!nav) return;
     nav.innerHTML = '';
     var active = activeKey();
-    MENU.forEach(function (group) {
+    menuOf().forEach(function (group) {
       var wrap = el('div', { class: 'nav-group' }, [
         el('div', { class: 'nav-title', text: group.title })
       ]);
@@ -271,20 +293,27 @@
     if (!top) return;
     top.innerHTML = '';
 
+    var isAdmin = ADMIN.api.role() === 'ADMIN';
+
     var scopeLabel = state.scope === 'all' ? '班级范围' : state.scope;
-    var scopeItems = [
-      { label: '全部班级', on: state.scope === 'all', onClick: function () { setScope('all'); } },
-      { label: '计算机2301', on: state.scope === '计算机2301', onClick: function () { setScope('计算机2301'); } },
-      { label: '计算机2302', on: state.scope === '计算机2302', onClick: function () { setScope('计算机2302'); } }
-    ];
+    // 班级范围从 STORE 动态生成：原来写死了计算机2301/2302，换班级数据就对不上
+    var classNames = (STORE.teacher.classList || []).map(function (c) { return c.name; });
+    var scopeItems = [{ label: '全部班级', on: state.scope === 'all', onClick: function () { setScope('all'); } }]
+      .concat(classNames.map(function (name) {
+        return { label: name, on: state.scope === name, onClick: function () { setScope(name); } };
+      }));
+
     var accountItems = [
-      { label: '个人信息', onClick: function () { router.go('/profile'); } },
+      { label: '个人信息', onClick: function () { router.go(isAdmin ? '/admin/users' : '/profile'); } },
       { sep: true },
       { label: '退出登录', onClick: function () { logout(); } }
     ];
 
-    top.appendChild(dropdown(scopeLabel, scopeItems));
-    top.appendChild(el('div', { class: 'top-divider' }));
+    // 管理员看全校数据，没有"带班范围"这个概念，这个下拉对他没意义
+    if (!isAdmin) {
+      top.appendChild(dropdown(scopeLabel, scopeItems));
+      top.appendChild(el('div', { class: 'top-divider' }));
+    }
     top.appendChild(dropdown(STORE.teacher.name, accountItems));
   }
 
@@ -315,11 +344,14 @@
     if (root) root.innerHTML = '';
     renderNav();
     renderTop();
-    router.go('/workbench');
+    // 按角色落到各自首页：管理员没有"工作台"，直接进账号管理
+    router.go(ADMIN.api.role() === 'ADMIN' ? '/admin/users' : '/workbench');
   }
 
   function logout() {
     state.loggedIn = false;
+    ADMIN.api.setToken('');
+    ADMIN.api.setRole('');
     document.body.dataset.role = 'guest';
     document.getElementById('nav').innerHTML = '';
     document.getElementById('topRight').innerHTML = '';
@@ -340,6 +372,13 @@
     router.on('/records/:id', ADMIN.pages.records);
     router.on('/students', ADMIN.pages.students);
     router.on('/profile', ADMIN.pages.records);
+
+    /* ---- 管理端（M5）---- */
+    router.on('/admin/users', ADMIN.pages.adminUsers);
+    router.on('/admin/classes', ADMIN.pages.adminClasses);
+    router.on('/admin/bindings', ADMIN.pages.adminBindings);
+    router.on('/admin/configs', ADMIN.pages.adminConfigs);
+
     router.on('/', ADMIN.pages.workbench);
   }
 
@@ -355,7 +394,9 @@
       renderTop: renderTop,
       enterApp: enterApp,
       logout: logout,
-      sync: function () { renderNav(); }
+      sync: function () { renderNav(); },
+      /** 重绘当前页：写操作刷新 STORE 后调用，避免各页面自己写重绘逻辑 */
+      rerender: function () { router.go(router.current() || '/workbench'); }
     };
 
     registerRoutes();
@@ -380,10 +421,12 @@
       });
     }
 
-    /* 演示深链：index.html?demo=1#/workbench 自动用演示教师账号登录。
+    /* 演示深链：?demo=1 用教师账号，?demo=admin 用管理员账号，自动登录。
        截图验证与答辩都用它，省一次输入；不带参数时行为不变。 */
-    if (/[?&]demo=1/.test(location.search) && !ADMIN.api.token()) {
-      ADMIN.api.login('T2023001', '123456')
+    var demoMatch = location.search.match(/[?&]demo=([^&]+)/);
+    if (demoMatch && !ADMIN.api.token()) {
+      var demoUser = demoMatch[1] === 'admin' ? 'admin' : 'T2023001';
+      ADMIN.api.login(demoUser, '123456')
         .then(function () { return ADMIN.api.loadStore(); })
         .then(function () {
           state.loggedIn = true;
