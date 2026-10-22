@@ -1098,3 +1098,12 @@
   font-size: calc(11.5px * var(--fs, 1));
   letter-spacing: -.01em;
 }
+
+/* 材料无法预览时的灰字（原来是个 href:'#' 的死链） */
+.link--off {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-4);
+  cursor: default;
+}

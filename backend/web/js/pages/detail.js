@@ -77,7 +77,8 @@
 
     mats.forEach(function (m) {
       if (isImage(m.name)) {
-        var src = ui.docImage(m.name, m.type + ' · ' + m.size);
+        // 后端返回的 url 是 /uploads/xxx，与页面同源可直接加载；没有才退回占位图
+        var src = m.url || ui.docImage(m.name, m.type + ' · ' + m.size);
         var idx = images.length;
         images.push({ src: src, label: m.name });
         var thumb = el('button', { class: 'mat-thumb', attrs: { type: 'button', 'aria-label': '查看 ' + m.name } }, [
@@ -89,11 +90,13 @@
           el('div', { class: 'mat-name', text: m.name })
         ]));
       } else {
-        var open = el('a', {
-          class: 'link',
-          attrs: { href: '#', target: '_blank', rel: 'noopener' },
-          text: '新标签打开'
-        }, [ui.icon('external')]);
+        var open = m.url
+          ? el('a', {
+            class: 'link',
+            attrs: { href: m.url, target: '_blank', rel: 'noopener' },
+            text: '新标签打开'
+          }, [ui.icon('external')])
+          : el('span', { class: 'link link--off', text: '暂不可预览' });
         var row = el('div', { class: 'mat-file' }, [
           ui.icon('file'),
           el('span', { class: 'mat-fname', text: m.name }),

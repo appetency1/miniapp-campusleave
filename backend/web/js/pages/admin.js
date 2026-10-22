@@ -1107,6 +1107,36 @@
     paint();
   };
 
+  /** 改派班级的辅导员：一个班级只能有一个，所以先解绑旧的再绑新的 */
+  function openAssignTeacher(cls) {
+    var teachers = (STORE.admin.users || []).filter(function (u) {
+      return u.role === 'TEACHER' && u.status === 'ACTIVE';
+    });
+    var bindings = STORE.admin.bindings || [];
+    var current = bindings.filter(function (b) { return b.classId === cls.id; })[0];
+
+    openForm('改派辅导员 · ' + cls.className, [
+      {
+        key: 'teacherId', label: '负责教师', type: 'select',
+        hint: current ? '当前辅导员：' + current.teacherName + '，改派会先解绑' : '该班级还没有辅导员',
+        options: teachers.map(function (t) {
+          return { value: t.id, label: t.realName + '（' + (t.teacherNo || t.username) + '）' };
+        })
+      }
+    ], '确认改派', function (v) {
+      if (!v.teacherId) throw new Error('请选择教师');
+      // teacherId 要用 teacher_profile.id，不能直接用 user.id；
+      // 后端 POST 接受的是 user.id，这里直接传 u.id
+      var doPost = function () {
+        return api.post('/admin/teacher-classes', {
+          teacherId: Number(v.teacherId), classId: cls.id
+        });
+      };
+      var chain = current ? api.del('/admin/teacher-classes/' + current.id).then(doPost) : doPost();
+      return act(chain, '已改派');
+    });
+  }
+
   /* ================= 2. 班级 ================= */
 
   ADMIN.pages.adminClasses = function (page) {
@@ -1165,15 +1195,24 @@
           }
         },
         {
-          label: '操作', width: 100, align: 'right', render: function (c) {
-            return el('button', {
+          label: '操作', width: 176, align: 'right', render: function (c) {
+            var wrap = el('div', { class: 'row-acts' });
+            wrap.appendChild(el('button', {
+              class: 'link-btn', attrs: { type: 'button' }, text: '改派辅导员',
+              onClick: function (e) {
+                e.stopPropagation();
+                openAssignTeacher(c);
+              }
+            }));
+            wrap.appendChild(el('button', {
               class: 'link-btn link-btn--danger', attrs: { type: 'button' }, text: '停用',
               onClick: function (e) {
                 e.stopPropagation();
                 if (!confirm('停用后该班级不再出现在开户列表里。班上有学生时会被拒绝。确认停用？')) return;
                 act(api.del('/admin/classes/' + c.id), '已停用');
               }
-            });
+            }));
+            return wrap;
           }
         }
       ],

@@ -430,7 +430,7 @@
     router.on('/admin/classes', ADMIN.pages.adminClasses);
     router.on('/admin/bindings', ADMIN.pages.adminBindings);
     router.on('/admin/configs', ADMIN.pages.adminConfigs);
-    /* 业务数据视图还没做，先给占位页，避免点了没反应 */
+    /* 三个菜单共用一套列表组件，靠 URL 区分取哪份数据 */
     router.on('/admin/apps', ADMIN.pages.adminApps);
     router.on('/admin/records', ADMIN.pages.adminApps);
     router.on('/admin/review', ADMIN.pages.adminApps);

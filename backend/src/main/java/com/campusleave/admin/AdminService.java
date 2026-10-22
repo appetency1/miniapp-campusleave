@@ -213,8 +213,17 @@ public class AdminService {
         Map<Long, Long> teacherByClass = teacherClassMapper
                 .selectList(Wrappers.<TeacherClass>lambdaQuery().in(TeacherClass::getClassId, ids))
                 .stream().collect(Collectors.toMap(TeacherClass::getClassId, TeacherClass::getTeacherId, (a, b) -> a));
-        Map<Long, String> teacherName = teacherMapper.selectList(null).stream()
-                .collect(Collectors.toMap(TeacherProfile::getId, TeacherProfile::getTeacherNo, (a, b) -> a));
+        // teacher_profile 只存工号，姓名在 user 表 —— 这里要的是「张老师」不是「T2023001」
+        Map<Long, TeacherProfile> tpById = teacherMapper.selectList(null).stream()
+                .collect(Collectors.toMap(TeacherProfile::getId, x -> x, (a, b) -> a));
+        Map<Long, User> teacherUser = userMapper.selectList(
+                        Wrappers.<User>lambdaQuery().eq(User::getRole, "TEACHER"))
+                .stream().collect(Collectors.toMap(User::getId, x -> x, (a, b) -> a));
+        Map<Long, String> teacherName = new HashMap<>();
+        tpById.forEach((tid, tp) -> {
+            User u = teacherUser.get(tp.getUserId());
+            teacherName.put(tid, u == null ? tp.getTeacherNo() : u.getRealName());
+        });
 
         List<Map<String, Object>> rows = p.getRecords().stream().map(c -> {
             Map<String, Object> r = new LinkedHashMap<>();
