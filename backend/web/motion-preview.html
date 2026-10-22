@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动效对照 · 校园请假后台</title>
+<link rel="icon" href="data:,">
+<!-- 与后台完全同一套样式文件，预览的就是生产规则，不是另一份复刻 -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/workbench.css">
+<link rel="stylesheet" href="css/admin-home.css">
+<link rel="stylesheet" href="css/motion.css">
+<style>
+  /* 只写预览页自己的外壳，动效规则一律不在这里重复 */
+  body { padding: 0; }
+  .mv { max-width: 920px; margin: 0 auto; padding: 40px 24px 72px; }
+  .mv-h1 { margin: 0; font-size: calc(26px * var(--fs,1)); line-height: calc(34px * var(--fs,1)); font-weight: 700; letter-spacing: -.02em; }
+  .mv-sub { margin-top: 6px; font-size: calc(12px * var(--fs,1)); color: var(--ink-3); }
+  .mv-note {
+    margin: 18px 0 28px; padding: 12px 16px;
+    border: 1px solid var(--line-2); border-left: 2px solid var(--blue-500);
+    background: var(--surface);
+    font-size: calc(12px * var(--fs,1)); line-height: 1.7; color: var(--ink-2);
+  }
+  .mv-note code { font-family: var(--mono); color: var(--ink); }
+  .mv-item { border-top: 1px solid var(--line-2); padding: 22px 0 26px; }
+  .mv-item:first-of-type { border-top: 0; }
+  .mv-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+  .mv-title { margin: 0; font-size: calc(14px * var(--fs,1)); font-weight: 600; }
+  .mv-desc { margin: 3px 0 0; font-size: calc(12px * var(--fs,1)); line-height: 1.65; color: var(--ink-3); max-width: 620px; }
+  .mv-desc b { color: var(--ink-2); font-weight: 500; }
+  .mv-head .btn { margin-left: auto; flex: 0 0 auto; }
+  .mv-stage {
+    padding: 18px; border: 1px solid var(--line);
+    border-radius: 12px; background: var(--paper-2);
+    overflow: hidden;
+  }
+  .mv-stage--plain { background: var(--paper); }
+  .mv-row { display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; }
+  .mv-cap { margin-top: 8px; font-family: var(--mono); font-size: calc(11px * var(--fs,1)); color: var(--ink-4); }
+  /* 演示用的迷你页：只借用 .page / .page-head 的排版，不参与真实布局 */
+  .mv-page { display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; padding: 16px 18px 20px; }
+  .mv-page .page-head { margin-bottom: 10px; }
+  .mv-page .page-title { font-size: calc(17px * var(--fs,1)); line-height: calc(24px * var(--fs,1)); }
+  .mv-lines { display: flex; flex-direction: column; gap: 8px; }
+  .mv-line { height: 9px; border-radius: 2px; background: var(--paper-2); }
+  .mv-line:nth-child(1) { width: 72%; }
+  .mv-line:nth-child(2) { width: 54%; }
+  .mv-line:nth-child(3) { width: 63%; }
+  .mv-md { display: flex; gap: 12px; }
+  .mv-md .md-list { flex: 0 0 300px; width: 300px; max-height: 232px; }
+  .mv-md .md-detail { padding: 14px 16px; font-size: calc(12px * var(--fs,1)); color: var(--ink-3); }
+  .mv-drawer-host { position: relative; height: 190px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); overflow: hidden; }
+  .mv-drawer-host .scrim { position: absolute; }
+  .mv-drawer-host .drawer { position: absolute; width: 280px; box-shadow: none; }
+  .mv-drawer-host .drawer-body { padding: 16px; font-size: calc(12px * var(--fs,1)); color: var(--ink-3); }
+  .mv-drawer-host .drawer-head { height: 46px; flex: 0 0 46px; padding: 0 16px; }
+  .mv-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .mv-stats .ah-stat { padding: 12px 14px; }
+  .mv-stat { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .mv-stat .stat-k { display: block; font-size: calc(12px * var(--fs,1)); color: var(--ink-4); }
+  .mv-stat .stat-v { display: block; margin-top: 2px; font-size: calc(23px * var(--fs,1)); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mv-dd-host { position: relative; height: 168px; }
+  .mv-dd-host .dd-menu { top: 34px; right: auto; left: 0; }
+  .mv-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mv-tag { display: inline-block; margin-bottom: 6px; font-family: var(--mono); font-size: calc(11px * var(--fs,1)); color: var(--ink-4); }
+  .mv-alert {
+    display: none; margin: 0 0 22px; padding: 10px 14px;
+    border: 1px solid var(--amber-50); background: var(--amber-50);
+    font-size: calc(12px * var(--fs,1)); color: var(--amber-600);
+  }
+  .mv-alert.is-on { display: block; }
+</style>
+</head>
+<body>
+
+<div class="mv">
+  <h1 class="mv-h1">动效对照</h1>
+  <div class="mv-sub">校园请假后台 · 纸感动效层 v1 · 复用 <span class="num">css/motion.css</span> 与 <span class="num">js/motion.js</span></div>
+
+  <div class="mv-alert" id="rmAlert">
+    系统已开启「减少动态」，下面的动效会直接落到终态 —— 这正是 reduced-motion 下应有的表现。
+  </div>
+
+  <div class="mv-note">
+    三条曲线、四档时长、位移上限 4px；动效只回答一个问题：<b>刚才发生了什么</b>。
+    完整决策见 <code>backend/web/MOTION.md</code>，取舍依据见 <code>reviews/motion-ux-audit-2026-10-22.md</code>。
+  </div>
+
+  <!-- 01 页面入场 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">01 · 页面入场</h2>
+        <p class="mv-desc">页根 <b>120ms 透明度</b>，页头额外 <b>180ms 上落 4px</b>。只给页头位移，页根不动 —— 页根带 <code>height:100%</code> 还要承接滚动位置恢复，加 transform 会把 sticky 操作条一起卷进动画。同视图内切换（如 <code>/pending</code> → <code>/pending/ext</code>）不播。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="page">重播</button>
+    </div>
+    <div class="mv-stage mv-stage--plain">
+      <div class="mv-page" id="demoPage">
+        <div class="page-head"><h1 class="page-title">待审批</h1><div class="page-meta">按提交时间升序</div></div>
+        <div class="mv-lines"><i class="mv-line"></i><i class="mv-line"></i><i class="mv-line"></i></div>
+      </div>
+      <div class="mv-cap">opacity 0→1 / 120ms --ease　＋　translateY(4px→0) / 180ms</div>
+    </div>
+  </section>
+
+  <!-- 02 列表错落 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">02 · 主从列表入场</h2>
+        <p class="mv-desc">只动透明度、<b>不做位移</b>：行高 52px、行间只有 1px 分线，逐行上浮会让相邻分线互相追赶。错落 <b>24ms</b>，最多 5 步（24×5＋180＝300ms）。<b>一次性门控</b> —— 点选另一条时不重播，否则就是"点一下闪一下"。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="list">重播</button>
+    </div>
+    <div class="mv-stage mv-stage--plain">
+      <div class="mv-md">
+        <div class="md-list" id="demoList">
+          <div class="lgroup-head">今天<span class="lg-count">· 4 条</span></div>
+          <button class="li"><span class="li-row"><span class="li-name">陈同学</span><span class="li-kind">离校 · 病假</span><span class="li-wait is-amber">已等 3 小时</span></span><span class="li-time">10月23日 08:00 — 18:00</span></button>
+          <button class="li"><span class="li-row"><span class="li-name">李同学</span><span class="li-kind">校内 · 事假</span><span class="li-wait">已等 1 小时</span></span><span class="li-time">10月23日 14:00 — 20:00</span></button>
+          <button class="li is-on"><span class="li-row"><span class="li-name">周同学</span><span class="li-kind">离校 · 事假</span><span class="li-wait">已等 20 分钟</span></span><span class="li-time">10月24日 09:00 — 12:00</span></button>
+          <button class="li"><span class="li-row"><span class="li-name">梁梓萱</span><span class="li-kind">离校 · 病假</span><span class="li-wait">刚刚提交</span></span><span class="li-time">10月24日 08:00 — 14:00</span></button>
+        </div>
+        <div class="md-detail">
+          右侧是详情区。左侧点选时，这里的内容<b>不会</b>从 0 淡入 ——
+          起点是 45% 不透明度的"重新落墨"，全程可读。
+        </div>
+      </div>
+      <div class="mv-cap">opacity 0→1 / 180ms　＋　delay 24ms × min(k, 5)　→　300ms 收尾</div>
+    </div>
+  </section>
+
+  <!-- 03 抽屉 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">03 · 抽屉与遮罩</h2>
+        <p class="mv-desc">全站唯一的大位移，<b>240ms</b> 保留不动。抽屉用 <code>--ease</code>（前 90ms 走完约七成，读作被推到位），遮罩用 <code>--ease-tog</code>（对称曲线，像覆一张描图纸）；关闭走 <code>--ease-in</code>，尽快把注意力还回去。<b>内容区不做二次入场</b>。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="drawer">打开 / 关闭</button>
+    </div>
+    <div class="mv-stage">
+      <div class="mv-drawer-host" id="demoDrawer">
+        <div class="scrim is-open"></div>
+        <div class="drawer is-open">
+          <div class="drawer-head"><span class="drawer-title">新建账号</span></div>
+          <div class="drawer-body">
+            抽屉打开时焦点进入面板，Tab 在面板内首尾环绕，Esc 关闭后焦点归还给触发它的按钮 ——
+            这一条比滑动动画重要得多。
+          </div>
+        </div>
+      </div>
+      <div class="mv-cap">translateX(100%→0) / 240ms --ease　＋　scrim opacity / 240ms --ease-tog</div>
+    </div>
+  </section>
+
+  <!-- 04 数字滚动 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">04 · 统计数字落定</h2>
+        <p class="mv-desc"><b>320ms</b> 从 0 滚到终值，曲线同 <code>--ease</code>（末段慢下来 = 读数落定）。只对 <b>小于 1000 的纯整数</b>做：四位数带千分位逗号，滚动中途会多一个字符宽度、数字左右跳格。<b>只在首屏进入时做一次</b>，重绘直接落终值。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="count">重播</button>
+    </div>
+    <div class="mv-stage">
+      <div class="mv-stats" id="demoCount">
+        <div class="ah-stat"><div class="ah-stat-ico"></div><div class="ah-stat-body"><span class="ah-stat-label">学生总数</span><span class="ah-stat-value">31</span></div></div>
+        <div class="ah-stat"><div class="ah-stat-ico"></div><div class="ah-stat-body"><span class="ah-stat-label">今日申请</span><span class="ah-stat-value">8</span></div></div>
+        <div class="ah-stat"><div class="ah-stat-ico"></div><div class="ah-stat-body"><span class="ah-stat-label">请假中</span><span class="ah-stat-value">4</span></div></div>
+        <div class="ah-stat"><div class="ah-stat-ico"></div><div class="ah-stat-body"><span class="ah-stat-label">待处理</span><span class="ah-stat-value">3</span></div></div>
+      </div>
+      <div class="mv-cap">rAF 插值 0→N / 320ms --ease　·　reduced-motion 下直接落终值（CSS 的 .01ms 管不到 rAF）</div>
+    </div>
+  </section>
+
+  <!-- 05 图表 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">05 · 图表绘制</h2>
+        <p class="mv-desc">折线用 <b>描边生长</b>（<code>pathLength="1"</code> + <code>stroke-dashoffset</code>，纯 CSS，不用量路径长度）；面积延后 100ms 上彩，数据点在 200ms 才出现，三者并行收尾在 320ms。环形图的扇区是 <b>fill 路径没有描边</b>，所以只能分段落墨，不能旋转扫过。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="chart">重播</button>
+    </div>
+    <div class="mv-stage">
+      <div class="mv-pair">
+        <div class="wb-card ah-chart" style="padding-bottom:0">
+          <div class="wb-card-head"><span class="wb-card-title">请假概况</span>
+            <span class="ah-legend-inline"><span><i class="ah-dot ah-dot--off"></i> 离校</span><span><i class="ah-dot ah-dot--on"></i> 校内</span></span></div>
+          <div class="ah-svg-box">
+            <svg viewBox="0 0 420 190" class="ah-svg" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="pgOff" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4A7C59" stop-opacity=".18"/><stop offset="100%" stop-color="#4A7C59" stop-opacity="0"/></linearGradient>
+                <linearGradient id="pgOn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C9A227" stop-opacity=".16"/><stop offset="100%" stop-color="#C9A227" stop-opacity="0"/></linearGradient>
+              </defs>
+              <line x1="32" y1="150" x2="408" y2="150" stroke="#E6EBE0" stroke-width="1"/>
+              <line x1="32" y1="105" x2="408" y2="105" stroke="#E6EBE0" stroke-width="1"/>
+              <line x1="32" y1="60" x2="408" y2="60" stroke="#E6EBE0" stroke-width="1"/>
+              <path class="ah-trend-area" d="M32.0 132.0 L94.7 120.0 L157.3 126.0 L220.0 96.0 L282.7 108.0 L345.3 42.0 L408.0 60.0 L408.0 164 L32.0 164 Z" fill="url(#pgOff)"/>
+              <path class="ah-trend-area" d="M32.0 144.0 L94.7 126.0 L157.3 114.0 L220.0 120.0 L282.7 114.0 L345.3 90.0 L408.0 42.0 L408.0 164 L32.0 164 Z" fill="url(#pgOn)"/>
+              <path class="ah-trend-line ah-trend-line--off" pathLength="1" d="M32.0 132.0 L94.7 120.0 L157.3 126.0 L220.0 96.0 L282.7 108.0 L345.3 42.0 L408.0 60.0" fill="none" stroke="#4A7C59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="ah-trend-line ah-trend-line--on" pathLength="1" d="M32.0 144.0 L94.7 126.0 L157.3 114.0 L220.0 120.0 L282.7 114.0 L345.3 90.0 L408.0 42.0" fill="none" stroke="#C9A227" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <g class="ah-trend-dots">
+                <circle cx="32.0" cy="132.0" r="2.6" fill="#fff" stroke="#4A7C59" stroke-width="1.6"/>
+                <circle cx="157.3" cy="126.0" r="2.6" fill="#fff" stroke="#4A7C59" stroke-width="1.6"/>
+                <circle cx="282.7" cy="108.0" r="2.6" fill="#fff" stroke="#4A7C59" stroke-width="1.6"/>
+                <circle cx="408.0" cy="60.0" r="2.6" fill="#fff" stroke="#4A7C59" stroke-width="1.6"/>
+                <circle cx="94.7" cy="126.0" r="2.6" fill="#fff" stroke="#C9A227" stroke-width="1.6"/>
+                <circle cx="220.0" cy="120.0" r="2.6" fill="#fff" stroke="#C9A227" stroke-width="1.6"/>
+                <circle cx="345.3" cy="90.0" r="2.6" fill="#fff" stroke="#C9A227" stroke-width="1.6"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="wb-card ah-chart" style="padding-bottom:0">
+          <div class="wb-card-head"><span class="wb-card-title">请假类型分布</span></div>
+          <div class="ah-donut">
+            <div class="ah-donut-box">
+              <svg viewBox="0 0 132 132" class="ah-donut-svg">
+                <path class="ah-donut-seg" d="M66 10 A56 56 0 0 1 122 66 L105 66 A39 39 0 0 0 66 27 Z" fill="#2F6B45"/>
+                <path class="ah-donut-seg" d="M122 66 A56 56 0 0 1 66 122 L66 105 A39 39 0 0 0 105 66 Z" fill="#C9A227"/>
+                <path class="ah-donut-seg" d="M66 122 A56 56 0 0 1 10 66 L27 66 A39 39 0 0 0 66 105 Z" fill="#A8B5A0"/>
+                <path class="ah-donut-seg" d="M10 66 A56 56 0 0 1 66 10 L66 27 A39 39 0 0 0 27 66 Z" fill="#D9DED6"/>
+                <text x="66" y="59" text-anchor="middle" font-size="9" fill="#7C877F">总计</text>
+                <text class="ah-donut-total" x="66" y="81" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2A24">35</text>
+              </svg>
+            </div>
+            <div class="ah-donut-legend">
+              <div class="ah-legend-row"><i class="ah-dot" style="background:#2F6B45"></i><span class="ah-legend-name">事假</span><span class="ah-legend-val">19</span><span class="ah-legend-pct">54.3%</span></div>
+              <div class="ah-legend-row"><i class="ah-dot" style="background:#C9A227"></i><span class="ah-legend-name">病假</span><span class="ah-legend-val">15</span><span class="ah-legend-pct">42.9%</span></div>
+              <div class="ah-legend-row"><i class="ah-dot" style="background:#A8B5A0"></i><span class="ah-legend-name">其他</span><span class="ah-legend-val">1</span><span class="ah-legend-pct">2.9%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mv-cap">stroke-dashoffset 1→0 / 320ms　·　fill-opacity / 240ms delay 100ms　·　dots / 120ms delay 200ms　·　扇区 opacity 180ms × 24ms 错落</div>
+    </div>
+  </section>
+
+  <!-- 06 骨架 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">06 · 慢加载骨架</h2>
+        <p class="mv-desc">只在启动取数超过 <b>400ms</b> 才出现（更短就是"白块闪一下"，比没有更糟）。不做亮白扫光 —— 那是流光语言，在米绿纸上会出现一条比卡片还亮的带子。改成<b>纸的呼吸</b>：两端同色阶、ΔL≈3%，弱于 1px 分线。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="sk">重播</button>
+    </div>
+    <div class="mv-stage mv-stage--plain">
+      <div style="background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; padding: 6px 8px">
+        <div id="demoSk" class="sk">
+          <div class="sk-row"><div class="sk-bar sk-bar--w1"></div><div class="sk-bar sk-bar--w2"></div><div class="sk-bar sk-bar--w3"></div></div>
+          <div class="sk-row"><div class="sk-bar sk-bar--w1"></div><div class="sk-bar sk-bar--w2"></div><div class="sk-bar sk-bar--w3"></div></div>
+          <div class="sk-row"><div class="sk-bar sk-bar--w1"></div><div class="sk-bar sk-bar--w2"></div><div class="sk-bar sk-bar--w3"></div></div>
+          <div class="sk-row"><div class="sk-bar sk-bar--w1"></div><div class="sk-bar sk-bar--w2"></div><div class="sk-bar sk-bar--w3"></div></div>
+        </div>
+      </div>
+      <div class="mv-cap">background-color 往返 / 1.8s alternate infinite　·　行间 24ms 错落　·　reduced-motion 下 animation: none</div>
+    </div>
+  </section>
+
+  <!-- 07 即时反馈 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">07 · 即时反馈</h2>
+        <p class="mv-desc">只动 <code>background-color</code> / <code>border-color</code> / <code>opacity</code>，<b>120ms 对称曲线</b> —— 可逆状态必须来去同速。按下是 1px 位移，不是缩放。<b>表格行不加过渡</b>：每次重绘都重建 <code>&lt;tr&gt;</code>，新节点没有上一个值，写了也是死代码。</p>
+      </div>
+    </div>
+    <div class="mv-stage mv-stage--plain">
+      <div class="mv-row">
+        <button class="btn btn--primary">主要操作</button>
+        <button class="btn btn--ghost">次要操作</button>
+        <button class="btn btn--primary" disabled>提交中…</button>
+        <button class="btn btn--danger">确认驳回</button>
+      </div>
+      <div style="margin-top:14px" class="tbl-wrap">
+        <table class="tbl"><thead><tr><th>学生</th><th>类型 · 场景</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr class="is-click"><td>陈同学</td><td>病假 · 离校</td><td><span class="status" data-tone="amber" data-solid="1"><i></i>待审批</span></td></tr>
+          <tr class="is-click"><td>李同学</td><td>事假 · 校内</td><td><span class="status" data-tone="red" data-solid="1"><i></i>逾期</span></td></tr>
+          <tr class="is-click"><td>周同学</td><td>事假 · 离校</td><td><span class="status" data-tone="teal" data-solid="1"><i></i>请假中</span></td></tr>
+        </tbody></table>
+      </div>
+      <div class="mv-cap">hover / active / :disabled　120ms --ease-tog　·　行 hover 只有底色，无抬升、无箭头、无阴影</div>
+    </div>
+  </section>
+
+  <!-- 08 状态点 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">08 · 状态点脉动（严格限量）</h2>
+        <p class="mv-desc">默认全站静止。只有显式加了 <code>.is-urgent</code> 的<b>单个</b>逾期状态点才脉动，2 次即停。禁止扩散阴影（那是发光）与缩放（呼吸灯是消费级语言）。一屏 20 个点在闪 = 没有信息<span style="display:none">。</span></p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="pulse">重播</button>
+    </div>
+    <div class="mv-stage mv-stage--plain">
+      <div class="mv-pair">
+        <div class="mv-stat" id="demoPulse">
+          <span class="stat-k">当前状态</span>
+          <div style="margin-top:6px"><span class="status" data-tone="red" data-solid="1"><i></i>逾期 2 天 4 小时</span></div>
+        </div>
+        <div class="mv-stat">
+          <span class="stat-k">对照：未加 .is-urgent</span>
+          <div style="margin-top:6px"><span class="status" data-tone="red" data-solid="1"><i></i>逾期 2 天 4 小时</span></div>
+        </div>
+      </div>
+      <div class="mv-cap">opacity 1→.35→1 / 1.2s × 2 次　·　停在终值 1</div>
+    </div>
+  </section>
+
+  <!-- 09 下拉 -->
+  <section class="mv-item">
+    <div class="mv-head">
+      <div>
+        <h2 class="mv-title">09 · 下拉菜单</h2>
+        <p class="mv-desc">打开 <b>120ms</b> 淡入 + 上落 4px；<b>关闭瞬时</b>。下拉是"我现在就要它消失"，加了退场会让人觉得点击没生效，连点两次时尤其明显。</p>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-replay="dd">打开 / 关闭</button>
+    </div>
+    <div class="mv-stage mv-stage--plain">
+      <div class="mv-dd-host dd" id="demoDd">
+        <button class="dd-btn">张老师 <span class="icon"><svg viewBox="0 0 16 16"><path d="M4 6.5l4 4 4-4"/></svg></span></button>
+        <div class="dd-menu">
+          <button class="dd-item">账号管理</button>
+          <div class="dd-sep"></div>
+          <button class="dd-item">退出登录</button>
+        </div>
+      </div>
+      <div class="mv-cap">opacity 0→1 + translateY(-4px→0) / 120ms --ease　·　关闭不加退场</div>
+    </div>
+  </section>
+
+  <div class="mv-note" style="border-left-color: var(--ink-4)">
+    <b>不该动的地方同样重要：</b>搜索/筛选每次按键都整表重建，所以那里一律零动效（180ms 的入场会被 80–150ms 的打字间隔打断，表格会长期停在半透明）；
+    页面不做退场；卡片不 hover 抬升；数字滚动不用于会变动的计数；百分比不做滚动。完整否决清单见 <code>MOTION.md §5</code>。
+  </div>
+</div>
+
+<script src="js/motion.js"></script>
+<script>
+(function () {
+  var M = window.ADMIN && window.ADMIN.motion;
+  var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (reduced) document.getElementById('rmAlert').classList.add('is-on');
+
+  function reflow(el) { void el.offsetWidth; }
+
+  function replayPage() {
+    var p = document.getElementById('demoPage');
+    p.classList.remove('page--enter');
+    reflow(p);
+    p.classList.add('page--enter');
+  }
+  function replayList() {
+    var l = document.getElementById('demoList');
+    l.classList.remove('is-enter');
+    Array.prototype.forEach.call(l.children, function (c) {
+      c.style.animation = 'none';
+    });
+    reflow(l);
+    Array.prototype.forEach.call(l.children, function (c) {
+      c.style.animation = '';
+    });
+    if (M) M.enterList(l); else l.classList.add('is-enter');
+  }
+  function replayChart() {
+    var cards = document.querySelectorAll('.ah-chart');
+    Array.prototype.forEach.call(cards, function (c) {
+      c.classList.remove('is-draw');
+      reflow(c);
+      c.classList.add('is-draw');
+    });
+    var t = document.querySelector('.ah-donut-total');
+    if (!t) return;
+    t.removeAttribute('data-cu');
+    t.textContent = '35';
+    if (M) M.countUp(document.querySelector('.ah-donut-box'));
+    /* 同一个兜底：rAF 被节流时不能让中心总计停在 0 */
+    setTimeout(function () {
+      if (t.textContent.trim() === '0') t.textContent = '35';
+    }, 600);
+  }
+  function replayCount() {
+    var box = document.getElementById('demoCount');
+    var els = box.querySelectorAll('.ah-stat-value');
+    /* countUp 把"调用时的文本"当终值，所以先把终值记下来再滚；
+       data-target 只给兜底用。 */
+    Array.prototype.forEach.call(els, function (n) {
+      n.removeAttribute('data-cu');
+      n.dataset.target = n.textContent.trim();
+    });
+    if (!M) return;
+    M.countUp(box);
+    /* 兜底：任何原因导致没滚起来（rAF 被节流、标签页切到后台），
+       600ms 后一律落终值 —— 宁可没动画，也不能让统计停在 0。 */
+    setTimeout(function () {
+      Array.prototype.forEach.call(els, function (n) {
+        if (n.textContent.trim() === '0' && n.dataset.target) n.textContent = n.dataset.target;
+      });
+    }, 600);
+  }
+  function toggleDrawer() {
+    var host = document.getElementById('demoDrawer');
+    var scrim = host.querySelector('.scrim');
+    var panel = host.querySelector('.drawer');
+    var open = scrim.classList.contains('is-open');
+    scrim.classList.toggle('is-open', !open);
+    panel.classList.toggle('is-open', !open);
+  }
+  function toggleDd() {
+    var dd = document.getElementById('demoDd');
+    dd.classList.toggle('is-open');
+  }
+  function replayPulse() {
+    var p = document.getElementById('demoPulse');
+    p.classList.remove('is-urgent');
+    reflow(p);
+    p.classList.add('is-urgent');
+  }
+  function replaySk() {
+    var sk = document.getElementById('demoSk');
+    sk.style.display = 'none';
+    reflow(sk);
+    sk.style.display = '';
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-replay]');
+    if (!b) return;
+    var k = b.getAttribute('data-replay');
+    if (k === 'page') replayPage();
+    else if (k === 'list') replayList();
+    else if (k === 'chart') replayChart();
+    else if (k === 'count') replayCount();
+    else if (k === 'drawer') toggleDrawer();
+    else if (k === 'dd') toggleDd();
+    else if (k === 'pulse') replayPulse();
+    else if (k === 'sk') replaySk();
+    else if (k === 'plain') { /* 交互态无需重播，鼠标移上去即可 */ }
+  });
+
+  // 首屏自动播一次，打开就能看到
+  setTimeout(function () {
+    replayPage(); replayList(); replayChart(); replayCount();
+  }, 120);
+})();
+</script>
+</body>
+</html>

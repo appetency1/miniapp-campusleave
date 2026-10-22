@@ -250,7 +250,9 @@
         tr.appendChild(td);
       });
       if (o.onRowClick) {
-        tr.classList.add('is-hover');
+        /* is-click 是「这一行可点击」的标记，is-hover 才是悬停态（见 components.css）。
+           原名 is-hover 又漏了 :hover 伪类，导致整表行底色常亮。 */
+        tr.classList.add('is-click');
         tr.addEventListener('click', function () { o.onRowClick(row, i, tr); });
       }
       if (o.onRowHover) {
@@ -351,17 +353,51 @@
   }
 
   /* ---------------- 抽屉 ---------------- */
-  function drawer(node) {
+  /* 抽屉的焦点管理不是"动效"，而是可用性缺陷（aria-modal="true" 已经承诺了
+     模态行为，但以前 Tab 能一路走到遮罩后面的侧栏和顶栏、关闭后焦点掉到 body）。
+     这里补三件事：打开时把焦点送进来、Tab 在面板内首尾环绕、关闭时先归还再删节点。 */
+  var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), ' +
+    'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  function focusables(root) {
+    return Array.prototype.filter.call(root.querySelectorAll(FOCUSABLE), function (n) {
+      return n.offsetParent !== null || n === document.activeElement;
+    });
+  }
+
+  function drawer(node, opts) {
+    opts = opts || {};
     var open = true;
+    var returnFocus = document.activeElement;
+
     var scrim = el('div', { class: 'scrim' });
     var panel = el('div', { class: 'drawer', attrs: { role: 'dialog', 'aria-modal': 'true' } }, [
       el('div', { class: 'drawer-body' }, node)
     ]);
+
+    /* 无障碍名：优先 opts.label，否则借用面板里的 .drawer-title 文本 */
+    var titleNode = panel.querySelector('.drawer-title');
+    if (opts.label) {
+      panel.setAttribute('aria-label', opts.label);
+    } else if (titleNode) {
+      if (!titleNode.id) titleNode.id = 'drawer-title-' + Math.random().toString(36).slice(2, 7);
+      panel.setAttribute('aria-labelledby', titleNode.id);
+    }
+
     document.body.appendChild(scrim);
     document.body.appendChild(panel);
+
     requestAnimationFrame(function () {
       scrim.classList.add('is-open');
       panel.classList.add('is-open');
+      // 焦点送进面板：第一个可聚焦元素；一个都没有就把面板本身变成可聚焦落点
+      var first = focusables(panel)[0];
+      if (first) {
+        first.focus();
+      } else {
+        panel.tabIndex = -1;
+        panel.focus();
+      }
     });
 
     function close() {
@@ -371,11 +407,29 @@
       panel.classList.remove('is-open');
       document.removeEventListener('keydown', onKey);
       setTimeout(function () {
+        /* 先归还焦点、再删节点 —— 反过来的话焦点会先掉到 body */
+        if (returnFocus && returnFocus.focus) returnFocus.focus();
         scrim.remove();
         panel.remove();
       }, 260);
     }
-    function onKey(e) { if (e.key === 'Escape') close(); }
+
+    function onKey(e) {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      var list = focusables(panel);
+      if (!list.length) { e.preventDefault(); panel.focus(); return; }
+      var first = list[0];
+      var last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
     scrim.addEventListener('click', close);
     document.addEventListener('keydown', onKey);
 
@@ -470,6 +524,65 @@
     return head;
   }
 
+  /* ---------------- 审批操作条：提交中 / 失败 ---------------- */
+  /**
+   * 把操作条切到「提交中」或「失败」，并返回一个恢复函数。
+   *
+   * 为什么改 .action-note 而不是插一个转圈：转圈是无限旋转动画（MOTION.md §5
+   * 明确禁止），内网 200ms 内返回时它只会闪一帧；而且 .action-btns 里插 loader
+   * 会推挤相邻按钮。.action-note 在 flex 的剩余空间里，换字不推动任何东西。
+   *
+   * @param {Element} root  包含 .action-bar 的容器
+   * @param {string} mode   'busy' | 'error' | 'reset'
+   * @param {string} text   文案
+   */
+  function actionState(root, mode, text) {
+    var bar = root && root.querySelector ? root.querySelector('.action-bar') : null;
+    if (!bar) return function () {};
+    var note = bar.querySelector('.action-note');
+    var btns = bar.querySelectorAll('.action-btns .btn');
+    var i;
+
+    if (mode === 'error') {
+      for (i = 0; i < btns.length; i++) btns[i].disabled = false;
+      if (note) {
+        note.classList.add('action-note--err');
+        note.setAttribute('role', 'alert');   // 错误必须打断读屏，但不用 assertive
+        note.textContent = text || '操作失败';
+      }
+      return function () {};
+    }
+
+    if (note) note.removeAttribute('data-note');
+    if (mode === 'busy') {
+      for (i = 0; i < btns.length; i++) btns[i].disabled = true;
+      if (note) {
+        // 记下原文案，失败恢复时用不到（失败要显示错误），但 cancel 时有用
+        if (note.dataset.note == null) note.dataset.note = note.textContent || '';
+        note.classList.remove('action-note--err');
+        note.removeAttribute('role');
+        note.textContent = text || '正在提交…';
+      }
+      return function () {
+        for (i = 0; i < btns.length; i++) btns[i].disabled = false;
+        if (note) {
+          note.classList.remove('action-note--err');
+          note.removeAttribute('role');
+          note.textContent = note.dataset.note || '';
+        }
+      };
+    }
+
+    // reset
+    for (i = 0; i < btns.length; i++) btns[i].disabled = false;
+    if (note) {
+      note.classList.remove('action-note--err');
+      note.removeAttribute('role');
+      note.textContent = note.dataset.note || note.textContent;
+    }
+    return function () {};
+  }
+
   ADMIN.ui = {
     el: el,
     frag: frag,
@@ -500,6 +613,7 @@
     quote: quote,
     rejectPanel: rejectPanel,
     drawer: drawer,
+    actionState: actionState,
     lightbox: lightbox,
     docImage: docImage,
     /**
@@ -510,7 +624,10 @@
   };
 
   function toast(text) {
-    var t = el('div', { class: 'toast', text: text });
+    /* role="status" 隐含 aria-live="polite"：全站唯一的轻确认通道
+       （已保存 / 已创建 / 已通过 …）。不加的话，读屏用户对"保存成功"零感知。
+       注意不用 assertive —— 它会打断当前朗读。 */
+    var t = el('div', { class: 'toast', attrs: { role: 'status' }, text: text });
     document.body.appendChild(t);
     setTimeout(function () { t.classList.add('is-out'); }, 1600);
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2100);

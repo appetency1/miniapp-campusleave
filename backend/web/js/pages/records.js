@@ -51,6 +51,7 @@
 
     var state = { filter: 'all', kw: '' };
     var all = STORE.apps || [];
+    var searchTimer = 0;
 
     var head = ui.pageHead({ title: '申请记录', meta: '仅含你负责的班级' });
     page.appendChild(head);
@@ -71,7 +72,16 @@
     var search = el('input', {
       class: 'input input--search',
       attrs: { type: 'search', placeholder: '搜索学生姓名 / 学号', autocomplete: 'off' },
-      onInput: function (e) { state.kw = e.target.value.trim(); paint(); }
+      /* 180ms 去抖：原来逐键整表重建（20 行 × 6 列 = 120 个 td），
+         打字间隔 80–150ms 比任何一档入场动画都短 —— 重建永远打断动画，
+         用户看到的是"表格一直半透明、字在发灰"。
+         这里刻意保持零入场动效（筛选是"我问了一个问题，系统给答案"，
+         答案晚 120ms 出现就是延迟读取）。去抖只解决"重建次数过多"。 */
+      onInput: function (e) {
+        state.kw = e.target.value.trim();
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(paint, 180);
+      }
     });
     bar.appendChild(tabs);
     bar.appendChild(search);
@@ -181,13 +191,19 @@
     ]));
 
     var state = { kw: '' };
+    var searchTimer2 = 0;
     var bar = el('div', { class: 'tbl-toolbar' });
     // 左边留一句话，避免只有右侧一个搜索框、中间大片空白
     bar.appendChild(el('span', { class: 'toolbar-hint', text: '按姓名或学号筛选' }));
     bar.appendChild(el('input', {
       class: 'input input--search',
       attrs: { type: 'search', placeholder: '搜索姓名 / 学号', autocomplete: 'off' },
-      onInput: function (e) { state.kw = e.target.value.trim(); paint(); }
+      // 同 records：183 行逐键重建，去抖 180ms；零入场动效
+      onInput: function (e) {
+        state.kw = e.target.value.trim();
+        clearTimeout(searchTimer2);
+        searchTimer2 = setTimeout(paint, 180);
+      }
     }));
     page.appendChild(bar);
 

@@ -1,0 +1,219 @@
+/* ============================================================
+   motion.css —— 动效层（MOTION.md §4 的落地）
+
+   引入顺序：必须排在 admin-home.css 之后（index.html 最后一个 <link>），
+   这样这里对 .fade-in / .sk-bar / .toast 的补充规则才生效。
+
+   纪律（改这里之前先读 MOTION.md §3 / §5）：
+   · 只动 opacity / transform:translateY / stroke-dashoffset / fill-opacity；
+     width/height/top/left/margin/padding 一毫秒都不动。
+   · .page 只允许 opacity —— 它是 height:100% 的 flex 容器，还要承接
+     scrollMap 的 scrollTop 恢复，加 transform 会把 .action-bar 的 sticky
+     和内层滚动一起卷进动画。位移一律只给 .page-head。
+   · 单次动作（duration + delay）≤ 320ms。§12 的环形扇区最多 4 段。
+   · 所有毫秒值走 tokens.css 变量，页面里不出现裸 ms。
+   ============================================================ */
+
+/* ---------- 1. 页面入场（router 按"视图"判定，见 router.js sameView） ---------- */
+@keyframes pageEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* 页根只动 opacity，从 0 起（整页首次出现，不是"重新落墨"） */
+.page--enter {
+  animation: pageEnter var(--t-fast) var(--ease) both;
+}
+
+/* 页头一寸落墨：只位移不改透明度（父级已经在淡入，
+   再叠一层透明度会让标题比正文晚亮一档） */
+@keyframes headEnter {
+  from { transform: translateY(var(--m-rise)); }
+  to   { transform: translateY(0); }
+}
+.page--enter > .page-head {
+  animation: headEnter var(--t-mid) var(--ease) both;
+}
+
+/* ---------- 2. 主从列表项入场（一次性门控，见 motion.js enterList） ---------- */
+@keyframes listIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* 只做透明度、不做位移：.li 行高 52，行间只有 1px 分线，
+   逐行 4px 上浮会让相邻分线互相追赶（"抽风琴"）。 */
+.md-list.is-enter > .li,
+.md-list.is-enter > .lgroup-head {
+  animation: listIn var(--t-mid) var(--ease) both;
+}
+/* 错落 24ms × k，k = min(序号, 5)。封顶 5 步：24×5 + 180 = 300 ≤ 320。
+   第 6 项及以后共用第 5 步的 delay。 */
+.md-list.is-enter > .li:nth-of-type(2)  { animation-delay: calc(var(--m-stagger) * 1); }
+.md-list.is-enter > .li:nth-of-type(3)  { animation-delay: calc(var(--m-stagger) * 2); }
+.md-list.is-enter > .li:nth-of-type(4)  { animation-delay: calc(var(--m-stagger) * 3); }
+.md-list.is-enter > .li:nth-of-type(5)  { animation-delay: calc(var(--m-stagger) * 4); }
+.md-list.is-enter > .li:nth-of-type(n+6) { animation-delay: calc(var(--m-stagger) * 5); }
+
+/* 空态 .empty 不加淡入 —— 审计 V1 否决：
+   空态出现在搜索/筛选/切 tab 路径上，会被逐键重播。
+   空态是一个"答案"，答案要立刻出现。 */
+
+/* ---------- 3. 表格行（只修 cursor，不写 transition） ---------- */
+/* ui.table() 每次重绘都重建 <tr>，新节点上没有"上一个值"，
+   任何 transition 都不会执行 —— 写了就是死代码。选中/悬停保持瞬时。 */
+
+/* ---------- 4. 抽屉 / 遮罩 ----------
+   240ms 保留（全站唯一大位移）。缓动在 layout.css 里：
+   打开 --ease / --ease-tog，关闭 --ease-in。
+   内容区不做二次入场（见表单类抽屉：二次淡入会让刚聚焦的输入框焦点环跟着闪）。 */
+
+/* ---------- 5. toast ---------- */
+/* 进出时长与曲线在 components.css 的 .toast / .toast.is-out 上改，
+   这里只补一件事：toast 是轻确认通道，需要 role="status"（ui.js 里加）。 */
+
+/* ---------- 6. 统计数字滚动 ----------
+   见 motion.js countUp()：.stat-v / .stat-value > span:first-child /
+   .ah-stat-value / .ah-donut-total，只对 |v| < 1000 做，
+   reduced-motion 下直接落终值（CSS 的 .01ms 管不到 rAF）。 */
+
+/* ---------- 7. 折线图：描边生长（不用遮罩扫过） ---------- */
+@keyframes ahLine {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes ahArea {
+  from { fill-opacity: 0; }
+  to   { fill-opacity: .85; }
+}
+@keyframes ahDots {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* 只有 .is-draw 存在时才播（一次性门控见 motion.js drawCharts）；
+   没有这个类时路径就是满绘状态，重绘不会重播。 */
+/* <path pathLength="1"> 已经在 admin.js 里打上，所以进度可以归一成 0–1，
+   不需要 getTotalLength()，也不需要 JS 量长度。 */
+.ah-chart.is-draw .ah-trend-line {
+  stroke-dasharray: 1;
+  animation: ahLine var(--t-slow) var(--ease) both;
+}
+.ah-chart.is-draw .ah-trend-line--on {
+  animation-delay: var(--m-stagger);
+}
+.ah-chart.is-draw .ah-trend-area {
+  animation: ahArea var(--t-panel) var(--ease-tog) var(--m-delay-area) both;
+}
+.ah-chart.is-draw .ah-trend-dots {
+  animation: ahDots var(--t-fast) var(--ease-tog) var(--m-delay-dots) both;
+}
+/* 网格线 / 轴标签 / 图例不动。三个动作并行收尾，不是串行相加。 */
+
+/* ---------- 8. 环形图：分段落墨（扇区是 fill 路径，没有 stroke） ---------- */
+@keyframes ahSeg {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* 用 opacity 而不是描边：<path d="M… A… L… A… Z" fill="…"> 没有 stroke，
+   描边生长对它是空操作。读感是"套色印刷一段一段盖上去"。 */
+.ah-chart.is-draw .ah-donut-seg {
+  animation: ahSeg var(--t-mid) var(--ease-tog) both;
+}
+.ah-chart.is-draw .ah-donut-seg:nth-of-type(2) { animation-delay: calc(var(--m-stagger) * 1); }
+.ah-chart.is-draw .ah-donut-seg:nth-of-type(3) { animation-delay: calc(var(--m-stagger) * 2); }
+.ah-chart.is-draw .ah-donut-seg:nth-of-type(4) { animation-delay: calc(var(--m-stagger) * 3); }
+
+/* ---------- 9. 下拉菜单：打开 120ms，关闭瞬时 ---------- */
+@keyframes ddIn {
+  from { opacity: 0; transform: translateY(calc(var(--m-rise) * -1)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dd.is-open .dd-menu {
+  transform-origin: top right;
+  animation: ddIn var(--t-fast) var(--ease) both;
+}
+/* 关闭不加退场：display:none 是瞬时的。"我现在就要它消失"，
+   240ms 退场会让人觉得点击没生效（连点两次时尤其明显）。 */
+
+/* ---------- 10. 状态点脉动（严格限量，默认全站静止） ---------- */
+/* 不是 .status i { animation }，而是 .is-urgent .status i ——
+   把"要不要脉冲"变成显式类，谁加谁负责。默认没有任何元素带 .is-urgent。
+   允许的位置：详情页状态行（单条记录）、提醒卡里最新一条 .ah-alert-dot--danger。
+   禁止：表格 td 内的 .status i、.li-wait、侧栏 .count--alert（一屏 20 个点在闪 = 无信息）。 */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: var(--m-pulse-min); }
+}
+.is-urgent .status i,
+.is-urgent.ah-alert-dot {
+  animation: statusPulse var(--m-pulse-cycle) var(--ease-tog) var(--m-pulse-times);
+  /* 2 次即停，停在终值 1。不做 box-shadow 扩散（= 发光，已否决），
+     不做 transform: scale（呼吸灯是消费级语言）。 */
+}
+
+/* ---------- 11. 表单错误显影 ---------- */
+@keyframes errIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* 它靠 min-height:16px 占位，不动高度就不会推挤表单。
+   用 :not(:empty) 而不是加类：文案写入时选择器开始匹配，动画自然触发一次。 */
+.form-err:not(:empty),
+.action-note--err {
+  animation: errIn var(--t-fast) var(--ease-tog) both;
+}
+/* 审批失败的行内红字：复用 --red-600（状态语义色），不加抖动/红闪/边框脉冲 */
+.action-note--err { color: var(--red-600); }
+
+/* ---------- 12. 骨架屏：纸的呼吸（不做亮白扫光） ---------- */
+@keyframes skBreath {
+  from { background-color: var(--m-sk-a); }
+  to   { background-color: var(--m-sk-b); }
+}
+/* 全站唯一允许 infinite 的动效，且被加载态约束（数据到达即消失）。
+   两端同色阶（ΔL≈3%），弱于 1px 的 --line —— 读感是"没印实的浅色块
+   在纸面下微微起伏"，不是"闪烁"。行间 24ms 错落，避免整片同步更像故障。 */
+.sk-bar {
+  animation: skBreath var(--m-sk-cycle) var(--ease-tog) infinite alternate;
+}
+.sk-row:nth-child(2) .sk-bar { animation-delay: calc(var(--m-stagger) * 1); }
+.sk-row:nth-child(3) .sk-bar { animation-delay: calc(var(--m-stagger) * 2); }
+.sk-row:nth-child(4) .sk-bar { animation-delay: calc(var(--m-stagger) * 3); }
+.sk-row:nth-child(5) .sk-bar { animation-delay: calc(var(--m-stagger) * 4); }
+.sk-row:nth-child(6) .sk-bar { animation-delay: calc(var(--m-stagger) * 5); }
+.sk-row:nth-child(n+7) .sk-bar { animation-delay: calc(var(--m-stagger) * 6); }
+
+/* 慢加载兜底文案（>2s） */
+.sk-note {
+  margin-top: 12px;
+  font-size: calc(12px * var(--fs, 1));
+  line-height: calc(18px * var(--fs, 1));
+  color: var(--ink-3);
+}
+
+/* ---------- 13. 视觉隐藏（骨架屏的"正在加载"播报文本） ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- 14. reduced-motion 的第三个洞在 CSS 侧 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  /* 洞 1：tokens.css 的全局 .01ms + infinite 是反效果 ——
+     那等于"以 0.01ms 为周期无限循环"，浏览器会尽力按帧率跑，
+     把"减少动态"变成"最大化动态"。必须显式 animation: none。 */
+  .sk-bar,
+  .sk-row .sk-bar {
+    animation: none !important;
+    background-color: var(--paper-2);
+  }
+  /* 其余一次性动画由 tokens.css 的全局 .01ms 接管（瞬间完成 = 等价于落终值），
+     这里不重复声明，避免出现第二处裸毫秒值。
+     洞 2（JS 数字滚动）在 motion.js 里用 matchMedia 判断 —— CSS 管不到 rAF。
+     洞 3（状态点脉动）在 .01ms 下会瞬间跑完 2 次停在 1，正是期望结果，无需处理。 */
+}

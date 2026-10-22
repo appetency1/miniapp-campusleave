@@ -8,9 +8,39 @@
 
   var routes = [];
   var current = null;
+  var prevPath = null;
+  var lastEnter = false;
   var scrollMap = {};
   var guard = null;
   var onBefore = null;
+
+  /**
+   * "同一个视图"判定 —— 入场动画的门控必须是视图级，不是路径级。
+   *
+   * 主从两栏的页面（left list + right detail）在同一视图内换选中项时，
+   * 页面结构根本没变，只是重渲染左右两栏。按路径判定的话，点另一条就整页
+   * 淡入一次，用户会以为点了刷新（"我是不是不小心刷新了？"）。
+   *
+   *   · /pending ↔ /pending/ext ↔ /pending/:id  —— 同一视图（pending.js 只换 data）
+   *   · /review  ↔ /review/:id                  —— 同一视图（review.js 只换 local.sel）
+   *
+   * 刻意**不合并**的两组：
+   *   · /records ↔ /records/:id     表格页 → 整页详情，是真的换页
+   *   · /admin/apps ↔ /admin/records ↔ /admin/review
+   *     三者共用 adminApps 组件，但是左侧三个不同导航项，标题与默认筛选都不同，
+   *     属于真实导航（点导航不淡入会像"没跳转"），保留入场。
+   */
+  function viewFamily(p) {
+    if (p.indexOf('/pending') === 0) return 'pending';
+    if (p.indexOf('/review') === 0) return 'review';
+    return null;
+  }
+
+  function sameView(a, b) {
+    if (!a || !b) return false;
+    var fa = viewFamily(a);
+    return fa !== null && fa === viewFamily(b);
+  }
 
   function compile(pattern) {
     var keys = [];
@@ -94,6 +124,19 @@
       }));
     }
 
+    /* 入场门控：path 变了、且不属于同一个视图，才加 .page--enter。
+       首屏（prevPath 为 null）算一次入场 —— 这是"页面首次出现"，
+       与后面的 refresh/rerender 区分开（那时 prevPath 已经有值且相同）。
+       注意必须在 handler 之后加 —— 各页面 handler 会重写 page.className
+       （'page' / 'page page--scroll'），先加会被抹掉。
+       同一帧内加类，浏览器还没绘制，不会出现"闪一下再播"。 */
+    lastEnter = prevPath !== h.path && !sameView(prevPath, h.path);
+    prevPath = h.path;
+    if (lastEnter) page.classList.add('page--enter');
+    /* 数字滚动 / 折线环形绘制与入场共用这一个门控：
+       重绘（refresh / rerender）时直接落终值，不重播。 */
+    if (ADMIN.motion) ADMIN.motion.onPage(page, lastEnter);
+
     var restore = scrollMap[h.path];
     if (restore) {
       requestAnimationFrame(function () {
@@ -120,6 +163,8 @@
     go: go,
     refresh: refresh,
     parseHash: parseHash,
-    current: function () { return current; }
+    current: function () { return current; },
+    /** 最近一次 render 是否走了"页面入场"（供调试与验收断言用） */
+    lastEnter: function () { return lastEnter; }
   };
 })();

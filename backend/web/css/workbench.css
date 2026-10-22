@@ -106,7 +106,7 @@
   line-height: calc(18px * var(--fs, 1));
   font-weight: 400;
   color: var(--ink-3);
-  transition: color .15s ease;
+  transition: color var(--t-fast) var(--ease-tog);
 }
 .wb-tab:hover { color: var(--ink); }
 .wb-tab.is-on {
@@ -344,7 +344,7 @@
   font-size: calc(12.5px * var(--fs, 1));
   color: var(--ink-2);
   text-align: left;
-  transition: background .15s ease;
+  transition: background var(--t-fast) var(--ease-tog);
 }
 .quick-row:hover { background: var(--hover); }
 .quick-row .icon { width: 15px; height: 15px; flex: 0 0 15px; color: var(--ink-4); }

@@ -311,38 +311,41 @@
       return root;
     }
 
-    /* ---------- 动作 ---------- */
-    function advance(appId) {
-      var key = String(appId);
-      var idx = -1;
-      for (var i = 0; i < local.list.length; i++) {
-        if (String(local.list[i].app.id) === key) { idx = i; break; }
-      }
-      if (idx !== -1) local.list.splice(idx, 1);
-      var next = local.list[Math.min(idx === -1 ? 0 : idx, local.list.length - 1)];
-      local.sel = next ? String(next.app.id) : null;
-      ADMIN.shell.sync();
+    /* ---------- 动作 ----------
+       与 pending.js 同一套：先进入"提交中"，再等 Promise。
+       以前是接口还没返回就写 `local.receipt = '已通过 · 刚刚 · 学生已收到销假通知'`
+       并把记录从本地队列里删掉 —— 失败时屏幕上留着一份假回执，然后 alert + reload。
+       现在成功存 flash 再 reload（新页面上 toast），失败在原位写红字。 */
+    var busy = false;
+
+    function errText(e) {
+      return (e && e.message) ? e.message : '未知错误';
     }
 
-    function approve(item) {
-      ADMIN.store.decideCheckins(item.checkins.map(function (c) { return c.id; }), 'approved');
-      local.receipt = '已通过 · 刚刚 · 学生已收到销假通知';
-      advance(item.app.id);
-      renderList();
-      renderDetail();
-      detailEl.scrollTop = detailEl.scrollHeight;
+    function submit(item, verdict, reason, verb) {
+      if (busy) return;
+      busy = true;
+      var name = item.app.studentName || '';
+      var ids = item.checkins.map(function (c) { return c.id; });
+      ui.actionState(detailEl, 'busy', ids.length > 1 ? '正在提交 1/' + ids.length + '…' : '正在提交…');
+      ADMIN.store.decideCheckins(ids, verdict, reason, function (i, total) {
+        // 多条核验是串行 POST，进度必须写出来，否则长时间只有一个"正在提交…"
+        if (total > 1) ui.actionState(detailEl, 'busy', '正在提交 ' + i + '/' + total + '…');
+      }).then(function () {
+        ADMIN.motion.flash((verdict === 'approved' ? '已通过 · ' : '已驳回 · ') + name);
+        location.reload();
+      }).catch(function (e) {
+        busy = false;
+        ui.actionState(detailEl, 'error', verb + '失败：' + errText(e));
+      });
     }
 
-    function reject(item, reason) {
-      ADMIN.store.decideCheckins(item.checkins.map(function (c) { return c.id; }), 'rejected');
-      local.receipt = '已驳回 · 刚刚 · 已通知学生';
-      advance(item.app.id);
-      renderList();
-      renderDetail();
-      detailEl.scrollTop = detailEl.scrollHeight;
-    }
+    function approve(item) { submit(item, 'approved', null, '通过'); }
+    function reject(item, reason) { submit(item, 'rejected', reason, '驳回'); }
 
     renderList();
     renderDetail();
+    /* 一次性门控：左栏点选会整块重建，不门控就是"点一条闪一次" */
+    if (ADMIN.motion) ADMIN.motion.enterList(listEl);
   };
 })();

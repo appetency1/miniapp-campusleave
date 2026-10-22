@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/workbench.css">
 <link rel="stylesheet" href="css/admin-home.css">
+<!-- 动效层必须最后引入：它要覆写 .fade-in / .sk-bar / .toast 等既有规则 -->
+<link rel="stylesheet" href="css/motion.css">
 </head>
 <body data-role="guest">
 
@@ -46,6 +48,8 @@
 
 <script src="js/api.js"></script>
 <script src="js/ui.js"></script>
+<!-- 动效层：数字滚动 / 图表绘制 / 一次性门控 / 慢加载骨架 / flash toast -->
+<script src="js/motion.js"></script>
 <script src="js/router.js"></script>
 <script src="js/pages/login.js"></script>
 <script src="js/pages/workbench.js"></script>

@@ -92,11 +92,17 @@
     liveApps: liveApps,
     todayApps: todayApps,
     /**
-     * 审批动作：走真实接口，成功后重新拉数据并整页重载。
+     * 审批动作：走真实接口，成功后重新拉数据。
      *
-     * <p>为什么整页 reload：后台页面是"派生数据 + 同步渲染"结构，
+     * <p>为什么成功后由调用方 reload：后台页面是"派生数据 + 同步渲染"结构，
      * 局部改内存会出现"UI 显示已通过、后端其实失败"的假象。
      * 审批是低频不可逆操作，宁可重载一次换取状态绝对准确。
+     *
+     * <p><b>这里不再 reload、不再 alert，失败一律 throw 给调用方</b>：
+     * 一个 Promise 同时负责"发请求"和"决定页面跳转"，会让调用方无法在
+     * 失败时原地显示错误（以前只能 alert + 假装成功）。现在的分工是：
+     * 本函数只保证"成功 resolve / 失败 reject 且 message 是后端原话"，
+     * 页面负责"成功存 flash 再 reload / 失败在操作条上写红字"。
      *
      * @param id     申请 id，或 'ext7' 这种续假 id（前缀区分）
      * @param verdict 'approved' | 'rejected'
@@ -115,33 +121,33 @@
       }
       return api.post(url, body).then(function () {
         return api.refresh();
-      }).then(function () {
-        location.reload();
-      }).catch(function (e) {
-        alert('操作失败：' + (e && e.message ? e.message : '未知错误'));
-        return api.refresh();
       });
     },
 
-    /** 核验动作：同上，一条申请下的多条待核验记录要逐条提交 */
-    decideCheckins: function (ids, verdict, comment) {
+    /**
+     * 核验动作：同上，一条申请下的多条待核验记录要逐条提交。
+     * @param onProgress (已完成条数, 总条数) => void，用于把操作条写成「正在提交 2/3…」
+     */
+    decideCheckins: function (ids, verdict, comment, onProgress) {
       var api = ADMIN.api;
       var action = verdict === 'approved' ? 'APPROVE' : 'REJECT';
+      var list = ids || [];
+      var total = list.length;
+      var idx = 0;
       var chain = Promise.resolve();
-      (ids || []).forEach(function (id) {
+      list.forEach(function (id) {
         chain = chain.then(function () {
           return api.post('/teacher/checkin-logs/' + id + '/review', {
             action: action,
             comment: comment || (verdict === 'approved' ? '核验通过' : '核验驳回')
+          }).then(function (r) {
+            idx += 1;
+            if (onProgress) onProgress(idx, total);
+            return r;
           });
         });
       });
       return chain.then(function () {
-        return api.refresh();
-      }).then(function () {
-        location.reload();
-      }).catch(function (e) {
-        alert('操作失败：' + (e && e.message ? e.message : '未知错误'));
         return api.refresh();
       });
     },
@@ -481,6 +487,11 @@
        等异步登录完成后 location.hash 已经不是用户原本要去的页面了。 */
     var deepLink = location.hash.replace(/^#/, '') || '/workbench';
     if (deepLink === '/login') deepLink = '/workbench';
+
+    /* flash：上一步审批成功 → reload → 这里读出来，等页面入场结束再 toast。
+       必须"读走即删"，否则下一次 F5 会再播一遍。 */
+    var flashMsg = ADMIN.motion ? ADMIN.motion.takeFlash() : '';
+
     ADMIN.shell = {
       crumbs: crumbs,
       renderNav: renderNav,
@@ -494,23 +505,88 @@
 
     registerRoutes();
 
+    /* ---------------- 启动顺序（修 P0-2） ----------------
+       router.start() 以前是在 boot 末尾无条件同步执行的，而 loadStore() 还在飞：
+       于是它先用空 STORE 渲染了一次真实页面 —— apps: [] → 用户看到
+       "负责班级没有待审批，最早一条明天 08:00 开始"，数据到达后再被替换。
+       那不是白屏，是假消息，比白屏更难判断。
+
+       现在把 startRouter 抽出来，只在"数据已经就绪"的三个分支里各调用一次：
+         · loadStore().then  —— 正常路径
+         · loadStore().catch —— 失败路径（踢回登录页）
+         · 没有 token 的分支  —— 本来就没有数据可等，同步启动
+       并且用 routerStarted 兜住重复启动（hashchange 会重复绑定）。 */
+    var routerStarted = false;
+    function startRouter() {
+      if (routerStarted) return;
+      routerStarted = true;
+      router.start({
+        guard: function (path) {
+          if (path === '/login') {
+            if (state.loggedIn) { router.go('/workbench'); return false; }
+            return true;
+          }
+          if (!state.loggedIn) { router.go('/login'); return false; }
+          return true;
+        },
+        onBefore: function () {
+          renderNav();
+          if (state.loggedIn) renderTop();
+          crumbs([]);
+        }
+      });
+    }
+
+    /** 慢加载骨架：只在"真的要等数据"的分支里挂。400ms 内到达就完全不出现。 */
+    var slow = null;
+    function watchLoad() {
+      slow = ADMIN.motion ? ADMIN.motion.watchSlowLoad() : null;
+      return slow;
+    }
+    function settleLoad() {
+      if (slow) { slow.done(); slow = null; }
+    }
+    /** 页面就绪后播报上一步审批的结果（放在 320ms 之后，避开页根淡入） */
+    function announce() {
+      if (ADMIN.motion && flashMsg) ADMIN.motion.flashToast(flashMsg);
+    }
+
+    /**
+     * 落到深链页面。
+     * 必须判一下 router.current()：startRouter() 里的 router.start 已经按当前 hash
+     * 渲染过一次了，再来一次 router.go 会整页重建 —— 页面看不出差别，但
+     * 入场动画、数字滚动、图表绘制都是"一次性门控"，第二次渲染会把它们全部丢掉
+     * （新节点上没有 .is-draw，图表就变成直接满绘，数字也不再滚）。
+     */
+    function enterDeepLink() {
+      if (router.current() !== deepLink) router.go(deepLink);
+    }
+
     /* 已登录过（刷新页面）：sessionStorage 里还有 token，先把数据拉齐再渲染，
        否则页面会在 STORE 还是空数组时画出空列表。 */
     if (ADMIN.api.token()) {
       state.loggedIn = true;
       document.body.dataset.role = 'app';
+      watchLoad();
       ADMIN.api.loadStore().then(function () {
+        settleLoad();
         renderNav();
         renderTop();
-        // 数据到位后主动渲染：router.start 时因未登录已被挡回 /login，
-        // 恢复登录态后必须有人再触发一次页面渲染，否则就是"壳有了、内容空白"
-        router.go(deepLink);
+        startRouter();
+        enterDeepLink();
+        announce();
       }).catch(function (e) {
+        settleLoad();
         console.error('[admin] 数据加载失败', e);
         ADMIN.api.setToken('');
+        ADMIN.api.setRole('');
         state.loggedIn = false;
         document.body.dataset.role = 'guest';
+        startRouter();
         router.go('/login');
+        /* 以前这里只 console.error，用户看到的就是"我被登出了"，不知道为什么。
+           直接 toast 而不是走 flash：本页没有 reload，不需要跨页传递。 */
+        ui.toast('数据加载失败：' + (e && e.message ? e.message : '未知错误'));
       });
     }
 
@@ -519,37 +595,36 @@
     var demoMatch = location.search.match(/[?&]demo=([^&]+)/);
     if (demoMatch && !ADMIN.api.token()) {
       var demoUser = demoMatch[1] === 'admin' ? 'admin' : 'T2023001';
+      watchLoad();
       ADMIN.api.login(demoUser, '123456')
         .then(function () { return ADMIN.api.loadStore(); })
         .then(function () {
+          settleLoad();
           state.loggedIn = true;
           document.body.dataset.role = 'app';
           renderNav();
           renderTop();
-          router.go(deepLink);
+          startRouter();
+          enterDeepLink();
+          announce();
         })
         .catch(function (e) {
+          settleLoad();
           console.error('[admin] 演示登录失败', e);
+          startRouter();
+          router.go('/login');
+          ui.toast('演示登录失败：' + (e && e.message ? e.message : '未知错误'));
         });
     }
 
     document.addEventListener('click', function () { closeMenus(); });
 
-    router.start({
-      guard: function (path) {
-        if (path === '/login') {
-          if (state.loggedIn) { router.go('/workbench'); return false; }
-          return true;
-        }
-        if (!state.loggedIn) { router.go('/login'); return false; }
-        return true;
-      },
-      onBefore: function () {
-        renderNav();
-        if (state.loggedIn) renderTop();
-        crumbs([]);
-      }
-    });
+    /* 没有 token、也不是演示深链：本来就没有数据可等，直接启动。
+       （startRouter 内部的 guard 会把未登录的 hash 改写成 #/login） */
+    if (!ADMIN.api.token() && !demoMatch) {
+      startRouter();
+      announce();
+    }
   }
 
   if (document.readyState === 'loading') {

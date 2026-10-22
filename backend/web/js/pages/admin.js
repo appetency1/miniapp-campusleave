@@ -65,7 +65,9 @@
       return field(f.label, input, f.hint);
     });
 
-    var err = el('div', { class: 'form-err' });
+    /* role="alert" 比那 120ms 的显影重要得多：错误必须让读屏打断当前朗读。
+       只加在错误容器上，不给整个表单加。 */
+    var err = el('div', { class: 'form-err', attrs: { role: 'alert' } });
     var submit = el('button', { class: 'btn btn--primary', attrs: { type: 'submit' }, text: submitText });
     var cancel = el('button', { class: 'btn btn--secondary', attrs: { type: 'button' }, text: '取消' });
 
@@ -93,7 +95,9 @@
       });
     });
 
-    setTimeout(function () { if (fields.length) inputs[fields[0].key].focus(); }, 60);
+    /* 焦点交给 ui.drawer() 统一处理（打开时自动聚焦面板内第一个可聚焦元素）。
+       原来这里有个 setTimeout(60) 手动聚焦 —— 60ms 是个时序赌注，而且只在
+       这一个调用点修了，其他抽屉仍然没有焦点。 */
   }
 
   /** 写操作统一出口：成功后刷新 STORE 并重绘当前页 */
@@ -173,18 +177,27 @@
       }).join('');
     };
 
+    /* 三个动作并行收尾在 320ms，不是串行相加（串行会变成 320+180+120=620，严重越界）：
+       线先"划"出来（stroke 生长），面再"洇"上去（fill-opacity），最后点才出现。
+       pathLength="1" 是关键：进度归一成 0–1，纯 CSS 就能跑，
+       不需要 getTotalLength()、不需要 JS 量长度。
+       明确否决"遮罩扫过"：要额外 clipPath + 跟随移动的 rect，等比缩放的 viewBox
+       一改窗口尺寸就得重算裁剪，在零构建项目里维护成本远高于收益。 */
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ah-svg" preserveAspectRatio="xMidYMid meet">'
       + '<defs>'
       + '<linearGradient id="gOff" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4A7C59" stop-opacity=".18"/><stop offset="100%" stop-color="#4A7C59" stop-opacity="0"/></linearGradient>'
       + '<linearGradient id="gOn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C9A227" stop-opacity=".16"/><stop offset="100%" stop-color="#C9A227" stop-opacity="0"/></linearGradient>'
       + '</defs>'
       + grid
-      + '<path d="' + areaPath('off') + '" fill="url(#gOff)"/>'
-      + '<path d="' + areaPath('on') + '" fill="url(#gOn)"/>'
-      + '<path d="' + path('off') + '" fill="none" stroke="#4A7C59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
-      + '<path d="' + path('on') + '" fill="none" stroke="#C9A227" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<path class="ah-trend-area" d="' + areaPath('off') + '" fill="url(#gOff)"/>'
+      + '<path class="ah-trend-area" d="' + areaPath('on') + '" fill="url(#gOn)"/>'
+      + '<path class="ah-trend-line ah-trend-line--off" pathLength="1" d="' + path('off') + '" fill="none" stroke="#4A7C59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<path class="ah-trend-line ah-trend-line--on" pathLength="1" d="' + path('on') + '" fill="none" stroke="#C9A227" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      // 数据点全体同时出现（逐点 24ms 会把总时长推到 320ms 之外）
+      + '<g class="ah-trend-dots">'
       + dots('off', '#4A7C59')
       + dots('on', '#C9A227')
+      + '</g>'
       + labels
       + '</svg>';
   }
@@ -215,13 +228,16 @@
         + ' A' + R + ' ' + R + ' 0 ' + large + ' 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2)
         + ' L' + x2.toFixed(2) + ' ' + y2.toFixed(2)
         + ' A' + r + ' ' + r + ' 0 ' + large + ' 0 ' + x3.toFixed(2) + ' ' + y3.toFixed(2) + ' Z';
-      return '<path d="' + d + '" fill="' + colors[i % colors.length] + '"/>';
+      return '<path class="ah-donut-seg" d="' + d + '" fill="' + colors[i % colors.length] + '"/>';
     }).join('');
 
+    /* 扇区是 fill 路径（没有 stroke），所以不能用 stroke-dasharray 描边生长，
+       改成各段 opacity 0→1 分段落墨（css/motion.css）。也不能用旋转扫过：
+       中途会露出"半片饼"，看着像加载失败。 */
     return '<svg viewBox="0 0 ' + size + ' ' + size + '" class="ah-donut-svg">'
       + paths
       + '<text x="' + cx + '" y="' + (cy - 7) + '" text-anchor="middle" font-size="9" fill="#7C877F">总计</text>'
-      + '<text x="' + cx + '" y="' + (cy + 15) + '" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2A24">' + num(total) + '</text>'
+      + '<text class="ah-donut-total" x="' + cx + '" y="' + (cy + 15) + '" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2A24">' + num(total) + '</text>'
       + '</svg>';
   }
 

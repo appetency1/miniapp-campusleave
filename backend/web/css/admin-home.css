@@ -156,7 +156,7 @@
   padding: 8px 16px;
   font-size: calc(12.5px * var(--fs, 1));
   color: var(--ink-2);
-  transition: background .15s ease;
+  transition: background var(--t-fast) var(--ease-tog);
 }
 .ah-todo-row:hover { background: var(--hover); }
 .ah-todo-row img { width: 17px; height: 17px; object-fit: contain; }

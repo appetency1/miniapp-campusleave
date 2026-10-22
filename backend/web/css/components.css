@@ -16,7 +16,12 @@
   font-size: calc(13px * var(--fs, 1));
   line-height: calc(20px * var(--fs, 1));
   white-space: nowrap;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  /* opacity 必须在 transition 里：:disabled 用的就是 opacity .38，
+     不写这一条，「提交中禁用」是硬切而不是过渡。 */
+  transition: background var(--t-fast) var(--ease-tog),
+              border-color var(--t-fast) var(--ease-tog),
+              color var(--t-fast) var(--ease-tog),
+              opacity var(--t-fast) var(--ease-tog);
 }
 .btn--sm { height: var(--ctl-sm); padding: 0 12px; font-size: calc(12px * var(--fs, 1)); line-height: calc(18px * var(--fs, 1)); }
 .btn--block { width: 100%; }
@@ -132,7 +137,13 @@
   white-space: nowrap;
 }
 .tbl tbody tr:last-child td { border-bottom: 0; }
-.tbl tbody tr.is-hover { background: var(--hover); cursor: pointer; }
+/* 两个类名分开：is-click 是「这一行可点击」的标记（由 ui.table 在挂
+   onRowClick 时加），is-hover 才是悬停态。原来把两者合成一个类、又漏了
+   :hover 伪类，导致整表行底色常亮 —— 表格看起来「全被选中」。
+   注意：这里刻意不写 transition —— <tr> 每次重绘都是新节点，
+   新节点上没有「上一个值」，transition 不执行（死代码）。 */
+.tbl tbody tr.is-click { cursor: pointer; }
+.tbl tbody tr.is-click:hover { background: var(--hover); }
 .tbl tbody tr.is-selected td { background: var(--sel); }
 .tbl tbody tr.is-selected td:first-child { box-shadow: inset 2px 0 0 var(--ink); }
 .tbl--2l tbody td { height: var(--row-2); }
@@ -750,7 +761,10 @@
 .pager-btn.is-on { border-color: var(--ink); color: var(--ink); font-weight: 600; }
 
 /* ---------- 动效 ---------- */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* 内容"重新落墨"：起点是 --m-ink-from(.45) 而不是 0。
+   .detail 每点一条待办就整块重建，从 0 起等于"内容被拿走 120ms 再显影"，
+   正文中途不可读。页根的首次出现另有独立 keyframe（motion.css pageEnter，从 0 起）。 */
+@keyframes fadeIn { from { opacity: var(--m-ink-from); } to { opacity: 1; } }
 .fade-in { animation: fadeIn var(--t-fade) var(--ease) both; }
 
 /* ---------- lightbox ---------- */
@@ -880,7 +894,7 @@
   font-size: calc(13px * var(--fs, 1));
   color: var(--ink-3);
   cursor: pointer;
-  transition: background .15s ease, color .15s ease;
+  transition: background var(--t-fast) var(--ease-tog), color var(--t-fast) var(--ease-tog);
 }
 .seg-item:hover { color: var(--ink); }
 .seg-item.is-on { background: var(--ink); color: #FCFBF8; }
@@ -945,7 +959,7 @@
   padding: 0 8px;
   font-size: calc(13px * var(--fs, 1));
   border-radius: 4px;
-  transition: border-color .15s ease, box-shadow .15s ease;
+  transition: border-color var(--t-fast) var(--ease-tog), box-shadow var(--t-fast) var(--ease-tog);
 }
 .input--inline.is-saving { border-color: var(--amber-600); }
 .input--inline.is-saved {
@@ -986,9 +1000,14 @@
   pointer-events: none;
   opacity: 0;
   transform: translateX(-50%) translateY(8px);
-  animation: toast-in .2s ease forwards;
+  /* 进入 180ms（原 .2s ease）；曲线换成 --ease：盖章，盖完就停 */
+  animation: toast-in var(--t-mid) var(--ease) forwards;
 }
-.toast.is-out { animation: toast-out .35s ease forwards; }
+/* 退场 180ms（原 350ms，超 320 上限）。用 --ease-in：加速离开，
+   尽快把注意力还回去。JS 时序保持不变（1600ms 打 is-out、2100ms 移除）。 */
+.toast.is-out { animation: toast-out var(--t-mid) var(--ease-in) forwards; }
+/* translateX(-50%) 必须在两帧里都保留：.toast 是 left:50% 定位，
+   丢了这一半位移 toast 会整块跳到右侧。 */
 @keyframes toast-in  { to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 @keyframes toast-out { to { opacity: 0; transform: translateX(-50%) translateY(8px); } }
 

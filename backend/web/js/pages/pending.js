@@ -38,6 +38,8 @@
     var local = {
       list: (tab === 'ext' ? extItems : leaveItems).slice(),
       shown: null,
+      // receipt 现在永远为 null：审批成功后直接 reload，由 flash toast 在
+      // 新页面上确认。保留字段是为了将来若去掉 reload，还能回退到行内回执。
       receipt: null,
       sel: null
     };
@@ -173,45 +175,59 @@
       if (local.receipt) detailEl.scrollTop = detailEl.scrollHeight;
     }
 
-    /* ---------- 审批动作 ---------- */
-    function advance(decidedKey) {
-      var idx = -1;
-      for (var i = 0; i < local.list.length; i++) {
-        if (keyOf(local.list[i]) === decidedKey) { idx = i; break; }
-      }
-      if (idx !== -1) local.list.splice(idx, 1);
+    /* ---------- 审批动作 ----------
+       这里原来是"乐观伪造"：接口还没返回就写
+       `local.receipt = '已批准 · 刚刚 · 已通知学生'`，接着同步把这条从本地列表删掉、
+       选中下一条。问题是成功时那份回执会被 location.reload() 抹掉 ——
+       也就是说这个 UI 元素唯一真正被看见的时刻，是它说谎的时候。
 
-      var next = local.list[Math.min(idx === -1 ? 0 : idx, local.list.length - 1)];
-      local.sel = next ? keyOf(next) : null;
+       现在的分工（顺序很重要）：
+         点击 → busy 标志位 + 两个按钮 disabled + 操作条文案换「正在提交…」
+              → 等 Promise
+              ├─ 成功：sessionStorage 存 flash → reload → 新页面就绪 320ms 后 toast
+              └─ 失败：操作条原位换红字，不跳页、不 reload、不 alert、按钮恢复
 
-      if (tab === 'ext') counts.ext = local.list.length;
-      else counts.leave = local.list.length;
-      tabLeaveCount.textContent = String(counts.leave);
-      tabExtCount.textContent = String(counts.ext);
-      ADMIN.shell.sync();
+       不做「成功先给 240ms 的已通过再刷新」：那等于用 240ms 的等待换 240ms 的
+       确认，而那份确认在 reload 后同样消失，证明不了任何事。
+       也不做转圈：无限旋转动画违反 MOTION.md §5，内网 200ms 内返回时只会闪一帧。 */
+    var busy = false;
+
+    function errText(e) {
+      return (e && e.message) ? e.message : '未知错误';
+    }
+
+    function failText(verb, e) {
+      return verb + '失败：' + errText(e);
     }
 
     function approve(item) {
-      if (tab === 'ext') {
-        ADMIN.store.decideApp('ext' + item.id, 'approved');
-        local.receipt = '已批准 · 刚刚 · 已通知学生';
-      } else {
-        ADMIN.store.decideApp(item.id, 'approved');
-        local.receipt = '已批准 · 刚刚 · 已通知学生';
-      }
-      advance(keyOf(item));
-      renderList();
-      renderDetail();
+      if (busy) return;
+      busy = true;
+      var name = item.studentName || '';
+      var id = tab === 'ext' ? 'ext' + item.id : item.id;
+      ui.actionState(detailEl, 'busy', '正在提交…');
+      ADMIN.store.decideApp(id, 'approved').then(function () {
+        ADMIN.motion.flash('已通过 · ' + name);
+        location.reload();
+      }).catch(function (e) {
+        busy = false;
+        ui.actionState(detailEl, 'error', failText('批准', e));
+      });
     }
 
     function reject(item, reason) {
-      if (tab === 'ext') ADMIN.store.decideApp('ext' + item.id, 'rejected', reason);
-      else ADMIN.store.decideApp(item.id, 'rejected', reason);
-      local.receipt = '已驳回 · 刚刚 · 已通知学生';
-      local.reason = reason;
-      advance(keyOf(item));
-      renderList();
-      renderDetail();
+      if (busy) return;
+      busy = true;
+      var name = item.studentName || '';
+      var id = tab === 'ext' ? 'ext' + item.id : item.id;
+      ui.actionState(detailEl, 'busy', '正在提交…');
+      ADMIN.store.decideApp(id, 'rejected', reason).then(function () {
+        ADMIN.motion.flash('已驳回 · ' + name);
+        location.reload();
+      }).catch(function (e) {
+        busy = false;
+        ui.actionState(detailEl, 'error', failText('驳回', e));
+      });
     }
 
     /* ---------- 续假详情 ---------- */
@@ -325,5 +341,9 @@
 
     renderList();
     renderDetail();
+    /* 列表入场只在"页面 mount"时给一次门控类。
+       renderList() 每次点选都 innerHTML='' 重建左栏，不门控就是"点一条闪一次"；
+       motion.enterList 会在动画结束后把 .is-enter 摘掉，所以后续重建不再重播。 */
+    if (ADMIN.motion) ADMIN.motion.enterList(listEl);
   };
 })();
