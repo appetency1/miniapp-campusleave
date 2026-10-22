@@ -273,8 +273,12 @@
     main.appendChild(recentCard);
 
     /* ---------- 右栏：3 张独立卡 ---------- */
-    // 小熊图里已经含「辛苦了，老师！」气泡，所以不再单独渲染文字
+    // 现在的素材换成管理员端那只没有气泡的熊，文案改回代码渲染
     side.appendChild(el('div', { class: 'welcome-card' }, [
+      el('div', { class: 'welcome-text' }, [
+        el('div', { text: '辛苦了，' }),
+        el('div', { text: '老师！' })
+      ]),
       el('div', { class: 'welcome-art' })
     ]));
 

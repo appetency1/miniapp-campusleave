@@ -412,14 +412,17 @@
    注意：卡片原来是 flex 容器，插画作为 flex item 会被 flex-basis 压小，
    这里改成 block + 固定高度，插画才能撑满卡片宽度。 */
 .welcome-card {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 104px;
   padding: 12px 14px;
-  min-height: 0;
 }
 .welcome-art {
-  width: 100%;
-  height: 132px;
-  flex: none;
+  width: 92px;
+  height: 92px;
+  flex: 0 0 92px;
   background: url("../assets/welcome-bear.png") center / contain no-repeat;
   /* 素材是米白底的 PNG，multiply 让白底与浅绿卡片融合，看不出方形色块；
      叠底会把整体压淡，补一点饱和度和对比度找回原图的饱满色 */

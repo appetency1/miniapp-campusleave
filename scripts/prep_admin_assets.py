@@ -45,13 +45,45 @@ def bbox_dark(im, tol=200):
     return mask.getbbox()
 
 
-def cutout_light(im, tol=246):
-    """把亮度高于阈值的像素变透明：去掉棋盘格与白底，保留深色线条"""
-    im = im.convert('RGBA')
-    gray = im.convert('L')
-    alpha = gray.point(lambda p: 0 if p >= tol else 255)
-    im.putalpha(alpha)
-    return im
+def remove_checker(im, tol=12):
+    """抠掉「棋盘格」背景。
+
+    素材是从「透明预览」截的图，背景不是纯白，而是 #FFFFFF 与 #E9E9E9 交替的方格。
+    按亮度抠图只能去掉白格，灰格会残留成一块灰底 —— 这就是之前灰方块的来源。
+    做法：采样四角拿到这两种背景色，把接近它们的像素全部转透明。
+    """
+    rgba = im.convert('RGBA')
+    rgb = rgba.convert('RGB')
+    w, h = rgb.size
+    px = rgb.load()
+
+    # 沿整圈边缘采样：棋盘格的两种颜色是交错的，只看四角容易只采到其中一种
+    samples = []
+    for x in range(0, w, 2):
+        samples.append(px[x, 0])
+        samples.append(px[x, 1])
+        samples.append(px[x, h - 1])
+        samples.append(px[x, h - 2])
+    for y in range(0, h, 2):
+        samples.append(px[0, y])
+        samples.append(px[1, y])
+        samples.append(px[w - 1, y])
+        samples.append(px[w - 2, y])
+
+    from collections import Counter
+    cnt = Counter(samples)
+    # 取出现最多的 3 种（棋盘两色 + 抗锯齿过渡色）
+    bgs = [c for c, _ in cnt.most_common(3)]
+
+    a = rgba.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, _ = a[x, y]
+            for br, bg_, bb in bgs:
+                if abs(r - br) <= tol and abs(g - bg_) <= tol and abs(b - bb) <= tol:
+                    a[x, y] = (r, g, b, 0)
+                    break
+    return rgba
 
 
 def green_bbox(im):
@@ -105,13 +137,13 @@ for src, dst, kind in MAP:
     if kind == 'disc':
         out = fit(crown(im), 256, 0.98)
     elif kind == 'line':
-        cut = cutout_light(im)
+        cut = remove_checker(im)
         bbox = cut.split()[3].getbbox()
         if bbox:
             cut = cut.crop(bbox)
         out = fit(cut, 128, 0.92)
     else:  # art
-        cut = cutout_light(im, 246)
+        cut = remove_checker(im)
         bbox = cut.split()[3].getbbox()
         if bbox:
             cut = cut.crop(bbox)
