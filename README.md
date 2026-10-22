@@ -9,14 +9,20 @@
 | 阶段 | 状态 |
 |---|---|
 | 业务规则 / 数据库 / 接口契约 | **已冻结**（01 / 02 / 03） |
-| 学生端 UI | **已定稿**（`formal-v2/`，7 屏 + 首页五态，可点击） |
-| 学生端小程序代码 | 未开始（`pages/index` 只是占位页） |
-| 后端 | 未开始 |
-| 教师端 | 未开始 |
+| 学生端 UI 定稿 | **已完成**（`formal-v2/`，7 屏 + 首页五态，可点击） |
+| 学生端小程序 | **M2 + M3 完成**（`miniprogram/`，申请 → 审批 → 销假闭环） |
+| 后端 | **M1 / M3 / M4 / M5-1 完成**（学生 20 + 教师 16 + 管理 14 个接口） |
+| 教师端（Web 后台） | **M4 完成**（`backend/web/`） |
+| 管理端（Web 后台） | 后端已完成，**前端 4 页待做**（M5） |
+
+详细的里程碑与实测记录见 `04_开发方案_V1.0.md` §4。
 
 ---
 
 ## 目录
+
+> 两个 Web 端（教师端 + 管理端）的前端源码都在 **`backend/web/`**，
+> 它们是同一套壳，登录后按角色渲染不同菜单。说明见 `backend/web/README.md`。
 
 ```
 CampusLeave/
@@ -25,28 +31,52 @@ CampusLeave/
 ├─ 01_业务规则_V1.2.md             业务规则冻结稿（2266 行，唯一权威）
 ├─ 02_数据库设计_V1.1.md           表结构、索引、约束
 ├─ 03_API接口_V1.0.md             前后端接口契约
-├─ 04_开发方案_V1.0.md             ★ 开发方案（8 项决策 + 契约修订 + 排期）
+├─ 04_开发方案_V1.0.md             ★ 开发方案 + 里程碑进度（唯一实时视图）
+│
+├─ backend/                       ★ Spring Boot 后端
+│  ├─ web/                        ★★ Web 端前端源码（教师端 + 管理端，原生三剑客）
+│  │  ├─ README.md                结构、路由、调试方式
+│  │  ├─ index.html               唯一入口
+│  │  ├─ css/                     tokens / layout / components
+│  │  └─ js/                      api / router / ui / app + pages/*
+│  ├─ src/main/java/com/campusleave/
+│  │  ├─ auth/                    登录 + JWT
+│  │  ├─ student/                 学生端（查询 + 写操作 + 有效状态计算）
+│  │  ├─ teacher/                 教师端（M4，16 个端点）
+│  │  ├─ admin/                   管理端（M5，14 个端点）
+│  │  ├─ domain/                  实体 / Mapper / 枚举
+│  │  ├─ security/                UserContext / JWT 过滤器
+│  │  ├─ storage/                 本地上传
+│  │  └─ common/                  统一响应、异常、分页
+│  ├─ src/main/resources/         application*.yml（含密码的不进库）、mapper/
+│  ├─ uploads/                    上传文件落盘目录（不进库）
+│  └─ pom.xml                     注意：web/ 通过 resources 映射到 classpath:static/admin
+│
+├─ miniprogram/                   微信小程序（DevTools 的 miniprogramRoot）
+│  ├─ app.js / app.json / app.wxss  入口 + 全局纸感 token
+│  ├─ custom-tab-bar/             自定义 tabBar（内联 SVG 图标）
+│  ├─ components/ruler/           刻度尺组件（请假区间可视化）
+│  ├─ pages/                      登录 / 首页 / 记录 / 消息 / 我的 / 申请 / 详情 / 销假
+│  └─ utils/                      request / api / auth / format / server / config
+│
 ├─ sql/
-│  ├─ V1.0__schema.sql           建表脚本
-│  ├─ V1.0__seed.sql             系统配置种子
-│  └─ V1.1__seed_demo.sql        演示账号 + 6 条申请（密码 123456）
-├─ reviews/                       三轮评审报告（PRD / 数据库 / 状态流）
+│  ├─ V1.0__schema.sql            建表脚本
+│  ├─ V1.0__seed.sql              系统配置种子
+│  ├─ V1.1__seed_demo.sql         演示账号 + 申请（密码 123456）
+│  └─ V1.2__reseed_demo.sql       答辩前重置演示数据
 │
-├─ formal-v2/                     ★ UI 定稿
-│  ├─ index.html                  7 屏 + 首页五态，单文件零依赖，双击即看
-│  └─ NOTES.md                    设计约定、可跑通路径、未做清单
+├─ scripts/                       开发期工具（非运行时依赖）
+│  ├─ gen-tabbar-icons.js         生成 tabBar 内联 SVG 图标
+│  ├─ upgrade-font-scale.js       字号批量校准
+│  ├─ test-teacher-*.js / .py     教师端接口实测
+│  ├─ test_admin_api.py           管理端接口实测
+│  └─ prep_checkin_case.py        造「核验」测试数据
 │
-├─ archive/                       历史文档（不再维护，仅供回溯）
-│  ├─ docs-early/                 早期总纲、学生端·教师端设计 V1.0、首页定位脑暴
-│  └─ 校园请假管理系统——业务流程与状态机设计 V1.1.md
-│
-└─ —— 小程序源码（DevTools 的 miniprogramRoot）——
-   ├─ miniprogram/
-   │  ├─ app.js / app.json / app.wxss   入口 + 全局纸感 token（--paper/--ink/--blue/--line）
-   │  ├─ pages/index/                   占位首页，待按定稿实现
-   │  └─ sitemap.json
-   ├─ project.config.json               DevTools 项目配置（appid wxa5d0a3b27a094adc）
-   └─ project.private.config.json       本机个人配置，不进版本库更合适
+├─ formal-v2/                     UI 定稿（历史参照，已被小程序实现取代）
+├─ reviews/                       三轮评审报告
+├─ docs/                          devtools-cli.md 等环境笔记
+├─ outputs/                       自动化截图产物（不进库）
+└─ archive/                       历史文档（不再维护）
 ```
 
 ---

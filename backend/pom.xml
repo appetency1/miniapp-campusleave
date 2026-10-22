@@ -89,6 +89,23 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- 常规资源 -->
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!--
+                Web 端（教师端 / 管理端）源码单独放在 backend/web/，和 Java 代码平级，
+                避免埋进 src/main/resources/static/admin 里找不到。
+                构建时整目录映射到 classpath:static/admin，所以访问地址仍是 /admin/。
+                改前端不需要重新编译 Java，但**必须重新跑一次 mvn 编译**（或手动
+                cp -r web target/classes/static/admin），否则跑的还是上一次的副本。
+            -->
+            <resource>
+                <directory>web</directory>
+                <targetPath>static/admin</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
