@@ -1,14 +1,14 @@
 /* ============================================================
-   pages/workbench.js —— 教师工作台（按设计稿重做）
+   pages/workbench.js —— 教师工作台（对照设计稿逐项复刻）
 
-   布局：左主区（问候 / 待办横幅 / 三个 tab / 待办卡片 / 最近处理）
-        + 右栏（欢迎卡 / 快捷统计 / 今日概况）
-
-   数据来源：window.STORE
-   - workbench 接口：pendingCount / inProgressCount / abnormalCount /
-     pendingExtensionCount / todos / recentProcessed / todayStats
-   - apps（记录列表）：待办卡片要班级、时间区间、提交时间，todos 里没有，
-     所以列表直接过滤 apps，保证字段齐全。
+   结构（和设计稿一致）：
+   ┌ 左主区 ──────────────────────────────┐ ┌ 右栏 ──────┐
+   │ 问候                                  │ │ 欢迎卡     │
+   │ 待办横幅                              │ │ 快捷统计   │
+   │ ┌ 白卡：tab + 待办列表（细线分隔）  ┐ │ │ 今日概况   │
+   │ └────────────────────────────────────┘ │ └───────────┘
+   │ ┌ 白卡：最近处理 ───────────────────┐ │
+   └───────────────────────────────────────┘
    ============================================================ */
 (function () {
   var ADMIN = window.ADMIN;
@@ -20,7 +20,6 @@
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
-  /** '2026-10-22 11:30' -> Date（后端统一这个格式，补秒再解析） */
   function parseDT(s) {
     if (!s) return null;
     var d = new Date(String(s).replace(' ', 'T') + ':00');
@@ -30,17 +29,24 @@
   function hm(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
   function dayLabel(d) { return (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
 
-  /** 同一天只写一次日期：10月22日 11:30 — 12:30 */
+  /** 设计稿两端都写日期：10月22日 11:30 — 10月22日 12:30 */
   function rangeText(start, end) {
     var s = parseDT(start), e = parseDT(end);
     if (!s || !e) return '';
-    if (s.toDateString() === e.toDateString()) {
-      return dayLabel(s) + ' ' + hm(s) + ' — ' + hm(e);
-    }
     return dayLabel(s) + ' ' + hm(s) + ' — ' + dayLabel(e) + ' ' + hm(e);
   }
 
-  /** 已等待多久：分钟 / 小时 / 天 */
+  /** 最近处理用紧凑写法：10.21 08:00 — 18:00 */
+  function recentTime(start, end) {
+    var s = parseDT(start), e = parseDT(end);
+    if (!s || !e) return '';
+    var d = function (x) { return pad2(x.getMonth() + 1) + '.' + pad2(x.getDate()); };
+    if (s.toDateString() === e.toDateString()) {
+      return d(s) + ' ' + hm(s) + ' — ' + hm(e);
+    }
+    return d(s) + ' ' + hm(s) + ' — ' + d(e) + ' ' + hm(e);
+  }
+
   function waitText(from) {
     var t = parseDT(from);
     if (!t) return '';
@@ -93,7 +99,6 @@
     var wb = STORE.workbench || {};
     var apps = STORE.apps || [];
 
-    /* 三类待办：待审批 / 待核验 / 即将开始 */
     var pendingApps = apps.filter(function (a) { return a.status === 'PENDING'; });
     var reviewApps = apps.filter(function (a) {
       return (a.checkins || []).some(function (c) { return c.review === 'PENDING_REVIEW'; });
@@ -122,7 +127,7 @@
     /* ---------- 待办横幅 ---------- */
     main.appendChild(el('div', { class: 'wb-banner' }, [
       el('span', { class: 'wb-banner-icon' }, [icon('clipboard')]),
-      el('div', {}, [
+      el('div', { class: 'wb-banner-text' }, [
         el('div', { class: 'wb-banner-title' }, [
           el('span', { text: '今天有 ' }),
           el('b', { text: String(pendingApps.length) }),
@@ -138,7 +143,9 @@
       })
     ]));
 
-    /* ---------- 三个 tab ---------- */
+    /* ---------- 白卡：tab + 待办列表 ---------- */
+    var panel = el('div', { class: 'wb-card wb-panel' });
+
     var TABS = [
       { key: 'pending', label: '待审批', count: pendingApps.length },
       { key: 'review', label: '异常核验', count: reviewApps.length },
@@ -162,29 +169,28 @@
         t.count ? el('em', { text: String(t.count) }) : null
       ]));
     });
-    main.appendChild(tabs);
+    panel.appendChild(tabs);
 
     var listBox = el('div', { class: 'wb-list' });
-    main.appendChild(listBox);
+    panel.appendChild(listBox);
+    main.appendChild(panel);
 
-    /* ---------- 待办卡片 ---------- */
-    function todoCard(a, isReview) {
+    /* ---------- 待办行：头像 | 人 | 时间 | 状态 | 按钮 ---------- */
+    function todoRow(a, isReview) {
       return el('div', { class: 'todo' }, [
         avatarOf(a.studentName, a.studentId || a.id),
-        el('div', { class: 'todo-main' }, [
-          el('div', { class: 'todo-head' }, [
+        el('div', { class: 'todo-who' }, [
+          el('div', { class: 'todo-name-row' }, [
             el('span', { class: 'todo-name', text: a.studentName }),
             el('span', { class: 'todo-type', text: a.scene + ' · ' + a.type })
           ]),
-          el('div', {
-            class: 'todo-meta',
-            text: (a.className || '') + ' · ' + rangeText(a.start, a.end)
-          }),
+          el('div', { class: 'todo-cls', text: a.className || '' }),
           el('div', {
             class: 'todo-sub',
             text: '提交于 ' + String(a.submittedAt || '').slice(11, 16)
           })
         ]),
+        el('div', { class: 'todo-time', text: rangeText(a.start, a.end) }),
         el('div', { class: 'todo-state' }, [
           isReview
             ? el('span', { class: 'pill pill--red', text: '异常核验' })
@@ -196,7 +202,7 @@
         ]),
         el('div', { class: 'todo-acts' }, [
           el('button', {
-            class: 'btn btn--secondary btn--sm',
+            class: 'btn btn--ghost btn--sm',
             attrs: { type: 'button' },
             text: '查看',
             onClick: function () { location.hash = '#/pending/' + a.id; }
@@ -217,23 +223,22 @@
       var rows = isReview ? reviewApps : state.tab === 'soon' ? soonApps : pendingApps;
 
       if (!rows.length) {
-        listBox.appendChild(el('div', { class: 'wb-card' }, [
-          ui.empty({
-            title: state.tab === 'pending' ? '没有待审批的申请。' : '这一栏目前是空的。',
-            note: state.tab === 'pending'
-              ? '新的申请提交后会出现在这里。'
-              : '切到「待审批」看看还有没有要处理的。'
-          })
-        ]));
+        listBox.appendChild(ui.empty({
+          icon: state.tab === 'pending' ? 'check' : 'file',
+          title: state.tab === 'pending' ? '没有待审批的申请。' : '这一栏目前是空的。',
+          note: state.tab === 'pending'
+            ? '新的申请提交后会出现在这里。'
+            : '切到「待审批」看看还有没有要处理的。'
+        }));
         return;
       }
-      rows.slice(0, 6).forEach(function (a) { listBox.appendChild(todoCard(a, isReview)); });
+      rows.slice(0, 6).forEach(function (a) { listBox.appendChild(todoRow(a, isReview)); });
     }
     paintList();
 
-    /* ---------- 最近处理 ---------- */
+    /* ---------- 白卡：最近处理 ---------- */
     var recent = wb.recentProcessed || [];
-    var recentCard = el('div', { class: 'wb-card wb-recent' }, [
+    var recentCard = el('div', { class: 'wb-card' }, [
       el('div', { class: 'wb-card-head' }, [
         el('span', { class: 'wb-card-title', text: '最近处理' }),
         el('a', { class: 'wb-card-more', href: '#/records', text: '查看全部 ›' })
@@ -243,15 +248,15 @@
       recentCard.appendChild(ui.table({
         rowKey: 'id',
         cols: [
-          { label: '学生', render: function (a) { return a.studentName; } },
-          { label: '类型 · 场景', render: function (a) { return a.type + ' · ' + a.scene; } },
+          { label: '学生', width: 120, render: function (a) { return a.studentName; } },
+          { label: '类型 · 场景', width: 130, render: function (a) { return a.type + ' · ' + a.scene; } },
           {
             label: '时间', render: function (a) {
-              return el('span', { class: 'mono', text: rangeText(a.start, a.end) });
+              return el('span', { class: 'mono', text: recentTime(a.start, a.end) });
             }
           },
           {
-            label: '状态', align: 'right', width: 96, render: function (a) {
+            label: '状态', width: 96, align: 'right', render: function (a) {
               return el('span', { class: 'pill ' + pillTone(a.status), text: pillLabel(a.status) });
             }
           }
@@ -260,13 +265,14 @@
       }));
     } else {
       recentCard.appendChild(ui.empty({
+        icon: 'clock',
         title: '还没有处理记录。',
         note: '审批过的申请会出现在这里。'
       }));
     }
     main.appendChild(recentCard);
 
-    /* ---------- 右栏 ---------- */
+    /* ---------- 右栏：3 张独立卡 ---------- */
     side.appendChild(el('div', { class: 'welcome-card' }, [
       el('div', { class: 'welcome-text' }, [
         el('div', { text: '辛苦了，' }),
@@ -275,7 +281,7 @@
       el('div', { class: 'welcome-art' })
     ]));
 
-    var quick = el('div', { class: 'side-card' }, [
+    var quick = el('div', { class: 'wb-card side-card' }, [
       el('div', { class: 'side-card-title', text: '快捷统计' })
     ]);
     [
@@ -294,7 +300,7 @@
     side.appendChild(quick);
 
     var ts = wb.todayStats || { processed: 0, approved: 0, rejected: 0, cancelled: 0 };
-    var today = el('div', { class: 'side-card' }, [
+    var today = el('div', { class: 'wb-card side-card' }, [
       el('div', { class: 'side-card-title', text: '今日概况' })
     ]);
     [

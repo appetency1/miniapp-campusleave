@@ -1069,3 +1069,12 @@
   font-variant-numeric: tabular-nums;
 }
 .stat-v--warn { color: var(--red-600); }
+
+/* ---------- 次要按钮：白底 + 细灰边（设计稿里的「查看」） ---------- */
+.btn--ghost {
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.btn--ghost:hover { border-color: var(--ink-4); color: var(--ink); }

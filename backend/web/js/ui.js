@@ -243,10 +243,11 @@
   /* ---------------- 空态 / 骨架 ---------------- */
   function empty(o) {
     o = o || {};
-    return el('div', { class: 'empty' }, [
-      el('div', { class: 'empty-title', text: o.title || '—' }),
-      o.note ? el('div', { class: 'empty-note', text: o.note }) : null
-    ]);
+    var box = el('div', { class: 'empty' });
+    if (o.icon) box.appendChild(el('div', { class: 'empty-icon' }, [icon(o.icon)]));
+    box.appendChild(el('div', { class: 'empty-title', text: o.title || '—' }));
+    if (o.note) box.appendChild(el('div', { class: 'empty-note', text: o.note }));
+    return box;
   }
 
   function skeletonRows(n) {
