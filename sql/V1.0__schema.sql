@@ -136,6 +136,10 @@ CREATE TABLE IF NOT EXISTS `leave_application` (
     KEY `idx_leave_conflict` (`student_id`,`status`,`start_time`,`end_time`),
     KEY `idx_leave_due`      (`status`,`end_time`,`actual_end_time`),
     KEY `idx_leave_created`  (`student_id`,`created_at`),
+    -- 管理端「全校申请列表」：WHERE status=? ORDER BY created_at DESC
+    -- 教师端走 student_id 前缀（idx_leave_conflict），管理端没有 student_id 条件，
+    -- 没有这个索引就是 filesort 全表（数据量上来后一眼可见地慢）
+    KEY `idx_leave_status_created` (`status`,`created_at`),
     CONSTRAINT `fk_leave_student`     FOREIGN KEY (`student_id`)           REFERENCES `student_profile` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_leave_cancelled`   FOREIGN KEY (`cancelled_by_user_id`) REFERENCES `user` (`id`)            ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_leave_approved`    FOREIGN KEY (`approved_by_user_id`)  REFERENCES `user` (`id`)            ON DELETE RESTRICT ON UPDATE CASCADE,

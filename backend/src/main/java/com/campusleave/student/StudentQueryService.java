@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -332,11 +333,19 @@ public class StudentQueryService {
     }
 
     private Map<String, Object> statsBlock(List<LeaveApplication> all, LocalDateTime now) {
-        int total = all.size();
-        int approved = (int) all.stream()
+        // 「本学期概览」（03 §5.1 / §5.13）—— 契约写的是本学期，就不能拿全部历史凑数。
+        // 之前这里直接对 all 统计，学生上个学年的记录会一直累加，文案与口径不符。
+        // 逾期数例外：逾期是"此时此刻还欠着的假"，跨学期也要显示。
+        LocalDateTime termStart = currentTermStart(now.toLocalDate()).atStartOfDay();
+        List<LeaveApplication> term = all.stream()
+                .filter(a -> a.getCreatedAt() != null && !a.getCreatedAt().isBefore(termStart))
+                .collect(Collectors.toList());
+
+        int total = term.size();
+        int approved = (int) term.stream()
                 .filter(a -> "APPROVED".equals(a.getStatus()) || "COMPLETED".equals(a.getStatus()))
                 .count();
-        int completed = (int) all.stream()
+        int completed = (int) term.stream()
                 .filter(a -> "COMPLETED".equals(a.getStatus()))
                 .count();
         int overdue = (int) all.stream()
@@ -344,10 +353,10 @@ public class StudentQueryService {
                 .count();
 
         // 本学期概览（首页 D 态：离校 X 次 / 校内 Y 次 / 平均 Z 天）
-        long offCount = all.stream().filter(a -> "OFF_CAMPUS".equals(a.getLeaveScene())).count();
+        long offCount = term.stream().filter(a -> "OFF_CAMPUS".equals(a.getLeaveScene())).count();
         long onCount = total - offCount;
-        double avgDays = all.isEmpty() ? 0
-                : all.stream()
+        double avgDays = term.isEmpty() ? 0
+                : term.stream()
                     .mapToLong(a -> Duration.between(a.getStartTime(), a.getEndTime()).toMinutes())
                     .average().orElse(0) / 1440.0;
 
@@ -359,7 +368,23 @@ public class StudentQueryService {
         m.put("offCampusCount", offCount);
         m.put("onCampusCount", onCount);
         m.put("averageDays", Math.round(avgDays * 10) / 10.0);   // 保留 1 位小数
+        m.put("termStart", currentTermStart(now.toLocalDate()).toString());  // 前端可显示"自 9 月 1 日起"
         return m;
+    }
+
+    /**
+     * 当前学期起始日。
+     *
+     * <p>不引入 term 表：毕设只有一个学校、一套校历，用固定规则比建表更省事，
+     * 也不会出现"学期表没维护导致统计为空"的问题。
+     * 规则：9—12 月属秋季学期（9/1 起），1 月沿用上一年 9/1，2—8 月属春季学期（2/1 起）。
+     */
+    private LocalDate currentTermStart(LocalDate today) {
+        int y = today.getYear();
+        int m = today.getMonthValue();
+        if (m >= 9) return LocalDate.of(y, 9, 1);
+        if (m == 1) return LocalDate.of(y - 1, 9, 1);
+        return LocalDate.of(y, 2, 1);
     }
 
     // ==================== 5.3 申请列表 ====================
