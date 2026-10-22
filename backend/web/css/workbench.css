@@ -391,3 +391,36 @@
 .wb-recent .tbl tbody tr:last-child td { border-bottom: 1px solid transparent; }
 .wb-recent { padding-bottom: 8px; }
 .wb-recent .wb-card-head { padding-bottom: 8px; }
+
+/* ---------- 设计稿素材接入 ---------- */
+/* PNG 图标：统一 contain，避免拉伸变形 */
+.png-icon { object-fit: contain; display: block; }
+
+/* 欢迎卡换成整张插画（图中已含文案气泡）。
+   注意：卡片原来是 flex 容器，插画作为 flex item 会被 flex-basis 压小，
+   这里改成 block + 固定高度，插画才能撑满卡片宽度。 */
+.welcome-card {
+  display: block;
+  padding: 12px 14px;
+  min-height: 0;
+}
+.welcome-art {
+  width: 100%;
+  height: 132px;
+  flex: none;
+  background: url("../assets/welcome-bear.png") center / contain no-repeat;
+  /* 素材是米白底的 PNG，multiply 让白底与浅绿卡片融合，看不出方形色块；
+     叠底会把整体压淡，补一点饱和度和对比度找回原图的饱满色 */
+  mix-blend-mode: multiply;
+  filter: saturate(1.28) contrast(1.08);
+}
+
+/* 空态插画 */
+.empty-art {
+  width: 150px;
+  height: 116px;
+  margin: 0 auto 12px;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}

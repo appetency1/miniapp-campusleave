@@ -171,22 +171,22 @@
   var MENU = [
     {
       title: '',
-      items: [{ key: 'workbench', label: '工作台', icon: 'home', href: '#/workbench' }]
+      items: [{ key: 'workbench', label: '工作台', icon: 'gauge', href: '#/workbench' }]
     },
     {
       title: '审批',
       items: [
         { key: 'pending', label: '待审批', icon: 'clipboard', href: '#/pending', count: function () { return pendingQueue().length; }, alert: true },
-        { key: 'review', label: '异常核验', icon: 'plus-circle', href: '#/review', count: function () { return reviewQueue().length; } }
+        { key: 'review', label: '异常核验', icon: 'checklist', href: '#/review', count: function () { return reviewQueue().length; } }
       ]
     },
     {
       title: '记录',
-      items: [{ key: 'records', label: '申请记录', icon: 'doc', href: '#/records' }]
+      items: [{ key: 'records', label: '申请记录', icon: 'folder', href: '#/records' }]
     },
     {
       title: '学生',
-      items: [{ key: 'students', label: '学生管理', icon: 'user', href: '#/students' }]
+      items: [{ key: 'students', label: '学生管理', icon: 'person', href: '#/students' }]
     }
   ];
 
@@ -202,6 +202,15 @@
       ]
     }
   ];
+
+  /* 设计稿切出来的 PNG 图标；不在这张表里的（管理端那几个）继续用内联 SVG */
+  var PNG_ICON_NAMES = {
+    gauge: 1, clipboard: 1, checklist: 1, folder: 1, person: 1,
+    bell: 1, 'calendar-clock': 1, book: 1
+  };
+  function navIcon(name) {
+    return PNG_ICON_NAMES[name] ? ui.pngIcon(name) : ui.icon(name);
+  }
 
   /** 当前角色对应的菜单。角色存在 sessionStorage 里，刷新后仍能识别。 */
   function menuOf() {
@@ -236,7 +245,7 @@
           href: it.href,
           dataset: { label: it.label }
         });
-        a.appendChild(el('span', { class: 'nav-glyph' }, [ui.icon(it.icon)]));
+        a.appendChild(el('span', { class: 'nav-glyph' }, [navIcon(it.icon)]));
         a.appendChild(el('span', { class: 'nav-label', text: it.label }));
         if (it.count) {
           var n = it.count();
@@ -306,7 +315,7 @@
        红点表示有待办，没有待办就不显示。 */
     var hasTodo = isAdmin ? false : pendingQueue().length > 0;
     var bell = el('button', { class: 'top-bell', attrs: { type: 'button', 'aria-label': '通知' } }, [
-      ui.icon('bell'),
+      ui.pngIcon('bell', 19),
       hasTodo ? el('i', { class: 'top-bell-dot' }) : null
     ]);
     bell.addEventListener('click', function (e) {

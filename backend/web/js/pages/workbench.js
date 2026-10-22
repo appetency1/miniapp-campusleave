@@ -224,7 +224,7 @@
 
       if (!rows.length) {
         listBox.appendChild(ui.empty({
-          icon: state.tab === 'pending' ? 'check' : 'file',
+          art: 'assets/asset-stationery.png',
           title: state.tab === 'pending' ? '没有待审批的申请。' : '这一栏目前是空的。',
           note: state.tab === 'pending'
             ? '新的申请提交后会出现在这里。'
@@ -265,7 +265,7 @@
       }));
     } else {
       recentCard.appendChild(ui.empty({
-        icon: 'clock',
+        art: 'assets/asset-stationery.png',
         title: '还没有处理记录。',
         note: '审批过的申请会出现在这里。'
       }));
@@ -273,11 +273,8 @@
     main.appendChild(recentCard);
 
     /* ---------- 右栏：3 张独立卡 ---------- */
+    // 小熊图里已经含「辛苦了，老师！」气泡，所以不再单独渲染文字
     side.appendChild(el('div', { class: 'welcome-card' }, [
-      el('div', { class: 'welcome-text' }, [
-        el('div', { text: '辛苦了，' }),
-        el('div', { text: '老师！' })
-      ]),
       el('div', { class: 'welcome-art' })
     ]));
 
@@ -286,12 +283,12 @@
     ]);
     [
       { label: '待审批', value: pendingApps.length, ico: 'clipboard', href: '#/pending' },
-      { label: '在假', value: wb.inProgressCount || 0, ico: 'clock', href: '#/records' },
-      { label: '待核验', value: reviewApps.length, ico: 'user', href: '#/review', warn: reviewApps.length > 0 },
-      { label: '待处理续假', value: wb.pendingExtensionCount || 0, ico: 'doc', href: '#/pending/ext' }
+      { label: '在假', value: wb.inProgressCount || 0, ico: 'calendar-clock', href: '#/records' },
+      { label: '待核验', value: reviewApps.length, ico: 'checklist', href: '#/review', warn: reviewApps.length > 0 },
+      { label: '待处理续假', value: wb.pendingExtensionCount || 0, ico: 'book', href: '#/pending/ext' }
     ].forEach(function (q) {
       quick.appendChild(el('a', { class: 'quick-row', href: q.href }, [
-        icon(q.ico),
+        ui.pngIcon(q.ico, 16),
         el('span', { text: q.label }),
         el('span', { class: 'q-val' + (q.warn ? ' q-val--warn' : ''), text: String(q.value) }),
         el('span', { class: 'q-arrow' }, [icon('chevron')])

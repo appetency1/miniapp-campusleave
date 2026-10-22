@@ -82,6 +82,16 @@
     return span;
   }
 
+  /** 设计稿切出来的 PNG 图标（assets/icon-*.png，128×128 透明底） */
+  function pngIcon(name, size) {
+    var s = size || 17;
+    return el('img', {
+      class: 'png-icon',
+      attrs: { src: 'assets/icon-' + name + '.png', alt: '', 'aria-hidden': 'true' },
+      style: { width: s + 'px', height: s + 'px' }
+    });
+  }
+
   /* ---------------- 时间 ---------------- */
   function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -244,7 +254,11 @@
   function empty(o) {
     o = o || {};
     var box = el('div', { class: 'empty' });
-    if (o.icon) box.appendChild(el('div', { class: 'empty-icon' }, [icon(o.icon)]));
+    if (o.art) {
+      box.appendChild(el('div', { class: 'empty-art', style: { backgroundImage: 'url(' + o.art + ')' } }));
+    } else if (o.icon) {
+      box.appendChild(el('div', { class: 'empty-icon' }, [icon(o.icon)]));
+    }
     box.appendChild(el('div', { class: 'empty-title', text: o.title || '—' }));
     if (o.note) box.appendChild(el('div', { class: 'empty-note', text: o.note }));
     return box;
@@ -448,6 +462,7 @@
     frag: frag,
     append: append,
     icon: icon,
+    pngIcon: pngIcon,
     esc: esc,
     pageHead: pageHead,
     parse: parse,

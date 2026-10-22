@@ -58,6 +58,8 @@ body[data-role="app"] #login-root { display: none; }
 .side-art {
   height: 118px;
   background: url("../assets/side-art.png") center bottom / contain no-repeat;
+  mix-blend-mode: multiply;
+  filter: saturate(1.2) contrast(1.05);
 }
 .side-motto {
   margin-top: 6px;
