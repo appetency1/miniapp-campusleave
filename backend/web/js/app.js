@@ -409,7 +409,7 @@
   var FS_KEY = 'cl_font_scale';
 
   function initFontScale() {
-    var val = 1.08;
+    var val = 1.10;
     try {
       var saved = parseFloat(localStorage.getItem(FS_KEY));
       if (!isNaN(saved) && saved >= 0.9 && saved <= 1.4) val = saved;
