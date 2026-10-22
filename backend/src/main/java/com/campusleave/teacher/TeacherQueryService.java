@@ -116,6 +116,39 @@ public class TeacherQueryService {
         r.put("overdueCount", overdue);
         r.put("pendingExtensionCount", pendingExt);
         r.put("todos", todos);
+
+        /* ---- 工作台右侧「最近处理」：最近 5 条已终结的申请 ---- */
+        List<LeaveApplication> recent = all.stream()
+                .filter(a -> !"PENDING".equals(a.getStatus()))
+                .sorted(Comparator.comparing(LeaveApplication::getUpdatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(5)
+                .collect(Collectors.toList());
+        r.put("recentProcessed", enrich(recent, now));
+
+        /* ---- 工作台右侧「今日概况」：今天的审批动作计数 ---- */
+        java.time.LocalDate today = now.toLocalDate();
+        long processedToday = all.stream()
+                .filter(a -> a.getApprovedAt() != null && a.getApprovedAt().toLocalDate().equals(today))
+                .count();
+        long approvedToday = all.stream()
+                .filter(a -> a.getApprovedAt() != null && a.getApprovedAt().toLocalDate().equals(today))
+                .filter(a -> "APPROVED".equals(a.getStatus()) || "COMPLETED".equals(a.getStatus()))
+                .count();
+        long rejectedToday = all.stream()
+                .filter(a -> a.getApprovedAt() != null && a.getApprovedAt().toLocalDate().equals(today))
+                .filter(a -> "REJECTED".equals(a.getStatus()))
+                .count();
+        long cancelledToday = all.stream()
+                .filter(a -> a.getCancelledAt() != null && a.getCancelledAt().toLocalDate().equals(today))
+                .count();
+        Map<String, Object> todayStats = new LinkedHashMap<>();
+        todayStats.put("processed", processedToday);
+        todayStats.put("approved", approvedToday);
+        todayStats.put("rejected", rejectedToday);
+        todayStats.put("cancelled", cancelledToday);
+        r.put("todayStats", todayStats);
+
         return r;
     }
 

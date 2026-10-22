@@ -1,232 +1,313 @@
 /* ============================================================
-   workbench.js —— 工作台：指标带 / 今日请假带 / 待办表
+   pages/workbench.js —— 教师工作台（按设计稿重做）
+
+   布局：左主区（问候 / 待办横幅 / 三个 tab / 待办卡片 / 最近处理）
+        + 右栏（欢迎卡 / 快捷统计 / 今日概况）
+
+   数据来源：window.STORE
+   - workbench 接口：pendingCount / inProgressCount / abnormalCount /
+     pendingExtensionCount / todos / recentProcessed / todayStats
+   - apps（记录列表）：待办卡片要班级、时间区间、提交时间，todos 里没有，
+     所以列表直接过滤 apps，保证字段齐全。
    ============================================================ */
 (function () {
   var ADMIN = window.ADMIN;
   var ui = ADMIN.ui;
   var el = ui.el;
+  var icon = ui.icon;
 
-  var DAY = 86400000;
+  var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
-  function weekday(n) { return '周' + '日一二三四五六'[n]; }
+  function pad2(n) { return String(n).padStart(2, '0'); }
 
-  function headMeta() {
-    var d = new Date();
-    var scope = ADMIN.state.scope === 'all' ? '计算机2301 / 2302' : ADMIN.state.scope;
-    var n = ADMIN.store.pending().length;
-    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + weekday(d.getDay()) + ' · ' + scope + ' · ' + n + ' 条待处理';
+  /** '2026-10-22 11:30' -> Date（后端统一这个格式，补秒再解析） */
+  function parseDT(s) {
+    if (!s) return null;
+    var d = new Date(String(s).replace(' ', 'T') + ':00');
+    return isNaN(d.getTime()) ? null : d;
   }
 
-  /* ---------------- 今日请假带 ---------------- */
-  function buildBand(apps, summary) {
-    var band = el('div', { class: 'band' });
-    var dayStart = ui.startOfDay(new Date()).getTime();
-    var dayEnd = dayStart + DAY;
-    var now = new Date();
-    var nowPct = (now.getHours() * 60 + now.getMinutes()) / 1440 * 100;
+  function hm(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  function dayLabel(d) { return (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
 
-    // 基线
-    band.appendChild(el('div', { class: 'band-base' }));
-
-    // 刻度：每 2h 一根 6px，每 6h 一根 10px
-    for (var h = 0; h <= 24; h += 2) {
-      var major = h % 6 === 0;
-      band.appendChild(el('div', {
-        class: 'band-tick' + (major ? ' band-tick--major' : ''),
-        style: { left: (h / 24 * 100) + '%', height: major ? '10px' : '6px' }
-      }));
+  /** 同一天只写一次日期：10月22日 11:30 — 12:30 */
+  function rangeText(start, end) {
+    var s = parseDT(start), e = parseDT(end);
+    if (!s || !e) return '';
+    if (s.toDateString() === e.toDateString()) {
+      return dayLabel(s) + ' ' + hm(s) + ' — ' + hm(e);
     }
-
-    // 轴标 00 06 12 18 24
-    [0, 6, 12, 18, 24].forEach(function (h) {
-      var style;
-      if (h === 0) style = { left: '0' };
-      else if (h === 24) style = { right: '0' };
-      else style = { left: (h / 24 * 100) + '%' };
-      band.appendChild(el('div', {
-        class: 'band-lab' + (h === 0 || h === 24 ? '' : ' band-lab--mid'),
-        style: style,
-        text: ui.pad2(h)
-      }));
-    });
-
-    // 泳道：最多 8 条，按 start 升序自上而下
-    var shown = apps.slice(0, 8);
-    var n = shown.length;
-
-    shown.forEach(function (app, i) {
-      var s = Math.max(ui.parse(app.start).getTime(), dayStart);
-      var e = Math.min(ui.parse(app.end).getTime(), dayEnd - 60000);
-      if (e <= s) return;
-
-      var left = (s - dayStart) / DAY * 100;
-      var width = Math.max((e - s) / DAY * 100, 0.6);
-      var bottom = 18 + (n - 1 - i) * 7;
-
-      var lane = el('div', { class: 'band-lane', style: { bottom: bottom + 'px' } });
-      var live = ADMIN.store.liveState(app);
-      var tone = 'is-done';
-      if (app.status === 'PENDING') tone = 'is-pending';
-      else if (live === 'IN_PROGRESS') tone = 'is-live';
-      else if (live === 'OVERDUE') tone = 'is-over';
-
-      var bar = el('div', {
-        class: 'band-bar ' + tone,
-        dataset: { id: String(app.id) },
-        style: { left: left + '%', width: width + '%' }
-      });
-
-      // 跨天裁剪：被裁的一端画 2px 竖线
-      if (ui.parse(app.start).getTime() < dayStart) bar.appendChild(el('div', { class: 'band-cap band-cap--l' }));
-      if (ui.parse(app.end).getTime() > dayEnd) bar.appendChild(el('div', { class: 'band-cap band-cap--r' }));
-      if (tone === 'is-over') bar.appendChild(el('div', { class: 'band-flag' }));
-
-      lane.appendChild(bar);
-      band.appendChild(lane);
-
-      // hover 标签
-      var midPct = left + width / 2;
-      var endDate = ui.parse(app.end);
-      var endLabel = ui.dayWord(endDate) === '今天' ? ui.hm(endDate) : ui.dayWord(endDate) + ' ' + ui.hm(endDate);
-      var tip = el('div', {
-        class: 'band-tip' + (midPct < 20 ? ' band-tip--l' : midPct > 80 ? ' band-tip--r' : ''),
-        style: { left: midPct + '%' },
-        text: app.studentName + ' · ' + app.scene + '·' + app.type + ' · 至 ' + endLabel
-      });
-      tip.style.display = 'none';
-      band.appendChild(tip);
-
-      bar.addEventListener('mouseenter', function () {
-        bar.classList.add('is-hot');
-        tip.style.display = 'block';
-      });
-      bar.addEventListener('mouseleave', function () {
-        bar.classList.remove('is-hot');
-        tip.style.display = 'none';
-      });
-    });
-
-    // 第 9 条起
-    if (apps.length > 8) {
-      band.appendChild(el('div', {
-        class: 'band-over',
-        text: '+' + (apps.length - 8) + ' 条'
-      }));
-    }
-
-    // 现在线
-    band.appendChild(el('div', { class: 'band-now', style: { left: nowPct + '%' } }));
-    band.appendChild(el('div', { class: 'band-now-sq', style: { left: nowPct + '%' } }));
-    band.appendChild(el('div', {
-      class: 'band-now-lab' + (nowPct > 88 ? ' band-now-lab--r' : ''),
-      style: { left: nowPct + '%' },
-      text: '现在 ' + ui.hm(now)
-    }));
-
-    // 常驻读数
-    band.appendChild(el('div', {
-      class: 'band-read' + (nowPct > 80 ? ' band-read--l' : ''),
-      text: summary.live.length + ' 人在假 · ' + summary.overdue.length + ' 逾期'
-    }));
-
-    return band;
+    return dayLabel(s) + ' ' + hm(s) + ' — ' + dayLabel(e) + ' ' + hm(e);
   }
 
-  /* ---------------- 页面 ---------------- */
+  /** 已等待多久：分钟 / 小时 / 天 */
+  function waitText(from) {
+    var t = parseDT(from);
+    if (!t) return '';
+    var mins = Math.max(0, Math.round((Date.now() - t.getTime()) / 60000));
+    if (mins < 1) return '刚刚提交';
+    if (mins < 60) return '已等待 ' + mins + ' 分钟';
+    if (mins < 1440) return '已等待 ' + Math.floor(mins / 60) + ' 小时';
+    return '已等待 ' + Math.floor(mins / 1440) + ' 天';
+  }
+
+  function greeting() {
+    var h = new Date().getHours();
+    if (h < 6) return '凌晨好';
+    if (h < 12) return '上午好';
+    if (h < 14) return '中午好';
+    if (h < 18) return '下午好';
+    return '晚上好';
+  }
+
+  /** 头像：优先 assets/avatar-{n}.png，加载失败回退姓名首字 */
+  function avatarOf(name, seed) {
+    var box = el('span', { class: 'todo-avatar' }, [
+      el('span', { text: (name || '?').slice(0, 1) })
+    ]);
+    var n = (Math.abs(seed || 1) % 8) + 1;
+    var img = el('img', { attrs: { src: 'assets/avatar-' + n + '.png', alt: '' } });
+    img.addEventListener('error', function () { img.remove(); });
+    box.appendChild(img);
+    return box;
+  }
+
+  function pillLabel(status) {
+    var map = {
+      APPROVED: '已通过', COMPLETED: '已销假', REJECTED: '已驳回',
+      CANCELLED: '已取消', WITHDRAWN: '已撤回', PENDING: '待审批'
+    };
+    return map[status] || status;
+  }
+
+  function pillTone(status) {
+    if (status === 'COMPLETED' || status === 'APPROVED') return 'pill--green';
+    if (status === 'REJECTED') return 'pill--red';
+    if (status === 'PENDING') return 'pill--amber';
+    return 'pill--gray';
+  }
+
   ADMIN.pages.workbench = function (page) {
     page.className = 'page page--scroll';
-    ADMIN.shell.crumbs([]);
 
-    var summary = ADMIN.store.summary();
-    var pending = summary.pending;
+    var wb = STORE.workbench || {};
+    var apps = STORE.apps || [];
 
-    page.appendChild(ui.pageHead({ title: '工作台', meta: headMeta() }));
-
-    /* 指标带 */
-    var band = el('div', { class: 'stat-band' }, [
-      ui.stat({
-        label: '待审批',
-        value: pending.length,
-        sub: pending.length ? '最早已等 ' + Math.floor(ui.waitHours(pending[0].submittedAt)) + ' 小时' : '没有积压',
-        onClick: function () { ADMIN.router.go('/pending'); }
-      }),
-      ui.stat({
-        label: '在假',
-        value: summary.live.length,
-        sub: '含逾期 ' + summary.overdue.length,
-        onClick: function () { ADMIN.router.go('/records?eff=IN_PROGRESS'); }
-      }),
-      ui.stat({
-        label: '待核验',
-        value: summary.review.length,
-        sub: summary.review.length ? '最久已等 ' + Math.floor(ui.waitHours(summary.review[0].checkin.time)) + ' 小时' : '没有待核验',
-        onClick: function () { ADMIN.router.go('/review'); }
-      }),
-      ui.stat({
-        label: '待处理续假',
-        value: summary.extensions.length,
-        sub: summary.extensions.length ? '申请延长 ' + summary.extHours + ' 小时' : '没有待处理',
-        onClick: function () { ADMIN.router.go('/pending/ext'); }
-      })
-    ]);
-    page.appendChild(band);
-
-    /* 今日请假带 */
-    var today = ADMIN.store.todayApps();
-    page.appendChild(buildBand(today, summary));
-
-    /* 待办表 */
-    if (!pending.length) {
-      page.appendChild(ui.empty({
-        title: '今天没有待办，最近一次审批在昨天 15:32。',
-        note: '新申请会出现在左侧「待审批」，并按提交时间排序。'
-      }));
-      return;
-    }
-
-    var rows = pending.slice(0, 2);
-    var wrap = el('div');
-    var barById = {};
-
-    var tbl = ui.table({
-      cols: [
-        { label: '类型', width: 96, render: function (a) { return a.scene + '·' + a.type; } },
-        { label: '学生', width: 120, render: function (a) { return a.studentName; } },
-        {
-          label: '摘要',
-          render: function (a) {
-            return el('span', {
-              style: { color: 'var(--ink-2)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-              text: a.reason
-            });
-          }
-        },
-        {
-          label: '时间',
-          width: 200,
-          align: 'right',
-          render: function (a) {
-            return el('span', { class: 'num', style: { color: 'var(--ink-2)' }, text: ui.fmtTime(a.submittedAt, 'md') + ' ' + ui.hm(ui.parse(a.submittedAt)) });
-          }
-        }
-      ],
-      rows: rows,
-      rowKey: 'id',
-      onRowClick: function (a) { ADMIN.router.go('/pending/' + a.id); },
-      onRowHover: function (a, tr, on) {
-        var b = page.querySelector('.band-bar[data-id="' + a.id + '"]');
-        if (b) b.classList.toggle('is-hot', on);
-      }
+    /* 三类待办：待审批 / 待核验 / 即将开始 */
+    var pendingApps = apps.filter(function (a) { return a.status === 'PENDING'; });
+    var reviewApps = apps.filter(function (a) {
+      return (a.checkins || []).some(function (c) { return c.review === 'PENDING_REVIEW'; });
     });
-    wrap.appendChild(tbl);
+    var soonApps = apps.filter(function (a) { return a.effective === 'WAITING_START'; });
 
-    if (pending.length > 2) {
-      var foot = el('div', { class: 'tbl-foot' }, [
-        el('span', { text: '还有 ' + (pending.length - 2) + ' 条 ·' }),
-        el('a', { class: 'link', href: '#/pending', text: '查看全部 →' })
+    var state = { tab: 'pending' };
+
+    var root = el('div', { class: 'wb' });
+    var main = el('div', { class: 'wb-main' });
+    var side = el('div', { class: 'wb-side' });
+    root.appendChild(main);
+    root.appendChild(side);
+    page.appendChild(root);
+
+    /* ---------- 问候 ---------- */
+    var now = new Date();
+    main.appendChild(el('div', { class: 'wb-greet' }, [
+      el('h1', { text: greeting() + '，' + (STORE.teacher.name || '老师') }),
+      el('div', {
+        class: 'wb-date',
+        text: (now.getMonth() + 1) + '月' + now.getDate() + '日 · ' + WEEK[now.getDay()]
+      })
+    ]));
+
+    /* ---------- 待办横幅 ---------- */
+    main.appendChild(el('div', { class: 'wb-banner' }, [
+      el('span', { class: 'wb-banner-icon' }, [icon('clipboard')]),
+      el('div', {}, [
+        el('div', { class: 'wb-banner-title' }, [
+          el('span', { text: '今天有 ' }),
+          el('b', { text: String(pendingApps.length) }),
+          el('span', { text: ' 条申请需要你处理' })
+        ]),
+        el('div', { class: 'wb-banner-sub', text: '请及时查看并完成审批' })
+      ]),
+      el('button', {
+        class: 'btn btn--primary btn--sm',
+        attrs: { type: 'button' },
+        text: '查看全部 ›',
+        onClick: function () { location.hash = '#/pending'; }
+      })
+    ]));
+
+    /* ---------- 三个 tab ---------- */
+    var TABS = [
+      { key: 'pending', label: '待审批', count: pendingApps.length },
+      { key: 'review', label: '异常核验', count: reviewApps.length },
+      { key: 'soon', label: '近期关注', count: 0 }
+    ];
+    var tabs = el('div', { class: 'wb-tabs' });
+    TABS.forEach(function (t) {
+      tabs.appendChild(el('button', {
+        class: 'wb-tab' + (t.key === state.tab ? ' is-on' : ''),
+        attrs: { type: 'button' },
+        dataset: { key: t.key },
+        onClick: function () {
+          state.tab = t.key;
+          Array.prototype.forEach.call(tabs.children, function (n) {
+            n.classList.toggle('is-on', n.dataset.key === t.key);
+          });
+          paintList();
+        }
+      }, [
+        el('span', { text: t.label }),
+        t.count ? el('em', { text: String(t.count) }) : null
+      ]));
+    });
+    main.appendChild(tabs);
+
+    var listBox = el('div', { class: 'wb-list' });
+    main.appendChild(listBox);
+
+    /* ---------- 待办卡片 ---------- */
+    function todoCard(a, isReview) {
+      return el('div', { class: 'todo' }, [
+        avatarOf(a.studentName, a.studentId || a.id),
+        el('div', { class: 'todo-main' }, [
+          el('div', { class: 'todo-head' }, [
+            el('span', { class: 'todo-name', text: a.studentName }),
+            el('span', { class: 'todo-type', text: a.scene + ' · ' + a.type })
+          ]),
+          el('div', {
+            class: 'todo-meta',
+            text: (a.className || '') + ' · ' + rangeText(a.start, a.end)
+          }),
+          el('div', {
+            class: 'todo-sub',
+            text: '提交于 ' + String(a.submittedAt || '').slice(11, 16)
+          })
+        ]),
+        el('div', { class: 'todo-state' }, [
+          isReview
+            ? el('span', { class: 'pill pill--red', text: '异常核验' })
+            : el('span', { class: 'pill pill--amber', text: '待审批' }),
+          el('div', {
+            class: 'todo-wait',
+            text: isReview ? '需核验定位信息' : waitText(a.submittedAt)
+          })
+        ]),
+        el('div', { class: 'todo-acts' }, [
+          el('button', {
+            class: 'btn btn--secondary btn--sm',
+            attrs: { type: 'button' },
+            text: '查看',
+            onClick: function () { location.hash = '#/pending/' + a.id; }
+          }),
+          el('button', {
+            class: 'btn btn--primary btn--sm',
+            attrs: { type: 'button' },
+            text: isReview ? '处理' : '审批',
+            onClick: function () { location.hash = (isReview ? '#/review/' : '#/pending/') + a.id; }
+          })
+        ])
       ]);
-      wrap.appendChild(foot);
     }
-    page.appendChild(wrap);
+
+    function paintList() {
+      listBox.innerHTML = '';
+      var isReview = state.tab === 'review';
+      var rows = isReview ? reviewApps : state.tab === 'soon' ? soonApps : pendingApps;
+
+      if (!rows.length) {
+        listBox.appendChild(el('div', { class: 'wb-card' }, [
+          ui.empty({
+            title: state.tab === 'pending' ? '没有待审批的申请。' : '这一栏目前是空的。',
+            note: state.tab === 'pending'
+              ? '新的申请提交后会出现在这里。'
+              : '切到「待审批」看看还有没有要处理的。'
+          })
+        ]));
+        return;
+      }
+      rows.slice(0, 6).forEach(function (a) { listBox.appendChild(todoCard(a, isReview)); });
+    }
+    paintList();
+
+    /* ---------- 最近处理 ---------- */
+    var recent = wb.recentProcessed || [];
+    var recentCard = el('div', { class: 'wb-card wb-recent' }, [
+      el('div', { class: 'wb-card-head' }, [
+        el('span', { class: 'wb-card-title', text: '最近处理' }),
+        el('a', { class: 'wb-card-more', href: '#/records', text: '查看全部 ›' })
+      ])
+    ]);
+    if (recent.length) {
+      recentCard.appendChild(ui.table({
+        rowKey: 'id',
+        cols: [
+          { label: '学生', render: function (a) { return a.studentName; } },
+          { label: '类型 · 场景', render: function (a) { return a.type + ' · ' + a.scene; } },
+          {
+            label: '时间', render: function (a) {
+              return el('span', { class: 'mono', text: rangeText(a.start, a.end) });
+            }
+          },
+          {
+            label: '状态', align: 'right', width: 96, render: function (a) {
+              return el('span', { class: 'pill ' + pillTone(a.status), text: pillLabel(a.status) });
+            }
+          }
+        ],
+        rows: recent.slice(0, 4)
+      }));
+    } else {
+      recentCard.appendChild(ui.empty({
+        title: '还没有处理记录。',
+        note: '审批过的申请会出现在这里。'
+      }));
+    }
+    main.appendChild(recentCard);
+
+    /* ---------- 右栏 ---------- */
+    side.appendChild(el('div', { class: 'welcome-card' }, [
+      el('div', { class: 'welcome-text' }, [
+        el('div', { text: '辛苦了，' }),
+        el('div', { text: '老师！' })
+      ]),
+      el('div', { class: 'welcome-art' })
+    ]));
+
+    var quick = el('div', { class: 'side-card' }, [
+      el('div', { class: 'side-card-title', text: '快捷统计' })
+    ]);
+    [
+      { label: '待审批', value: pendingApps.length, ico: 'clipboard', href: '#/pending' },
+      { label: '在假', value: wb.inProgressCount || 0, ico: 'clock', href: '#/records' },
+      { label: '待核验', value: reviewApps.length, ico: 'user', href: '#/review', warn: reviewApps.length > 0 },
+      { label: '待处理续假', value: wb.pendingExtensionCount || 0, ico: 'doc', href: '#/pending/ext' }
+    ].forEach(function (q) {
+      quick.appendChild(el('a', { class: 'quick-row', href: q.href }, [
+        icon(q.ico),
+        el('span', { text: q.label }),
+        el('span', { class: 'q-val' + (q.warn ? ' q-val--warn' : ''), text: String(q.value) }),
+        el('span', { class: 'q-arrow' }, [icon('chevron')])
+      ]));
+    });
+    side.appendChild(quick);
+
+    var ts = wb.todayStats || { processed: 0, approved: 0, rejected: 0, cancelled: 0 };
+    var today = el('div', { class: 'side-card' }, [
+      el('div', { class: 'side-card-title', text: '今日概况' })
+    ]);
+    [
+      { label: '今日已处理', value: ts.processed, cls: '' },
+      { label: '已通过', value: ts.approved, cls: 'ok' },
+      { label: '已取回', value: ts.rejected, cls: 'bad' },
+      { label: '已取消', value: ts.cancelled, cls: '' }
+    ].forEach(function (s) {
+      today.appendChild(el('div', { class: 'stat-line' }, [
+        el('span', { text: s.label }),
+        el('b', { class: s.cls, text: String(s.value) })
+      ]));
+    });
+    side.appendChild(today);
   };
 })();

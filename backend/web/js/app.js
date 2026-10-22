@@ -170,22 +170,23 @@
   /* ---------------- 菜单 ---------------- */
   var MENU = [
     {
-      title: '概览',
-      items: [{ key: 'workbench', label: '工作台', icon: 'dashboard', href: '#/workbench' }]
+      title: '',
+      items: [{ key: 'workbench', label: '工作台', icon: 'home', href: '#/workbench' }]
     },
     {
       title: '审批',
       items: [
-        { key: 'pending', label: '待审批', icon: 'inbox', href: '#/pending', count: function () { return pendingQueue().length; } },
-        { key: 'review', label: '异常核验', icon: 'shield', href: '#/review', count: function () { return reviewQueue().length; } }
+        { key: 'pending', label: '待审批', icon: 'clipboard', href: '#/pending', count: function () { return pendingQueue().length; }, alert: true },
+        { key: 'review', label: '异常核验', icon: 'plus-circle', href: '#/review', count: function () { return reviewQueue().length; } }
       ]
     },
     {
-      title: '台账',
-      items: [
-        { key: 'records', label: '申请记录', icon: 'list', href: '#/records' },
-        { key: 'students', label: '学生', icon: 'users', href: '#/students' }
-      ]
+      title: '记录',
+      items: [{ key: 'records', label: '申请记录', icon: 'doc', href: '#/records' }]
+    },
+    {
+      title: '学生',
+      items: [{ key: 'students', label: '学生管理', icon: 'user', href: '#/students' }]
     }
   ];
 
@@ -227,9 +228,8 @@
     nav.innerHTML = '';
     var active = activeKey();
     menuOf().forEach(function (group) {
-      var wrap = el('div', { class: 'nav-group' }, [
-        el('div', { class: 'nav-title', text: group.title })
-      ]);
+      var wrap = el('div', { class: 'nav-group' }, []);
+      if (group.title) wrap.appendChild(el('div', { class: 'nav-title', text: group.title }));
       group.items.forEach(function (it) {
         var a = el('a', {
           class: 'nav-item' + (active === it.key ? ' is-on' : ''),
@@ -240,7 +240,7 @@
         a.appendChild(el('span', { class: 'nav-label', text: it.label }));
         if (it.count) {
           var n = it.count();
-          if (n) a.appendChild(el('span', { class: 'count', text: String(n) }));
+          if (n) a.appendChild(el('span', { class: 'count' + (it.alert ? ' count--alert' : ''), text: String(n) }));
         }
         wrap.appendChild(a);
       });
@@ -259,10 +259,10 @@
 
   function dropdown(label, items) {
     var dd = el('div', { class: 'dd' });
-    var btn = el('button', { class: 'dd-btn', attrs: { type: 'button' } }, [
-      el('span', { text: label }),
-      ui.icon('chevron')
-    ]);
+    var btn = el('button', { class: 'dd-btn', attrs: { type: 'button' } }, []);
+    if (typeof label === 'string') btn.appendChild(el('span', { text: label }));
+    else if (label) btn.appendChild(label);
+    btn.appendChild(ui.icon('chevron'));
     var menu = el('div', { class: 'dd-menu', attrs: { role: 'menu' } });
     items.forEach(function (it) {
       if (it.sep) { menu.appendChild(el('div', { class: 'dd-sep' })); return; }
@@ -294,14 +294,7 @@
     top.innerHTML = '';
 
     var isAdmin = ADMIN.api.role() === 'ADMIN';
-
-    var scopeLabel = state.scope === 'all' ? '班级范围' : state.scope;
-    // 班级范围从 STORE 动态生成：原来写死了计算机2301/2302，换班级数据就对不上
-    var classNames = (STORE.teacher.classList || []).map(function (c) { return c.name; });
-    var scopeItems = [{ label: '全部班级', on: state.scope === 'all', onClick: function () { setScope('all'); } }]
-      .concat(classNames.map(function (name) {
-        return { label: name, on: state.scope === name, onClick: function () { setScope(name); } };
-      }));
+    var name = STORE.teacher.name || '';
 
     var accountItems = [
       { label: '个人信息', onClick: function () { router.go(isAdmin ? '/admin/users' : '/profile'); } },
@@ -309,12 +302,30 @@
       { label: '退出登录', onClick: function () { logout(); } }
     ];
 
-    // 管理员看全校数据，没有"带班范围"这个概念，这个下拉对他没意义
-    if (!isAdmin) {
-      top.appendChild(dropdown(scopeLabel, scopeItems));
-      top.appendChild(el('div', { class: 'top-divider' }));
-    }
-    top.appendChild(dropdown(STORE.teacher.name, accountItems));
+    /* 通知铃铛：点一下去待审批（教师）或账号页（管理员）。
+       红点表示有待办，没有待办就不显示。 */
+    var hasTodo = isAdmin ? false : pendingQueue().length > 0;
+    var bell = el('button', { class: 'top-bell', attrs: { type: 'button', 'aria-label': '通知' } }, [
+      ui.icon('bell'),
+      hasTodo ? el('i', { class: 'top-bell-dot' }) : null
+    ]);
+    bell.addEventListener('click', function (e) {
+      e.stopPropagation();
+      router.go(isAdmin ? '/admin/users' : '/pending');
+    });
+    top.appendChild(bell);
+
+    /* 用户菜单：头像 + 姓名 + 箭头。
+       头像图放 assets/avatar.png，没图时自动回退成姓名首字。 */
+    var avatar = el('span', { class: 'top-avatar' }, [el('span', { text: (name || '?').slice(0, 1) })]);
+    var img = el('img', { attrs: { src: 'assets/avatar.png', alt: '' } });
+    img.addEventListener('error', function () { img.remove(); });
+    avatar.appendChild(img);
+
+    top.appendChild(dropdown(el('span', { class: 'top-user' }, [
+      avatar,
+      el('span', { class: 'top-name', text: name })
+    ]), accountItems));
   }
 
   function setScope(v) {

@@ -23,11 +23,11 @@
 .btn--lg { height: 40px; }
 
 .btn--primary {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--blue-500);
+  color: #fff;
   font-weight: 600;
 }
-.btn--primary:hover { background: var(--ink-hover); }
+.btn--primary:hover { background: var(--blue-600); }
 .btn--primary:active { transform: translateY(1px); }
 
 .btn--secondary {

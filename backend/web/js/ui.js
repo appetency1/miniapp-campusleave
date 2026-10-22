@@ -68,7 +68,12 @@
     user: '<circle cx="8" cy="5.8" r="2.4"/><path d="M3.8 13.2c0-2.2 1.9-3.6 4.2-3.6s4.2 1.4 4.2 3.6"/>',
     grid: '<rect x="2.6" y="2.6" width="10.8" height="10.8" rx="1.4"/><path d="M2.6 6.4h10.8"/><path d="M6.6 6.4v7"/>',
     link: '<path d="M6.6 9.4a2.6 2.6 0 0 1 0-3.7l1.5-1.5a2.6 2.6 0 0 1 3.7 3.7l-.9.9"/><path d="M9.4 6.6a2.6 2.6 0 0 1 0 3.7l-1.5 1.5a2.6 2.6 0 0 1-3.7-3.7l.9-.9"/>',
-    sliders: '<path d="M2.4 5.4h11.2"/><path d="M2.4 10.6h11.2"/><circle cx="5.6" cy="5.4" r="1.7"/><circle cx="10.4" cy="10.6" r="1.7"/>'
+    sliders: '<path d="M2.4 5.4h11.2"/><path d="M2.4 10.6h11.2"/><circle cx="5.6" cy="5.4" r="1.7"/><circle cx="10.4" cy="10.6" r="1.7"/>',
+    home: '<path d="M2.6 6.9L8 2.6l5.4 4.3v6.3a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1z"/><path d="M6.3 13.4V9.3h3.4v4.1"/>',
+    clipboard: '<rect x="3.4" y="3.2" width="9.2" height="10.4" rx="1.4"/><path d="M6.1 3.2V2.2h3.8v1"/><path d="M6 7.6l1.3 1.3 2.5-2.7"/>',
+    'plus-circle': '<circle cx="8" cy="8" r="5.6"/><path d="M8 5.5v5"/><path d="M5.5 8h5"/>',
+    doc: '<path d="M4.1 2.6h5l3 3v7.8H4.1z"/><path d="M9.1 2.6v3h3"/><path d="M6.2 8.6h3.8"/><path d="M6.2 11.1h2.6"/>',
+    bell: '<path d="M4.2 6.7a3.8 3.8 0 1 1 7.6 0c0 2.3.5 3.3 1.1 4H3.1c.6-.7 1.1-1.7 1.1-4z"/><path d="M6.6 12.6a1.5 1.5 0 0 0 2.8 0"/>'
   };
 
   function icon(name) {
