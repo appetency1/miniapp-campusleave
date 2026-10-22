@@ -229,8 +229,8 @@
 
     return '<svg viewBox="0 0 ' + size + ' ' + size + '" class="ah-donut-svg">'
       + paths
-      + '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="10" fill="#7C877F">总计</text>'
-      + '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" font-size="20" font-weight="700" fill="#1F2A24">' + num(total) + '</text>'
+      + '<text x="' + cx + '" y="' + (cy - 7) + '" text-anchor="middle" font-size="9" fill="#7C877F">总计</text>'
+      + '<text x="' + cx + '" y="' + (cy + 15) + '" text-anchor="middle" font-size="18" font-weight="700" fill="#1F2A24">' + num(total) + '</text>'
       + '</svg>';
   }
 
@@ -276,13 +276,13 @@
     STATS.forEach(function (s) {
       var d = s.delta || 0;
       var tone = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
-      var arrow = d > 0 ? '↑' : d < 0 ? '↓' : '—';
+      var deltaText = d === 0 ? '持平' : (d > 0 ? '↑ ' : '↓ ') + Math.abs(d) + ' ' + s.unit;
       statRow.appendChild(el('div', { class: 'ah-stat' }, [
         el('span', { class: 'ah-stat-ico' }, [ui.pngIcon(s.icon, 26)]),
         el('div', { class: 'ah-stat-body' }, [
           el('span', { class: 'ah-stat-label', text: s.label }),
           el('span', { class: 'ah-stat-value', text: num(s.value) }),
-          el('span', { class: 'ah-stat-delta ah-stat-delta--' + tone, text: arrow + ' ' + Math.abs(d) + ' ' + s.unit })
+          el('span', { class: 'ah-stat-delta ah-stat-delta--' + tone, text: deltaText })
         ])
       ]));
     });
@@ -345,12 +345,23 @@
       recentCard.appendChild(ui.table({
         rowKey: 'id',
         cols: [
-          { label: '时间', width: 74, render: function (a) { return el('span', { class: 'wb-time', text: String(a.submittedAt || '').slice(11, 16) }); } },
-          { label: '学生', width: 130, render: function (a) { return a.studentName + '（' + (a.className || '—') + '）'; } },
-          { label: '类型 · 场景', width: 120, render: function (a) { return a.type + ' · ' + a.scene; } },
-          { label: '时间', render: function (a) { return el('span', { class: 'wb-time', text: adminRange(a.start, a.end) }); } },
           {
-            label: '状态', width: 88, render: function (a) {
+            label: '提交', width: 82, render: function (a) {
+              return el('span', { class: 'wb-time', text: String(a.submittedAt || '').slice(11, 16) });
+            }
+          },
+          {
+            label: '学生', width: 176, render: function (a) {
+              return el('span', { class: 'cell-2' }, [
+                el('span', { text: a.studentName }),
+                el('span', { class: 'cell-sub', text: a.className || '—' })
+              ]);
+            }
+          },
+          { label: '类型 · 场景', width: 126, render: function (a) { return a.type + ' · ' + a.scene; } },
+          { label: '请假区间', render: function (a) { return el('span', { class: 'wb-time', text: adminRange(a.start, a.end) }); } },
+          {
+            label: '状态', width: 94, render: function (a) {
               return el('span', { class: 'pill ' + adminPill(a.status, a.effective), text: adminPillText(a.status, a.effective) });
             }
           }
