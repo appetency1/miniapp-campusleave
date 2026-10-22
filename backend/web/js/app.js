@@ -440,49 +440,6 @@
   }
 
 
-  /* ---------------- 字号缩放（右下角滑块） ----------------
-     只缩放字号与行高（--fs），间距不动 —— 这样放大后信息密度不变，
-     卡片自然被内容撑高，不会像整体 zoom 那样把布局一起放大导致溢出。 */
-  var FS_KEY = 'cl_font_scale';
-
-  function initFontScale() {
-    var val = 1.10;
-    try {
-      var saved = parseFloat(localStorage.getItem(FS_KEY));
-      if (!isNaN(saved) && saved >= 0.9 && saved <= 1.4) val = saved;
-    } catch (e) { /* 隐私模式读不到就用默认值 */ }
-
-    document.documentElement.style.setProperty('--fs', String(val));
-
-    var range = el('input', {
-      class: 'fs-range',
-      attrs: { type: 'range', min: '90', max: '140', step: '2', value: String(Math.round(val * 100)) }
-    });
-    var label = el('b', { class: 'fs-val', text: Math.round(val * 100) + '%' });
-    var panel = el('div', { class: 'fs-panel' }, [
-      el('div', { class: 'fs-row' }, [el('span', { text: '显示大小' }), label]),
-      range,
-      el('div', { class: 'fs-hint', text: '拖动调节 · 设置会记住' })
-    ]);
-    var fab = el('button', { class: 'fs-fab', attrs: { type: 'button', title: '显示大小' }, text: 'Aa' });
-    var ctl = el('div', { class: 'fs-ctl' }, [panel, fab]);
-    document.body.appendChild(ctl);
-
-    fab.addEventListener('click', function (e) {
-      e.stopPropagation();
-      ctl.classList.toggle('is-open');
-    });
-    panel.addEventListener('click', function (e) { e.stopPropagation(); });
-    document.addEventListener('click', function () { ctl.classList.remove('is-open'); });
-
-    range.addEventListener('input', function () {
-      var v = parseInt(range.value, 10) / 100;
-      document.documentElement.style.setProperty('--fs', String(v));
-      label.textContent = Math.round(v * 100) + '%';
-      try { localStorage.setItem(FS_KEY, String(v)); } catch (e) { /* 忽略 */ }
-    });
-  }
-
   /* ---------------- 启动 ---------------- */
   function boot() {
     /* 双击打开（file://）时接口永远调不通：相对路径 /api/v1 会被解析成 file:///api/v1。
@@ -521,7 +478,6 @@
     };
 
     registerRoutes();
-    initFontScale();
 
     /* 已登录过（刷新页面）：sessionStorage 里还有 token，先把数据拉齐再渲染，
        否则页面会在 STORE 还是空数组时画出空列表。 */

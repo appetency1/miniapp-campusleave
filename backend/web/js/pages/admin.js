@@ -338,7 +338,7 @@
     var recentCard = el('div', { class: 'wb-card wb-recent' }, [
       el('div', { class: 'wb-card-head' }, [
         el('span', { class: 'wb-card-title', text: '最近申请动态' }),
-        el('a', { class: 'wb-card-more', href: '#/admin/users', text: '全部 ›' })
+        el('a', { class: 'wb-card-more', href: '#/admin/records', text: '全部 ›' })
       ])
     ]);
     if (recent.length) {
@@ -388,13 +388,13 @@
     var todoCard = el('div', { class: 'wb-card side-card' }, [
       el('div', { class: 'wb-card-head ah-side-head' }, [
         el('span', { class: 'wb-card-title', text: '待处理事项' }),
-        el('a', { class: 'wb-card-more', href: '#/admin/users', text: '全部 ›' })
+        el('a', { class: 'wb-card-more', href: '#/admin/apps', text: '全部 ›' })
       ])
     ]);
     [
-      { icon: 'nav-checklist', label: '待审批申请', value: todo.pending || 0, tone: 'amber', href: '#/admin/users' },
-      { icon: 'nav-shield', label: '异常核验', value: todo.pendingReview || 0, tone: 'red', href: '#/admin/users' },
-      { icon: 'nav-doc', label: '待处理续假', value: todo.pendingExtension || 0, tone: 'blue', href: '#/admin/users' }
+      { icon: 'nav-checklist', label: '待审批申请', value: todo.pending || 0, tone: 'amber', href: '#/admin/apps' },
+      { icon: 'nav-shield', label: '异常核验', value: todo.pendingReview || 0, tone: 'red', href: '#/admin/review' },
+      { icon: 'nav-doc', label: '待处理续假', value: todo.pendingExtension || 0, tone: 'blue', href: '#/admin/apps' }
     ].forEach(function (t) {
       todoCard.appendChild(el('a', { class: 'ah-todo-row', href: t.href }, [
         ui.pngIcon(t.icon, 17),
