@@ -6,6 +6,10 @@
 /* ---------- 应用外壳 ---------- */
 .app { display: flex; height: 100vh; overflow: hidden; }
 body[data-role="guest"] .app { display: none; }
+/* 登录成功后必须把登录容器整个移出文档流。
+   #login-root 带 min-height:100vh，只清空 innerHTML 它仍然占满一整屏，
+   和 .app 的 100vh 叠起来就是 2 倍视口高 → 页面能往下滚一屏，底下全是空白。 */
+body[data-role="app"] #login-root { display: none; }
 
 /* ---------- 侧栏 ---------- */
 .sidebar {
