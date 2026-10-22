@@ -643,6 +643,264 @@
     paint();
   };
 
+  /* ================= 1.5 学生管理 ================= */
+
+  ADMIN.pages.adminStudents = function (page) {
+    page.className = 'page page--scroll';
+
+    var all = (STORE.admin.users || []).filter(function (u) { return u.role === 'STUDENT'; });
+    var classes = (STORE.admin.classes || []).filter(function (c) { return c.status === 'ACTIVE'; });
+    var state = { cls: '', kw: '' };
+
+    page.appendChild(ui.pageHead({
+      title: '学生管理',
+      right: [
+        el('div', { class: 'page-meta', text: '共 ' + all.length + ' 名学生' }),
+        headBtn('新建学生', function () { openCreateStudent(); })
+      ]
+    }));
+
+    function uniqClasses() {
+      var m = {};
+      all.forEach(function (u) { if (u.className) m[u.className] = 1; });
+      return Object.keys(m);
+    }
+
+    page.appendChild(statStrip([
+      { label: '学生总数', value: all.length },
+      { label: '覆盖班级', value: uniqClasses().length },
+      { label: '正常账号', value: all.filter(function (u) { return u.status === 'ACTIVE'; }).length },
+      { label: '已停用', value: all.filter(function (u) { return u.status !== 'ACTIVE'; }).length, warn: all.some(function (u) { return u.status !== 'ACTIVE'; }) }
+    ]));
+
+    var bar = el('div', { class: 'tbl-toolbar' });
+    var sel = el('select', { class: 'input input--filter' });
+    sel.appendChild(el('option', { attrs: { value: '' }, text: '全部班级' }));
+    uniqClasses().forEach(function (name) {
+      sel.appendChild(el('option', { attrs: { value: name }, text: name }));
+    });
+    sel.addEventListener('change', function () { state.cls = sel.value; paint(); });
+    bar.appendChild(sel);
+
+    bar.appendChild(el('input', {
+      class: 'input input--search',
+      attrs: { type: 'search', placeholder: '搜索学号 / 姓名', autocomplete: 'off' },
+      onInput: function (e) { state.kw = e.target.value.trim(); paint(); }
+    }));
+    page.appendChild(bar);
+
+    var box = el('div', { class: 'tbl-wrap' });
+    page.appendChild(box);
+
+    function rows() {
+      return all.filter(function (u) {
+        if (state.cls && u.className !== state.cls) return false;
+        if (!state.kw) return true;
+        return (u.studentNo || u.username || '').indexOf(state.kw) >= 0 || (u.realName || '').indexOf(state.kw) >= 0;
+      });
+    }
+
+    function paint() {
+      var list = rows();
+      box.innerHTML = '';
+      if (!list.length) {
+        box.appendChild(ui.empty({ art: 'assets/asset-stationery.png', title: '没有匹配的学生。', note: '换个班级或关键词试试。' }));
+        return;
+      }
+      box.appendChild(ui.table({
+        rowKey: 'id',
+        cols: [
+          { label: '学号', width: 140, render: function (u) { return el('span', { class: 'mono', text: u.studentNo || u.username }); } },
+          { label: '姓名', width: 110, key: 'realName' },
+          { label: '班级', render: function (u) { return u.className || el('span', { class: 'cell-sub', text: '未分班' }); } },
+          { label: '手机', width: 136, render: function (u) { return el('span', { class: 'mono cell-sub', text: u.phone || '—' }); } },
+          {
+            label: '状态', width: 86, render: function (u) {
+              return el('span', { class: 'tag ' + (u.status === 'ACTIVE' ? 'tag--ok' : 'tag--quiet'), text: u.status === 'ACTIVE' ? '正常' : '已停用' });
+            }
+          },
+          {
+            label: '操作', width: 168, align: 'right', render: function (u) {
+              var wrap = el('div', { class: 'row-acts' });
+              wrap.appendChild(el('button', {
+                class: 'link-btn', attrs: { type: 'button' }, text: '重置密码',
+                onClick: function (e) {
+                  e.stopPropagation();
+                  openForm('重置密码 · ' + u.realName, [
+                    { key: 'newPassword', label: '新密码', type: 'password', placeholder: '至少 6 位', hint: '重置后请当面告知本人' }
+                  ], '确认重置', function (v) {
+                    if ((v.newPassword || '').length < 6) throw new Error('密码至少 6 位');
+                    return act(api.put('/admin/users/' + u.id + '/password', { newPassword: v.newPassword }), '密码已重置');
+                  });
+                }
+              }));
+              wrap.appendChild(el('button', {
+                class: 'link-btn ' + (u.status === 'ACTIVE' ? 'link-btn--danger' : ''),
+                attrs: { type: 'button' },
+                text: u.status === 'ACTIVE' ? '停用' : '启用',
+                onClick: function (e) {
+                  e.stopPropagation();
+                  act(api.put('/admin/users/' + u.id + '/status', { status: u.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE' }),
+                    u.status === 'ACTIVE' ? '已停用' : '已启用');
+                }
+              }));
+              return wrap;
+            }
+          }
+        ],
+        rows: list
+      }));
+    }
+
+    function openCreateStudent() {
+      openForm('新建学生', [
+        { key: 'username', label: '学号', placeholder: '如 2023001005' },
+        { key: 'realName', label: '姓名' },
+        { key: 'classId', label: '班级', type: 'select', options: classes.map(function (c) {
+          return { value: c.id, label: c.className };
+        }) },
+        { key: 'phone', label: '手机号', placeholder: '选填' },
+        { key: 'initialPassword', label: '初始密码', placeholder: '默认 123456' }
+      ], '创建', function (v) {
+        if (!v.username || !v.realName) throw new Error('学号与姓名必填');
+        if (!v.classId) throw new Error('必须选择班级');
+        return act(api.post('/admin/users', {
+          username: v.username, realName: v.realName, role: 'STUDENT',
+          studentNo: v.username, classId: Number(v.classId),
+          phone: v.phone, initialPassword: v.initialPassword || '123456'
+        }), '学生已创建');
+      });
+    }
+
+    paint();
+  };
+
+  /* ================= 1.6 教师管理 ================= */
+
+  ADMIN.pages.adminTeachers = function (page) {
+    page.className = 'page page--scroll';
+
+    var all = (STORE.admin.users || []).filter(function (u) { return u.role === 'TEACHER'; });
+    var bindings = STORE.admin.bindings || [];
+    var classes = (STORE.admin.classes || []).filter(function (c) { return c.status === 'ACTIVE'; });
+    var state = { kw: '' };
+
+    /* 注意：teacher-classes 的 teacherId 是 teacher_profile.id，
+       users 列表的 id 是 user.id，两者不是一套主键，不能直接比。
+       用工号（teacher_no，唯一）对齐最稳。 */
+    function classesOf(u) {
+      if (!u.teacherNo) return [];
+      return bindings.filter(function (b) { return b.teacherNo === u.teacherNo; });
+    }
+
+    page.appendChild(ui.pageHead({
+      title: '教师管理',
+      right: [
+        el('div', { class: 'page-meta', text: '共 ' + all.length + ' 名教师' }),
+        headBtn('新建教师', function () { openCreateTeacher(); })
+      ]
+    }));
+
+    var noClass = all.filter(function (t) { return classesOf(t).length === 0; }).length;
+    page.appendChild(statStrip([
+      { label: '教师总数', value: all.length },
+      { label: '已带班', value: all.length - noClass },
+      { label: '未带班', value: noClass, warn: noClass > 0 },
+      { label: '绑定关系', value: bindings.length }
+    ]));
+
+    var bar = el('div', { class: 'tbl-toolbar' });
+    bar.appendChild(el('input', {
+      class: 'input input--search',
+      attrs: { type: 'search', placeholder: '搜索工号 / 姓名 / 院系', autocomplete: 'off' },
+      onInput: function (e) { state.kw = e.target.value.trim(); paint(); }
+    }));
+    page.appendChild(bar);
+
+    var box = el('div', { class: 'tbl-wrap' });
+    page.appendChild(box);
+
+    function paint() {
+      var list = all.filter(function (u) {
+        if (!state.kw) return true;
+        return [u.teacherNo, u.realName, u.department].some(function (x) {
+          return (x || '').indexOf(state.kw) >= 0;
+        });
+      });
+      box.innerHTML = '';
+      if (!list.length) {
+        box.appendChild(ui.empty({ art: 'assets/asset-stationery.png', title: '没有匹配的教师。', note: '换个关键词试试。' }));
+        return;
+      }
+      box.appendChild(ui.table({
+        rowKey: 'id',
+        cols: [
+          { label: '工号', width: 130, render: function (u) { return el('span', { class: 'mono', text: u.teacherNo || u.username }); } },
+          { label: '姓名', width: 110, key: 'realName' },
+          { label: '院系', width: 170, render: function (u) { return u.department || '—'; } },
+          {
+            label: '负责班级', render: function (u) {
+              var bs = classesOf(u);
+              if (!bs.length) return el('span', { class: 'cell-sub', text: '未绑定班级' });
+              return el('span', { class: 'cell-2' }, bs.map(function (b) {
+                return el('span', { class: 'chk-chip', text: b.className });
+              }));
+            }
+          },
+          { label: '手机', width: 136, render: function (u) { return el('span', { class: 'mono cell-sub', text: u.phone || '—' }); } },
+          {
+            label: '操作', width: 168, align: 'right', render: function (u) {
+              var wrap = el('div', { class: 'row-acts' });
+              wrap.appendChild(el('button', {
+                class: 'link-btn', attrs: { type: 'button' }, text: '重置密码',
+                onClick: function (e) {
+                  e.stopPropagation();
+                  openForm('重置密码 · ' + u.realName, [
+                    { key: 'newPassword', label: '新密码', type: 'password', placeholder: '至少 6 位' }
+                  ], '确认重置', function (v) {
+                    if ((v.newPassword || '').length < 6) throw new Error('密码至少 6 位');
+                    return act(api.put('/admin/users/' + u.id + '/password', { newPassword: v.newPassword }), '密码已重置');
+                  });
+                }
+              }));
+              wrap.appendChild(el('button', {
+                class: 'link-btn ' + (u.status === 'ACTIVE' ? 'link-btn--danger' : ''),
+                attrs: { type: 'button' },
+                text: u.status === 'ACTIVE' ? '停用' : '启用',
+                onClick: function (e) {
+                  e.stopPropagation();
+                  act(api.put('/admin/users/' + u.id + '/status', { status: u.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE' }),
+                    u.status === 'ACTIVE' ? '已停用' : '已启用');
+                }
+              }));
+              return wrap;
+            }
+          }
+        ],
+        rows: list
+      }));
+    }
+
+    function openCreateTeacher() {
+      openForm('新建教师', [
+        { key: 'teacherNo', label: '工号', placeholder: '如 T2023005' },
+        { key: 'realName', label: '姓名' },
+        { key: 'department', label: '院系', placeholder: '如 计算机学院' },
+        { key: 'phone', label: '手机号', placeholder: '选填' },
+        { key: 'initialPassword', label: '初始密码', placeholder: '默认 123456' }
+      ], '创建', function (v) {
+        if (!v.teacherNo || !v.realName) throw new Error('工号与姓名必填');
+        return act(api.post('/admin/users', {
+          username: v.teacherNo, realName: v.realName, role: 'TEACHER',
+          teacherNo: v.teacherNo, department: v.department,
+          phone: v.phone, initialPassword: v.initialPassword || '123456'
+        }), '教师已创建');
+      });
+    }
+
+    paint();
+  };
+
   /* ================= 2. 班级 ================= */
 
   ADMIN.pages.adminClasses = function (page) {
@@ -788,6 +1046,106 @@
       ],
       rows: all
     }));
+  };
+
+  /* ================= 3.5 请假规则 ================= */
+
+  ADMIN.pages.adminRules = function (page) {
+    page.className = 'page page--scroll';
+
+    var configs = (STORE.admin && STORE.admin.configs) || [];
+
+    page.appendChild(ui.pageHead({
+      title: '请假规则',
+      right: [el('div', { class: 'page-meta', text: '改完立即生效 · 数值写错会影响销假判定' })]
+    }));
+
+    /* 按用途分组：销假判定相关的参数单独一组，避免和演示开关混在一起 */
+    var GROUPS = [
+      {
+        title: '定位与销假',
+        desc: '离校请假销假时会用校区坐标 + 半径判定是否在校外，改错会导致销假一律失败。',
+        keys: ['CAMPUS_CENTER_LAT', 'CAMPUS_CENTER_LNG', 'OFF_CAMPUS_CHECK_RADIUS_M']
+      },
+      {
+        title: '提醒与超时',
+        desc: '控制请假开始前的提醒时机、逾期判定的宽限窗口。',
+        keys: ['START_REMINDER_WINDOW_MINUTES', 'OVERDUE_GRACE_MINUTES', 'EXTENSION_MAX_COUNT']
+      },
+      {
+        title: '演示开关',
+        desc: '仅供答辩演示使用，正式使用请保持关闭。',
+        keys: ['MOCK_LOCATION']
+      }
+    ];
+
+    var used = {};
+    GROUPS.forEach(function (g) { g.keys.forEach(function (k) { used[k] = 1; }); });
+    var rest = configs.filter(function (c) { return !used[c.key]; });
+    if (rest.length) {
+      GROUPS.push({ title: '其他', desc: '未归类的配置项。', keys: rest.map(function (c) { return c.key; }) });
+    }
+
+    var byKey = {};
+    configs.forEach(function (c) { byKey[c.key] = c; });
+
+    GROUPS.forEach(function (g) {
+      var items = g.keys.map(function (k) { return byKey[k]; }).filter(Boolean);
+      if (!items.length) return;
+
+      var card = el('div', { class: 'wb-card ah-rule-card' }, [
+        el('div', { class: 'wb-card-head' }, [
+          el('span', { class: 'wb-card-title', text: g.title })
+        ]),
+        el('div', { class: 'ah-rule-desc', text: g.desc })
+      ]);
+
+      items.forEach(function (c) {
+        var input = el('input', {
+          class: 'input input--inline',
+          attrs: { value: c.value, autocomplete: 'off' }
+        });
+        var save = function () {
+          var v = (input.value || '').trim();
+          if (v === c.value) return;
+          input.classList.add('is-saving');
+          api.put('/admin/configs/' + encodeURIComponent(c.key), { configValue: v })
+            .then(function () {
+              input.classList.remove('is-saving');
+              input.classList.add('is-saved');
+              c.value = v;
+              setTimeout(function () { input.classList.remove('is-saved'); }, 900);
+            })
+            .catch(function (e) {
+              input.classList.remove('is-saving');
+              input.classList.add('is-err');
+              alert('保存失败：' + (e.message || ''));
+              input.value = c.value;
+              setTimeout(function () { input.classList.remove('is-err'); }, 900);
+            });
+        };
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        });
+
+        card.appendChild(el('div', { class: 'ah-rule-row' }, [
+          el('div', { class: 'ah-rule-key' }, [
+            el('span', { class: 'mono cfg-key', text: c.key }),
+            el('span', { class: 'ah-rule-label', text: c.description || '' })
+          ]),
+          input
+        ]));
+      });
+
+      page.appendChild(card);
+    });
+
+    if (!configs.length) {
+      page.appendChild(el('div', { class: 'wb-card' }, [
+        ui.empty({ art: 'assets/asset-stationery.png', title: '没有配置项。', note: '检查 system_config 表是否已初始化。' })
+      ]));
+    }
   };
 
   /* ================= 4. 系统配置 ================= */

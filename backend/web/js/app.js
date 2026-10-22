@@ -425,8 +425,8 @@
     /* ---- 管理端 ---- */
     router.on('/admin/home', ADMIN.pages.adminHome);
     router.on('/admin/users', ADMIN.pages.adminUsers);
-    router.on('/admin/students', ADMIN.pages.adminUsers);
-    router.on('/admin/teachers', ADMIN.pages.adminUsers);
+    router.on('/admin/students', ADMIN.pages.adminStudents);
+    router.on('/admin/teachers', ADMIN.pages.adminTeachers);
     router.on('/admin/classes', ADMIN.pages.adminClasses);
     router.on('/admin/bindings', ADMIN.pages.adminBindings);
     router.on('/admin/configs', ADMIN.pages.adminConfigs);
@@ -434,7 +434,7 @@
     router.on('/admin/apps', ADMIN.pages.soon);
     router.on('/admin/records', ADMIN.pages.soon);
     router.on('/admin/review', ADMIN.pages.soon);
-    router.on('/admin/rules', ADMIN.pages.soon);
+    router.on('/admin/rules', ADMIN.pages.adminRules);
 
     router.on('/', ADMIN.pages.workbench);
   }
