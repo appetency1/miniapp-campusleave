@@ -1003,3 +1003,69 @@
   user-select: all;
   word-break: break-all;
 }
+
+/* ---------- 表格里的一列多操作：加竖线分隔，避免两个链接黏成一坨 ---------- */
+.row-acts { gap: 0; }
+.row-acts > * + * {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+/* ---------- 表格观感：表头色带 + 状态点 ---------- */
+/* 表头加一条极浅的纸色带，让「表头 / 数据」在视觉上分层，
+   否则整张表就是一片纯白上的横线，读起来像文本而不是表格。 */
+.tbl thead th { background: var(--paper-2); }
+.tbl thead th:first-child { border-top-left-radius: 6px; }
+.tbl thead th:last-child { border-top-right-radius: 6px; }
+
+/* 状态标签改成「圆点 + 文字」：比绿底胶囊克制，一列扫下来也更整齐 */
+.tag--ok {
+  position: relative;
+  padding-left: 11px;
+  background: transparent;
+  color: var(--ink-2);
+}
+.tag--ok::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--teal-600);
+}
+
+/* ---------- 统计条：表格页顶部的四个数字 ----------
+   纯表格页在数据少的时候会空掉一大半，顶部有数字撑着，页面才立得住。 */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.stat-cell {
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.stat-k {
+  display: block;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-4);
+}
+.stat-v {
+  display: block;
+  margin-top: 4px;
+  font-size: 23px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.stat-v--warn { color: var(--red-600); }

@@ -118,6 +118,16 @@
     return el('button', { class: 'btn btn--primary btn--sm', attrs: { type: 'button' }, text: text, onClick: onClick });
   }
 
+  /** 统计条：一行四个数字，让表格页顶部立得住 */
+  function statStrip(cells) {
+    return el('div', { class: 'stat-strip' }, cells.map(function (c) {
+      return el('div', { class: 'stat-cell' }, [
+        el('span', { class: 'stat-k', text: c.label }),
+        el('span', { class: 'stat-v' + (c.warn ? ' stat-v--warn' : ''), text: String(c.value) })
+      ]);
+    }));
+  }
+
   /* ================= 1. 账号 ================= */
 
   ADMIN.pages.adminUsers = function (page) {
@@ -132,6 +142,13 @@
         headBtn('新建账号', function () { openCreateUser(); })
       ]
     }));
+
+    page.appendChild(statStrip([
+      { label: '账号总数', value: all.length },
+      { label: '学生', value: all.filter(function (u) { return u.role === 'STUDENT'; }).length },
+      { label: '教师', value: all.filter(function (u) { return u.role === 'TEACHER'; }).length },
+      { label: '已停用', value: all.filter(function (u) { return u.status !== 'ACTIVE'; }).length, warn: true }
+    ]));
 
     var bar = el('div', { class: 'tbl-toolbar' });
     var seg = el('div', { class: 'seg' });

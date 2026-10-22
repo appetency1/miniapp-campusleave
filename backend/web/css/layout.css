@@ -78,7 +78,16 @@ body[data-role="app"] #login-root { display: none; }
   width: 2px;
   background: var(--ink);
 }
-.nav-item .nav-glyph { display: none; }
+/* 宽屏也是「图标 + 文字」并排。原来宽屏只显示文字、图标留给窄屏，
+   结果桌面端一排纯文字，像文档目录而不是导航。 */
+.nav-item .nav-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+}
+.nav-item .nav-glyph .icon { width: 16px; height: 16px; flex: 0 0 16px; }
+.nav-item.is-on .nav-glyph { color: var(--ink); }
 .nav-item .count {
   margin-left: auto;
   font-family: var(--mono);
@@ -100,7 +109,16 @@ body[data-role="app"] #login-root { display: none; }
   .nav-group { margin-top: 6px; }
   .nav-item { justify-content: center; padding: 0; gap: 0; }
   .nav-item .nav-label { display: none; }
-  .nav-item .nav-glyph { display: inline; font-size: 13px; line-height: 20px; }
+  /* 图标条模式：nav-glyph 里现在装的是 SVG 图标，不再是汉字 */
+  .nav-item .nav-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+  }
+  .nav-item.is-on .nav-glyph { color: var(--ink); }
+  .nav-item .nav-glyph .icon { width: 18px; height: 18px; flex: 0 0 18px; }
+  .nav-item .nav-glyph .icon svg { width: 18px; height: 18px; stroke-width: 1.5; }
   .nav-item .count { display: none; }
   .nav-item.is-on::before { top: 6px; bottom: 6px; }
   .nav-item::after {

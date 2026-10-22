@@ -106,7 +106,7 @@
       box.appendChild(ui.table({
         rowKey: 'id',
         cols: [
-          { label: '提交时间', width: 130, render: function (a) { return el('span', { class: 'mono', text: a.submittedAt || '—' }); } },
+          { label: '提交时间', width: 148, render: function (a) { return el('span', { class: 'mono', text: a.submittedAt || '—' }); } },
           {
             label: '学生', width: 150, render: function (a) {
               return el('div', { class: 'cell-2' }, [
@@ -115,15 +115,21 @@
               ]);
             }
           },
-          { label: '班级', width: 170, key: 'className' },
+          { label: '班级', width: 160, key: 'className' },
           {
-            label: '类型', width: 120, render: function (a) {
+            label: '类型', width: 108, render: function (a) {
               return a.scene + ' · ' + a.type;
             }
           },
           {
             label: '请假区间', render: function (a) {
-              return el('span', { class: 'mono', text: a.start + ' → ' + a.end });
+              // 同一天只写一次日期：'10-22 11:30 → 12:30'，否则整行太长被截断
+              var s0 = a.start || '', e0 = a.end || '';
+              var sameDay = s0.slice(0, 10) === e0.slice(0, 10);
+              var text = sameDay
+                ? s0.slice(5) + ' → ' + e0.slice(11)
+                : s0.slice(5) + ' → ' + e0.slice(5);
+              return el('span', { class: 'mono', text: text });
             }
           },
           {

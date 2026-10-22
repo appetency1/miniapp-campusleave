@@ -171,20 +171,20 @@
   var MENU = [
     {
       title: '概览',
-      items: [{ key: 'workbench', label: '工作台', glyph: '台', href: '#/workbench' }]
+      items: [{ key: 'workbench', label: '工作台', icon: 'dashboard', href: '#/workbench' }]
     },
     {
       title: '审批',
       items: [
-        { key: 'pending', label: '待审批', glyph: '待', href: '#/pending', count: function () { return pendingQueue().length; } },
-        { key: 'review', label: '异常核验', glyph: '验', href: '#/review', count: function () { return reviewQueue().length; } }
+        { key: 'pending', label: '待审批', icon: 'inbox', href: '#/pending', count: function () { return pendingQueue().length; } },
+        { key: 'review', label: '异常核验', icon: 'shield', href: '#/review', count: function () { return reviewQueue().length; } }
       ]
     },
     {
       title: '台账',
       items: [
-        { key: 'records', label: '申请记录', glyph: '记', href: '#/records' },
-        { key: 'students', label: '学生', glyph: '生', href: '#/students' }
+        { key: 'records', label: '申请记录', icon: 'list', href: '#/records' },
+        { key: 'students', label: '学生', icon: 'users', href: '#/students' }
       ]
     }
   ];
@@ -194,10 +194,10 @@
     {
       title: '基础数据',
       items: [
-        { key: 'admin-users', label: '账号', glyph: '账', href: '#/admin/users' },
-        { key: 'admin-classes', label: '班级', glyph: '班', href: '#/admin/classes' },
-        { key: 'admin-bindings', label: '辅导员绑定', glyph: '绑', href: '#/admin/bindings' },
-        { key: 'admin-configs', label: '系统配置', glyph: '配', href: '#/admin/configs' }
+        { key: 'admin-users', label: '账号', icon: 'user', href: '#/admin/users' },
+        { key: 'admin-classes', label: '班级', icon: 'grid', href: '#/admin/classes' },
+        { key: 'admin-bindings', label: '辅导员绑定', icon: 'link', href: '#/admin/bindings' },
+        { key: 'admin-configs', label: '系统配置', icon: 'sliders', href: '#/admin/configs' }
       ]
     }
   ];
@@ -236,7 +236,7 @@
           href: it.href,
           dataset: { label: it.label }
         });
-        a.appendChild(el('span', { class: 'nav-glyph', text: it.glyph }));
+        a.appendChild(el('span', { class: 'nav-glyph' }, [ui.icon(it.icon)]));
         a.appendChild(el('span', { class: 'nav-label', text: it.label }));
         if (it.count) {
           var n = it.count();
