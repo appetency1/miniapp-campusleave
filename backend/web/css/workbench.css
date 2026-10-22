@@ -374,3 +374,16 @@
   }
   .welcome-card { display: none; }
 }
+
+/* ---------- 最近处理：与原型对齐的细节 ---------- */
+/* 表头不带底色，只留一条下边线（原型就是白底 + 极淡线） */
+.wb-recent .tbl thead th { background: transparent; }
+/* 时间列用无衬线 + 等宽数字：衬线体的数字在小字号下发虚 */
+.wb-recent .wb-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+/* 表格下方留一点呼吸，最后一行别贴着卡片底边 */
+.wb-recent .tbl tbody tr:last-child td { border-bottom: 1px solid transparent; }
+.wb-recent { padding-bottom: 8px; }
+.wb-recent .wb-card-head { padding-bottom: 8px; }

@@ -238,7 +238,7 @@
 
     /* ---------- 白卡：最近处理 ---------- */
     var recent = wb.recentProcessed || [];
-    var recentCard = el('div', { class: 'wb-card' }, [
+    var recentCard = el('div', { class: 'wb-card wb-recent' }, [
       el('div', { class: 'wb-card-head' }, [
         el('span', { class: 'wb-card-title', text: '最近处理' }),
         el('a', { class: 'wb-card-more', href: '#/records', text: '查看全部 ›' })
@@ -251,12 +251,12 @@
           { label: '学生', width: 120, render: function (a) { return a.studentName; } },
           { label: '类型 · 场景', width: 130, render: function (a) { return a.type + ' · ' + a.scene; } },
           {
-            label: '时间', render: function (a) {
-              return el('span', { class: 'mono', text: recentTime(a.start, a.end) });
+            label: '时间', width: 240, render: function (a) {
+              return el('span', { class: 'wb-time', text: recentTime(a.start, a.end) });
             }
           },
           {
-            label: '状态', width: 96, align: 'right', render: function (a) {
+            label: '状态', width: 96, render: function (a) {
               return el('span', { class: 'pill ' + pillTone(a.status), text: pillLabel(a.status) });
             }
           }
