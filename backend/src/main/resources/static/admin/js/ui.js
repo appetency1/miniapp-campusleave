@@ -128,6 +128,7 @@
   function waitLabel(str) {
     var h = waitHours(str);
     var mins = Math.round(h * 60);
+    if (mins < 1) return '刚刚上报';
     if (mins < 60) return '已等 ' + mins + ' 分钟';
     if (h < 48) return '已等 ' + Math.floor(h) + ' 小时';
     return '已等 ' + Math.floor(h / 24) + ' 天';

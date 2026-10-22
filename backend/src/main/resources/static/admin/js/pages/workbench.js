@@ -190,7 +190,7 @@
 
     var tbl = ui.table({
       cols: [
-        { label: '类型', width: 96, render: function (a) { return a.scene + ' · ' + a.type; } },
+        { label: '类型', width: 96, render: function (a) { return a.scene + '·' + a.type; } },
         { label: '学生', width: 120, render: function (a) { return a.studentName; } },
         {
           label: '摘要',

@@ -328,6 +328,7 @@
       advance(item.app.id);
       renderList();
       renderDetail();
+      detailEl.scrollTop = detailEl.scrollHeight;
     }
 
     function reject(item, reason) {
@@ -336,6 +337,7 @@
       advance(item.app.id);
       renderList();
       renderDetail();
+      detailEl.scrollTop = detailEl.scrollHeight;
     }
 
     renderList();

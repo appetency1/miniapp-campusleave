@@ -167,6 +167,8 @@
           onReject: reject
         }));
       }
+      // 回执在操作条位置：滚到底，让回执立即可见
+      if (local.receipt) detailEl.scrollTop = detailEl.scrollHeight;
     }
 
     /* ---------- 审批动作 ---------- */
@@ -201,8 +203,8 @@
     }
 
     function reject(item, reason) {
-      if (tab === 'ext') ADMIN.store.decideApp('ext' + item.id, 'rejected');
-      else ADMIN.store.decideApp(item.id, 'rejected');
+      if (tab === 'ext') ADMIN.store.decideApp('ext' + item.id, 'rejected', reason);
+      else ADMIN.store.decideApp(item.id, 'rejected', reason);
       local.receipt = '已驳回 · 刚刚 · 已通知学生';
       local.reason = reason;
       advance(keyOf(item));

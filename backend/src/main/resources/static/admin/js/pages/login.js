@@ -82,12 +82,25 @@
       busy = true;
       submit.disabled = true;
       submit.textContent = '正在登录…';
-      setTimeout(function () {
-        busy = false;
-        submit.disabled = false;
-        submit.textContent = '登 录';
-        ADMIN.shell.enterApp();
-      }, 400);
+
+      // 真登录：POST /auth/login 拿 JWT，再一次性拉齐后台数据，成功后才进主界面
+      ADMIN.api.login(no, pwdInput.value)
+        .then(function () {
+          return ADMIN.api.loadStore();
+        })
+        .then(function () {
+          busy = false;
+          submit.disabled = false;
+          submit.textContent = '登 录';
+          ADMIN.shell.enterApp();
+        })
+        .catch(function (err) {
+          busy = false;
+          submit.disabled = false;
+          submit.textContent = '登 录';
+          hint.className = 'login-hint login-hint--warn';
+          hint.textContent = (err && err.message) || '登录失败，请稍后重试';
+        });
     });
 
     noInput.addEventListener('keydown', function (e) {

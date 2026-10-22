@@ -219,7 +219,7 @@
 
   /* ---------------- 6 续假记录 ---------------- */
   function secExtension(app) {
-    var ext = (window.MOCK.extensions || []).filter(function (e) { return e.applicationId === app.id; })[0];
+    var ext = (window.STORE.extensions || []).filter(function (e) { return e.applicationId === app.id; })[0];
     if (!ext) return section('续假记录', [el('div', { class: 'mats-note', text: '—' })]);
 
     var label = ext.status === 'PENDING' ? '待审批' : ext.status === 'APPROVED' ? '已通过' : '已驳回';
@@ -312,7 +312,9 @@
     root.appendChild(secCheckins(app));
     root.appendChild(secExtension(app));
 
-    var showBar = opts.type === 'pending' ? app.status === 'PENDING' : opts.type === 'records' ? !!opts.receipt : true;
+    var showBar = opts.receipt ? true
+      : opts.type === 'pending' ? app.status === 'PENDING'
+        : opts.type === 'records' ? false : true;
     if (showBar) root.appendChild(actionBar(app, opts));
     return root;
   }

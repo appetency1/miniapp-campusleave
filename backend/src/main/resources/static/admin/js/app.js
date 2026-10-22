@@ -22,7 +22,7 @@
   }
 
   function appById(id) {
-    return MOCK.apps.filter(function (a) { return String(a.id) === String(id); })[0] || null;
+    return STORE.apps.filter(function (a) { return String(a.id) === String(id); })[0] || null;
   }
 
   function liveState(a) {
@@ -36,7 +36,7 @@
   }
 
   function pendingQueue() {
-    return MOCK.apps.filter(function (a) {
+    return STORE.apps.filter(function (a) {
       return inScope(a) && a.status === 'PENDING' && !state.decided[a.id];
     }).sort(function (x, y) {
       return ui.parse(x.submittedAt) - ui.parse(y.submittedAt);
@@ -44,7 +44,7 @@
   }
 
   function extensionQueue() {
-    return MOCK.extensions.filter(function (e) {
+    return STORE.extensions.filter(function (e) {
       return e.status === 'PENDING' && !state.decided['ext' + e.id] && inScope(e);
     }).sort(function (x, y) {
       return ui.parse(x.submittedAt) - ui.parse(y.submittedAt);
@@ -53,7 +53,7 @@
 
   function reviewQueue() {
     var out = [];
-    MOCK.apps.forEach(function (a) {
+    STORE.apps.forEach(function (a) {
       if (!inScope(a)) return;
       var pending = (a.checkins || []).filter(function (c) {
         return c.review === 'PENDING_REVIEW' && !state.reviewed[c.id];
@@ -68,13 +68,13 @@
   }
 
   function liveApps() {
-    return MOCK.apps.filter(function (a) { return inScope(a) && liveState(a); });
+    return STORE.apps.filter(function (a) { return inScope(a) && liveState(a); });
   }
 
   function todayApps() {
     var start = ui.startOfDay(new Date()).getTime();
     var end = start + 86400000;
-    return MOCK.apps.filter(function (a) {
+    return STORE.apps.filter(function (a) {
       if (!inScope(a)) return false;
       var s = ui.parse(a.start), e = ui.parse(a.end);
       if (!s || !e) return false;
@@ -91,9 +91,59 @@
     reviewQueue: reviewQueue,
     liveApps: liveApps,
     todayApps: todayApps,
-    decideApp: function (id, verdict) { state.decided[id] = verdict; },
-    decideCheckins: function (ids, verdict) {
-      (ids || []).forEach(function (id) { state.reviewed[id] = verdict; });
+    /**
+     * 审批动作：走真实接口，成功后重新拉数据并整页重载。
+     *
+     * <p>为什么整页 reload：后台页面是"派生数据 + 同步渲染"结构，
+     * 局部改内存会出现"UI 显示已通过、后端其实失败"的假象。
+     * 审批是低频不可逆操作，宁可重载一次换取状态绝对准确。
+     *
+     * @param id     申请 id，或 'ext7' 这种续假 id（前缀区分）
+     * @param verdict 'approved' | 'rejected'
+     */
+    decideApp: function (id, verdict, reason) {
+      var api = ADMIN.api;
+      var isExt = String(id).indexOf('ext') === 0;
+      var realId = isExt ? String(id).slice(3) : id;
+      var url, body;
+      if (isExt) {
+        url = '/teacher/extensions/' + realId + (verdict === 'approved' ? '/approve' : '/reject');
+        body = verdict === 'approved' ? { comment: '同意延长' } : { reason: reason };
+      } else {
+        url = '/teacher/applications/' + realId + (verdict === 'approved' ? '/approve' : '/reject');
+        body = verdict === 'approved' ? { comment: '同意' } : { reason: reason };
+      }
+      return api.post(url, body).then(function () {
+        return api.refresh();
+      }).then(function () {
+        location.reload();
+      }).catch(function (e) {
+        alert('操作失败：' + (e && e.message ? e.message : '未知错误'));
+        return api.refresh();
+      });
+    },
+
+    /** 核验动作：同上，一条申请下的多条待核验记录要逐条提交 */
+    decideCheckins: function (ids, verdict, comment) {
+      var api = ADMIN.api;
+      var action = verdict === 'approved' ? 'APPROVE' : 'REJECT';
+      var chain = Promise.resolve();
+      (ids || []).forEach(function (id) {
+        chain = chain.then(function () {
+          return api.post('/teacher/checkin-logs/' + id + '/review', {
+            action: action,
+            comment: comment || (verdict === 'approved' ? '核验通过' : '核验驳回')
+          });
+        });
+      });
+      return chain.then(function () {
+        return api.refresh();
+      }).then(function () {
+        location.reload();
+      }).catch(function (e) {
+        alert('操作失败：' + (e && e.message ? e.message : '未知错误'));
+        return api.refresh();
+      });
     },
     summary: function () {
       var pend = pendingQueue();
@@ -235,7 +285,7 @@
 
     top.appendChild(dropdown(scopeLabel, scopeItems));
     top.appendChild(el('div', { class: 'top-divider' }));
-    top.appendChild(dropdown(MOCK.teacher.name, accountItems));
+    top.appendChild(dropdown(STORE.teacher.name, accountItems));
   }
 
   function setScope(v) {
@@ -288,13 +338,17 @@
     router.on('/review/:id', ADMIN.pages.review);
     router.on('/records', ADMIN.pages.records);
     router.on('/records/:id', ADMIN.pages.records);
-    router.on('/students', ADMIN.pages.records);
+    router.on('/students', ADMIN.pages.students);
     router.on('/profile', ADMIN.pages.records);
     router.on('/', ADMIN.pages.workbench);
   }
 
   /* ---------------- 启动 ---------------- */
   function boot() {
+    /* 深链要在这里先存下来：router.start 的 guard 会把未登录的 hash 改写成 #/login，
+       等异步登录完成后 location.hash 已经不是用户原本要去的页面了。 */
+    var deepLink = location.hash.replace(/^#/, '') || '/workbench';
+    if (deepLink === '/login') deepLink = '/workbench';
     ADMIN.shell = {
       crumbs: crumbs,
       renderNav: renderNav,
@@ -305,6 +359,43 @@
     };
 
     registerRoutes();
+
+    /* 已登录过（刷新页面）：sessionStorage 里还有 token，先把数据拉齐再渲染，
+       否则页面会在 STORE 还是空数组时画出空列表。 */
+    if (ADMIN.api.token()) {
+      state.loggedIn = true;
+      document.body.dataset.role = 'app';
+      ADMIN.api.loadStore().then(function () {
+        renderNav();
+        renderTop();
+        // 数据到位后主动渲染：router.start 时因未登录已被挡回 /login，
+        // 恢复登录态后必须有人再触发一次页面渲染，否则就是"壳有了、内容空白"
+        router.go(deepLink);
+      }).catch(function (e) {
+        console.error('[admin] 数据加载失败', e);
+        ADMIN.api.setToken('');
+        state.loggedIn = false;
+        document.body.dataset.role = 'guest';
+        router.go('/login');
+      });
+    }
+
+    /* 演示深链：index.html?demo=1#/workbench 自动用演示教师账号登录。
+       截图验证与答辩都用它，省一次输入；不带参数时行为不变。 */
+    if (/[?&]demo=1/.test(location.search) && !ADMIN.api.token()) {
+      ADMIN.api.login('T2023001', '123456')
+        .then(function () { return ADMIN.api.loadStore(); })
+        .then(function () {
+          state.loggedIn = true;
+          document.body.dataset.role = 'app';
+          renderNav();
+          renderTop();
+          router.go(deepLink);
+        })
+        .catch(function (e) {
+          console.error('[admin] 演示登录失败', e);
+        });
+    }
 
     document.addEventListener('click', function () { closeMenus(); });
 
