@@ -5,6 +5,9 @@
    --blue-* 现在承载的是绿色主色，名字是历史遗留，改名前请先全局搜索引用。 */
 
 :root {
+  /* 全局字号缩放：滑块调这个值，字号与行高同步放大，间距不动 */
+  --fs: 1;
+
   /* ---- 表面 ---- */
   --paper: #F7F9F4;
   --paper-2: #F1F6EC;
@@ -55,13 +58,13 @@
   --pane-list: 448px;
 
   /* ---- 字阶 ---- */
-  --fs-micro: 11px;  --lh-micro: 16px;
-  --fs-cap: 12px;    --lh-cap: 18px;
-  --fs-body: 13px;   --lh-body: 20px;
-  --fs-lead: 14px;   --lh-lead: 22px;
-  --fs-h2: 15px;     --lh-h2: 22px;
-  --fs-h1: 22px;     --lh-h1: 30px;
-  --fs-num: 28px;    --lh-num: 36px;
+  --fs-micro: calc(11px * var(--fs, 1));  --lh-micro: calc(16px * var(--fs, 1));
+  --fs-cap: calc(12px * var(--fs, 1));    --lh-cap: calc(18px * var(--fs, 1));
+  --fs-body: calc(13px * var(--fs, 1));   --lh-body: calc(20px * var(--fs, 1));
+  --fs-lead: calc(14px * var(--fs, 1));   --lh-lead: calc(22px * var(--fs, 1));
+  --fs-h2: calc(15px * var(--fs, 1));     --lh-h2: calc(22px * var(--fs, 1));
+  --fs-h1: calc(22px * var(--fs, 1));     --lh-h1: calc(30px * var(--fs, 1));
+  --fs-num: calc(28px * var(--fs, 1));    --lh-num: calc(36px * var(--fs, 1));
 
   /* ---- 状态语义（唯一来源，不要在页面里直接写 hex） ---- */
   --st-pending: var(--amber-600);   /* 待审批 · ■ */

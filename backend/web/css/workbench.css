@@ -20,16 +20,16 @@
 .wb-greet { padding: 2px 2px 0; }
 .wb-greet h1 {
   margin: 0;
-  font-size: 24px;
-  line-height: 32px;
+  font-size: calc(24px * var(--fs, 1));
+  line-height: calc(32px * var(--fs, 1));
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--ink);
 }
 .wb-date {
   margin-top: 2px;
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: calc(12.5px * var(--fs, 1));
+  line-height: calc(18px * var(--fs, 1));
   color: var(--ink-4);
 }
 
@@ -57,20 +57,20 @@
 .wb-banner-icon .icon svg { width: 20px; height: 20px; stroke-width: 1.6; }
 .wb-banner-text { min-width: 0; }
 .wb-banner-title {
-  font-size: 14px;
-  line-height: 21px;
+  font-size: calc(14px * var(--fs, 1));
+  line-height: calc(21px * var(--fs, 1));
   color: var(--ink);
 }
 .wb-banner-title b {
   margin: 0 3px;
-  font-size: 17px;
+  font-size: calc(17px * var(--fs, 1));
   font-weight: 700;
   color: var(--blue-600);
 }
 .wb-banner-sub {
   margin-top: 1px;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: calc(12px * var(--fs, 1));
+  line-height: calc(17px * var(--fs, 1));
   color: var(--ink-3);
 }
 .wb-banner .btn {
@@ -78,7 +78,7 @@
   height: 32px;
   padding: 0 14px;
   border-radius: 8px;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--fs, 1));
 }
 
 /* ---------- 白卡 ---------- */
@@ -102,8 +102,8 @@
   align-items: center;
   gap: 6px;
   padding: 0 0 10px;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: calc(13px * var(--fs, 1));
+  line-height: calc(18px * var(--fs, 1));
   font-weight: 400;
   color: var(--ink-3);
   transition: color .15s ease;
@@ -125,7 +125,7 @@
 }
 .wb-tab em {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--fs, 1));
   opacity: .9;
 }
 
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
   font-weight: 600;
 }
 .todo-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -164,8 +164,8 @@
   gap: 7px;
 }
 .todo-name {
-  font-size: 13.5px;
-  line-height: 20px;
+  font-size: calc(13.5px * var(--fs, 1));
+  line-height: calc(20px * var(--fs, 1));
   font-weight: 600;
   color: var(--ink);
 }
@@ -174,35 +174,39 @@
   border-radius: 5px;
   background: var(--blue-50);
   color: var(--blue-700);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: calc(11px * var(--fs, 1));
+  line-height: calc(16px * var(--fs, 1));
 }
 .todo-cls {
   margin-top: 3px;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: calc(12px * var(--fs, 1));
+  line-height: calc(17px * var(--fs, 1));
   color: var(--ink-3);
 }
 .todo-sub {
   margin-top: 1px;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: calc(11px * var(--fs, 1));
+  line-height: calc(16px * var(--fs, 1));
   color: var(--ink-4);
 }
 
 .todo-time {
-  flex: 0 0 196px;
-  font-size: 12px;
-  line-height: 18px;
+  flex: 0 0 218px;
+  font-size: calc(12px * var(--fs, 1));
+  line-height: calc(18px * var(--fs, 1));
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
+
+/* 字号放大后「姓名 + 类型标签」容易挤，给个下限并允许标签换行 */
+.todo-name-row { flex-wrap: wrap; }
 
 .todo-state { flex: 0 0 104px; }
 .todo-wait {
   margin-top: 5px;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: calc(11px * var(--fs, 1));
+  line-height: calc(16px * var(--fs, 1));
   color: var(--amber-600);
 }
 
@@ -213,8 +217,8 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 5px;
-  font-size: 11px;
-  line-height: 17px;
+  font-size: calc(11px * var(--fs, 1));
+  line-height: calc(17px * var(--fs, 1));
   white-space: nowrap;
 }
 .pill--amber { background: var(--amber-50); color: var(--amber-600); }
@@ -230,12 +234,12 @@
   padding: 13px 20px 4px;
 }
 .wb-card-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--fs, 1));
   font-weight: 600;
   color: var(--ink);
 }
 .wb-card-more {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--fs, 1));
   color: var(--ink-4);
 }
 .wb-card-more:hover { color: var(--blue-600); }
@@ -246,13 +250,13 @@
   padding: 0 20px;
   background: transparent;
   border-bottom: 1px solid var(--line);
-  font-size: 11px;
+  font-size: calc(11px * var(--fs, 1));
   color: var(--ink-4);
 }
 .wb-recent .tbl tbody td {
   height: 38px;
   padding: 0 20px;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--fs, 1));
   border-bottom: 1px solid var(--line);
 }
 .wb-recent .tbl tbody tr:last-child td { border-bottom: 0; }
@@ -275,14 +279,14 @@
 .empty-icon .icon { width: 20px; height: 20px; flex: 0 0 20px; }
 .empty-icon .icon svg { width: 20px; height: 20px; stroke-width: 1.5; }
 .empty-title {
-  font-size: 13px;
-  line-height: 20px;
+  font-size: calc(13px * var(--fs, 1));
+  line-height: calc(20px * var(--fs, 1));
   color: var(--ink-2);
 }
 .empty-note {
   margin-top: 3px;
-  font-size: 11.5px;
-  line-height: 17px;
+  font-size: calc(11.5px * var(--fs, 1));
+  line-height: calc(17px * var(--fs, 1));
   color: var(--ink-4);
 }
 
@@ -298,8 +302,8 @@
   background: var(--blue-50);
 }
 .welcome-text {
-  font-size: 13.5px;
-  line-height: 22px;
+  font-size: calc(13.5px * var(--fs, 1));
+  line-height: calc(22px * var(--fs, 1));
   font-weight: 600;
   color: var(--blue-700);
 }
@@ -313,8 +317,8 @@
 .side-card { padding: 4px 0 6px; }
 .side-card-title {
   padding: 12px 16px 6px;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: calc(13px * var(--fs, 1));
+  line-height: calc(20px * var(--fs, 1));
   font-weight: 600;
   color: var(--ink);
 }
@@ -325,7 +329,7 @@
   align-items: center;
   gap: 9px;
   padding: 8px 16px;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--fs, 1));
   color: var(--ink-2);
   text-align: left;
   transition: background .15s ease;
@@ -334,7 +338,7 @@
 .quick-row .icon { width: 15px; height: 15px; flex: 0 0 15px; color: var(--ink-4); }
 .quick-row .q-val {
   margin-left: auto;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--fs, 1));
   font-weight: 600;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -351,12 +355,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 7px 16px;
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: calc(12.5px * var(--fs, 1));
+  line-height: calc(18px * var(--fs, 1));
   color: var(--ink-2);
 }
 .stat-line b {
-  font-size: 13px;
+  font-size: calc(13px * var(--fs, 1));
   font-weight: 600;
   color: var(--ink);
   font-variant-numeric: tabular-nums;

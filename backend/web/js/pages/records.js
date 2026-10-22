@@ -115,9 +115,9 @@
               ]);
             }
           },
-          { label: '班级', width: 160, key: 'className' },
+          { label: '班级', width: 196, key: 'className' },
           {
-            label: '类型', width: 108, render: function (a) {
+            label: '类型', width: 102, render: function (a) {
               return a.scene + ' · ' + a.type;
             }
           },
