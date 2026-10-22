@@ -10,48 +10,57 @@
  * ============================================================ */
 
 page {
-  /* ---- 色板（与 formal-v2 完全一致）---- */
-  --paper: #FBFAF7;
-  --paper-2: #F5F3EC;
+  /* ---- 色板（V2 精修：暖白纸感 + 深墨，状态色全面降饱和）----
+   * 原则：所有彩色都压到低饱和，靠明度差和字重建立层级，不靠鲜艳夺目。
+   * 状态语义：橄榄绿=进行中/已完成，暖棕=审批中，砖红=逾期/驳回。
+   */
+  --paper: #FAF9F6;
+  --paper-2: #F4F2EC;
   --surface: #FFFFFF;
-  --ink: #15202E;
-  --ink-2: #55606F;
-  --ink-3: #6B6559;
-  --ink-4: #8E887B;
-  --line: #E7E3D9;
-  --line-2: #D8D3C6;
-  --blue-50: #EFF4FD;
-  --blue-100: #DCE8FA;
-  --blue-500: #2563C9;
-  --blue-600: #1F55AD;
-  --blue-700: #194089;
-  --amber-600: #9A5B0B;
-  --amber-50: #FDF3E3;
-  --red-600: #B23A28;
-  --red-50: #FBECE9;
-  --teal-600: #0B7A6B;
-  --teal-50: #E6F4F1;
+  --ink: #182331;
+  --ink-2: #4A5450;
+  --ink-3: #68706C;
+  --ink-4: #9A9A93;
+  --line: #E8E6DF;
+  --line-2: #DEDBD2;
+  --accent-50: #EDF1EC;
+  --accent-100: #DCE4DE;
+  --accent-500: #536B59;
+  --accent-600: #455B4B;
+  --accent-700: #374A3D;
+  --amber-600: #A4773A;
+  --amber-50: #F7F1E6;
+  --red-600: #A85445;
+  --red-50: #F6ECEA;
+  --teal-600: #536B59;
+  --teal-50: #EDF1EC;
 
   /* ---- 圆角 / 间距 ---- */
-  --r: 12rpx;          /* = 6px */
+  --r: 12rpx;          /* = 6px，内容分区的方角基调 */
+  --r-btn: 24rpx;      /* = 12px，按钮单独用更圆的角 */
 
   background: var(--paper);
   color: var(--ink);
   font-family: "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 28rpx;
+  /* 根字号 30rpx≈15.7pt。不要照抄设计稿的 12px —— Web 的 12px 到手机上相当于 12pt，
+     比 iOS 正文 17pt 小三成，真机上会明显"字很小"。 */
+  font-size: 30rpx;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ------------------------------------------------------------
- * 字体
- * 数字、编号、时间用衬线体 —— 这是定稿的记忆点之一（刻度尺上的数字）
+ * 数字
+ * 精修版去掉了衬线体：宋体/明朝体在真机小字号下发虚，
+ * 且与"现代中文无衬线"的基调冲突。改为系统无衬线 + 等宽数字（tabular-nums），
+ * 保证时间、日期、编号在列表里纵向对齐。
  * ------------------------------------------------------------ */
 .num,
 .mono {
-  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+  font-weight: 500;
 }
 
 /* ------------------------------------------------------------
@@ -76,22 +85,23 @@ page {
 
 /* ------------------------------------------------------------
  * 区块标题：左侧小标题 + 右侧文字按钮
- * 对应定稿 .sec h2（12px 字号、字重 600、下方 15px 间距）
+ * 定稿 .sec h2 是 12px（Web 尺度），真机上抬到 30rpx≈15.7pt 才够读
  * ------------------------------------------------------------ */
 .sec {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin: 30rpx 0 18rpx;
+  /* 上 40 下 14：标题与内容要贴近，与上一段要拉开 */
+  margin: 40rpx 0 14rpx;
 }
 .sec__t {
-  font-size: 24rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: var(--ink);
   letter-spacing: 0.02em;
 }
 .sec__a {
-  font-size: 24rpx;
+  font-size: 30rpx;
   color: var(--ink-3);
 }
 
@@ -110,8 +120,9 @@ button::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 96rpx;
-  border-radius: var(--r);
+  /* 84rpx（≈44pt）：够拇指点，但不做"后台系统式"的大块按钮 */
+  height: 84rpx;
+  border-radius: var(--r-btn);
   font-size: 30rpx;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -120,8 +131,12 @@ button::after {
   color: #FCFBF8;
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
+/* 次级主按钮：白底 + 细边框 + 深色字。
+   首页待审批态的「查看详情」用它 —— 此时用户的主诉求是"看一眼",
+   不是"提交", 实心墨块会抢走状态词的注意力 */
 .btn--ghost {
-  background: transparent;
+  background: var(--surface);
+  border-color: var(--line-2);
   color: var(--ink);
 }
 .btn--plain {
@@ -139,7 +154,7 @@ button::after {
 
 /* 文字按钮（撤回 / 取消 / 查看详情） */
 .link-btn {
-  font-size: 26rpx;
+  font-size: 32rpx;
   color: var(--ink-2);
   padding: 8rpx 4rpx;
 }
@@ -152,10 +167,10 @@ button::after {
  * 蓝=进行中，琥珀=待处理，红=逾期/驳回，青=已完成，灰=已关闭
  * ------------------------------------------------------------ */
 .state {
-  font-size: 22rpx;
+  font-size: 28rpx;
   line-height: 1;
   letter-spacing: 0.06em;
-  color: var(--blue-700);
+  color: var(--accent-700);
 }
 .state--warn {
   color: var(--amber-600);
@@ -176,12 +191,12 @@ button::after {
   align-items: center;
   padding: 4rpx 12rpx;
   border-radius: 6rpx;
-  font-size: 22rpx;
+  font-size: 28rpx;
   line-height: 1.4;
 }
 .chip--blue {
-  background: var(--blue-50);
-  color: var(--blue-700);
+  background: var(--accent-50);
+  color: var(--accent-700);
 }
 .chip--amber {
   background: var(--amber-50);
@@ -207,7 +222,7 @@ button::after {
   padding: 60rpx 0;
   text-align: center;
   color: var(--ink-3);
-  font-size: 26rpx;
+  font-size: 32rpx;
 }
 
 .notice {
@@ -215,11 +230,13 @@ button::after {
   border-radius: var(--r);
   background: var(--red-50);
   color: var(--red-600);
-  font-size: 24rpx;
+  font-size: 30rpx;
   line-height: 1.6;
 }
 
-/* 底部安全区（tabBar 页面内容不被遮住） */
+/* 底部安全区（tabBar 页面内容不被遮住）
+ * 数值必须与 custom-tab-bar/index.wxss 的 .tabbar 高度一致，否则留白对不上
+ */
 .tabbar-hold {
-  height: calc(120rpx + env(safe-area-inset-bottom));
+  height: calc(104rpx + env(safe-area-inset-bottom));
 }

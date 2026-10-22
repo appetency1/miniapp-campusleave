@@ -22,8 +22,8 @@
   bottom: 0;
   height: 80rpx;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(37, 99, 201, 0) 0%, rgba(37, 99, 201, 0.13) 100%);
-  border-bottom: 4rpx solid var(--blue-500, #2563C9);
+  background: linear-gradient(180deg, rgba(83, 107, 89, 0) 0%, rgba(83, 107, 89, 0.13) 100%);
+  border-bottom: 4rpx solid var(--accent-500, #2563C9);
 }
 
 /* 逾期态换红色 */
@@ -68,7 +68,7 @@
   bottom: 0;
   width: 4rpx;
   height: 80rpx;
-  background: var(--blue-600, #1F55AD);
+  background: var(--accent-600, #1F55AD);
   z-index: 3;
 }
 .rl--danger .rl__now {
@@ -88,14 +88,15 @@
 /* ---- 「现在 11:20」标签 ---- */
 .rl__nowlab {
   /* 组件内拿不到全局 .num，这里直接声明衬线字体（与定稿一致） */
-  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   position: absolute;
   top: -40rpx;
   transform: translateX(-50%);
-  font-size: 22rpx;
+  /* 刻度尺是密排布局，字号不能跟全站一起放大：28rpx 会让 7 个标签互相顶到 */
+  font-size: 24rpx;
   line-height: 1.4;
-  color: var(--blue-600, #1F55AD);
+  color: var(--accent-600, #1F55AD);
   white-space: nowrap;
 }
 .rl--danger .rl__nowlab {
@@ -109,9 +110,9 @@
   margin-top: 16rpx;
 }
 .rl__lab {
-  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: var(--ink-3, #6B6559);
   letter-spacing: 0.04em;
   /* 居中项以自身中心对齐刻度，首尾项贴边 */

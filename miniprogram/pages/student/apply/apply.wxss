@@ -49,7 +49,7 @@
   transform: rotate(45deg);
 }
 .nav__t {
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: 600;
   color: var(--ink);
 }
@@ -70,20 +70,20 @@
   padding-bottom: 6rpx;
 }
 .field__lb {
-  font-size: 24rpx;
+  font-size: 30rpx;
   color: var(--ink-2);
   margin-bottom: 16rpx;
 }
 .field__hint {
   margin-left: 12rpx;
-  font-size: 20rpx;
+  font-size: 26rpx;
   color: var(--ink-4);
 }
 
 /* ---- 错误提示：淡入 ---- */
 .err {
   margin-top: 10rpx;
-  font-size: 22rpx;
+  font-size: 28rpx;
   color: var(--red-600);
   line-height: 1.5;
   animation: errIn 0.2s ease both;
@@ -116,17 +116,17 @@
   gap: 14rpx;
 }
 .locked__t {
-  font-size: 30rpx;
+  font-size: 34rpx;
   font-weight: 600;
   color: var(--ink);
 }
 .locked__s {
-  font-size: 22rpx;
+  font-size: 28rpx;
   color: var(--ink-3);
 }
 .locked__change {
-  font-size: 24rpx;
-  color: var(--blue-600);
+  font-size: 30rpx;
+  color: var(--accent-600);
   padding: 6rpx 4rpx;
 }
 
@@ -147,14 +147,14 @@
   background: var(--paper-2);
 }
 .pick__t {
-  font-size: 28rpx;
+  font-size: 34rpx;
   font-weight: 600;
   color: var(--ink);
   line-height: 1.4;
 }
 .pick__s {
   margin-top: 4rpx;
-  font-size: 21rpx;
+  font-size: 26rpx;
   color: var(--ink-3);
   line-height: 1.4;
 }
@@ -170,7 +170,7 @@
   flex: 1;
   text-align: center;
   padding: 20rpx 0;
-  font-size: 26rpx;
+  font-size: 32rpx;
   color: var(--ink-2);
   border-right: 1rpx solid var(--line-2);
   transition: background 0.16s ease, color 0.16s ease;
@@ -195,7 +195,7 @@
   padding: 8rpx 20rpx;
   border: 1rpx solid var(--line-2);
   border-radius: var(--r);
-  font-size: 22rpx;
+  font-size: 28rpx;
   color: var(--ink-2);
   transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.16s ease;
 }
@@ -221,21 +221,21 @@
 .timerow__k {
   flex: 0 0 auto;
   width: 72rpx;
-  font-size: 24rpx;
+  font-size: 30rpx;
   color: var(--ink-3);
 }
 .timerow__v {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 34rpx;
   color: var(--ink);
 }
 .timerow__v--ph {
   color: var(--ink-4);
-  font-size: 26rpx;
+  font-size: 32rpx;
 }
 .timerow__arrow {
   flex: 0 0 auto;
-  font-size: 28rpx;
+  font-size: 34rpx;
   line-height: 1;
   color: var(--ink-4);
 }
@@ -250,7 +250,7 @@
 .ta__in {
   width: 100%;
   min-height: 130rpx;
-  font-size: 28rpx;
+  font-size: 34rpx;
   line-height: 1.7;
   color: var(--ink);
   box-sizing: border-box;
@@ -259,7 +259,7 @@
   position: absolute;
   right: 0;
   bottom: 6rpx;
-  font-size: 20rpx;
+  font-size: 26rpx;
   color: var(--ink-4);
 }
 
@@ -267,14 +267,14 @@
 .line-in {
   height: 72rpx;
   margin-top: 8rpx;
-  font-size: 28rpx;
+  font-size: 34rpx;
   color: var(--ink);
   border-bottom: 1rpx solid var(--line-2);
   transition: border-color 0.2s ease;
 }
 .ph {
   color: var(--ink-4);
-  font-size: 26rpx;
+  font-size: 32rpx;
 }
 
 /* ---- 材料 ---- */
@@ -288,7 +288,7 @@
 }
 .mat__n {
   flex: 1;
-  font-size: 24rpx;
+  font-size: 30rpx;
   color: var(--ink-2);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -296,7 +296,7 @@
 }
 .mat__x {
   flex: 0 0 auto;
-  font-size: 22rpx;
+  font-size: 28rpx;
   color: var(--red-600);
 }
 
@@ -312,11 +312,11 @@
   transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
 }
 .mat-add__i {
-  font-size: 28rpx;
+  font-size: 34rpx;
   color: var(--ink-3);
 }
 .mat-add__t {
-  font-size: 24rpx;
+  font-size: 30rpx;
   color: var(--ink-3);
 }
 

@@ -23,33 +23,43 @@
   <view wx:if="{{loading}}" class="empty">正在加载…</view>
   <view wx:elif="{{error}}" class="empty">
     <view>{{error}}</view>
+    <view class="empty__dbg num">{{errBaseUrl}}</view>
     <view class="retry" bindtap="load">重新加载</view>
   </view>
 
   <block wx:else>
 
-    <!-- ===== 有当前请假：主卡片 ===== -->
+    <!-- ===== 有当前请假：状态区 ===== -->
     <block wx:if="{{hasHero}}">
 
-      <!-- 状态行：请假中 · 离校 · 事假 -->
-      <view class="state {{stateCls}}">{{stateWord}}</view>
+      <!--
+        当前请假状态区。刻意不套卡片、不加阴影、不加圆角容器：
+        靠 字号层级 + 留白 + 左对齐 形成一组，最后用一条极细线收口。
+        四级优先级：状态词 > 类型 > 时间区间 > 辅助时长
+      -->
+      <view class="hero">
 
-      <!-- 还有几条待处理：避免"处理完一条突然跳到另一条"让人以为系统乱跳 -->
-      <view wx:if="{{othersPending > 0}}" class="others" bindtap="onAllRecords">
-        另有 {{othersPending}} 条待处理
-        <text class="others__arrow">›</text>
-      </view>
+        <!-- 第一优先级：待审批 / 请假中 / 逾期 -->
+        <view class="hero__status {{stateCls}}">{{stateMain}}</view>
 
-      <view class="timeblock">
-        <!-- 区间 -->
-        <view class="range num">{{rangeText}}</view>
+        <!-- 第二优先级：离校 · 病假 -->
+        <view class="hero__sub">{{stateSub}}</view>
 
-        <!-- 大数字（还剩 / 逾期 / 已等待 / 还有） -->
-        <view wx:if="{{bigLabel}}" class="bigrow">
-          <text class="bigrow__lb num">{{bigLabel}}</text>
-          <text class="bigrow__v num {{bigDanger ? 'bigrow__v--danger' : ''}}">{{bigText}}</text>
+        <!-- 还有几条待处理：避免"处理完一条突然跳到另一条"让人以为系统乱跳 -->
+        <view wx:if="{{othersPending > 0}}" class="others" bindtap="onAllRecords">
+          另有 {{othersPending}} 条待处理
+          <text class="others__arrow">›</text>
         </view>
-        <view wx:else class="bigtext {{stateCls}}">{{bigText}}</view>
+
+        <!-- 第三优先级：时间区间 -->
+        <view class="hero__range num">{{rangeText}}</view>
+
+        <!-- 第四优先级：辅助时长（已等待 10 分钟 / 还剩 3 天 2 小时） -->
+        <view
+          wx:if="{{bigLabel}}"
+          class="hero__aux num {{bigDanger ? 'hero__aux--danger' : ''}}"
+        >{{bigLabel}} {{bigText}}</view>
+        <view wx:else class="hero__text {{stateCls}}">{{bigText}}</view>
 
         <!-- 刻度尺（只有请假中 / 逾期才有） -->
         <ruler
@@ -103,7 +113,7 @@
         </view>
       </view>
 
-      <!-- 事实行：审批 张老师 10.16 17:30 · 销假 返校定位 -->
+      <!-- 事实行：提交 10.22 11:16 · 审批 待分配 -->
       <view wx:if="{{facts.length}}" class="facts num">
         <block wx:for="{{facts}}" wx:key="label">
           <text wx:if="{{index > 0}}" class="facts__dot">·</text>
@@ -115,7 +125,9 @@
 
     <!-- ===== 无当前请假：场景卡（态 D / E） ===== -->
     <block wx:if="{{showScene}}">
-      <view class="state state--muted">今天没有请假</view>
+      <view class="hero">
+        <view class="hero__status state--muted">今天没有请假</view>
+      </view>
 
       <view class="empty2">
         <view class="empty2__t">要离校，还是只在校内活动？</view>
@@ -123,12 +135,12 @@
         <!-- 两张卡带图标（定稿：离校=门、校内=屋顶），图标为内联 SVG 转 data URI，零外部资源 -->
         <view class="picks">
           <view class="pick" hover-class="pick--press" data-scene="OFF" bindtap="onApply">
-            <image class="pick__ico" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxRjU1QUQiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik01LjQgMjAuNlY0LjRhMSAxIDAgMCAxIDEtMWg5LjJhMSAxIDAgMCAxIDEgMXYxNi4yIi8+PHBhdGggZD0iTTIuOCAyMC42aDE4LjQiLz48cGF0aCBkPSJNMTIuNiAxMi4yaC4wMSIvPjwvc3ZnPg==" mode="aspectFit" />
+            <image class="pick__ico" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1MzZCNTkiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik01LjQgMjAuNlY0LjRhMSAxIDAgMCAxIDEtMWg5LjJhMSAxIDAgMCAxIDEgMXYxNi4yIi8+PHBhdGggZD0iTTIuOCAyMC42aDE4LjQiLz48cGF0aCBkPSJNMTIuNiAxMi4yaC4wMSIvPjwvc3ZnPg==" mode="aspectFit" />
             <view class="pick__t">离校请假</view>
             <view class="pick__s">返校定位销假</view>
           </view>
           <view class="pick" hover-class="pick--press" data-scene="ON" bindtap="onApply">
-            <image class="pick__ico" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxRjU1QUQiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00LjQgMjAuNlY2LjJMMTIgMy40bDcuNiAyLjh2MTQuNCIvPjxwYXRoIGQ9Ik0yLjggMjAuNmgxOC40Ii8+PHBhdGggZD0iTTkuNCAyMC42di00LjRoNS4ydjQuNCIvPjwvc3ZnPg==" mode="aspectFit" />
+            <image class="pick__ico" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1MzZCNTkiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00LjQgMjAuNlY2LjJMMTIgMy40bDcuNiAyLjh2MTQuNCIvPjxwYXRoIGQ9Ik0yLjggMjAuNmgxOC40Ii8+PHBhdGggZD0iTTkuNCAyMC42di00LjRoNS4ydjQuNCIvPjwvc3ZnPg==" mode="aspectFit" />
             <view class="pick__t">校内请假</view>
             <view class="pick__s">结束后自主确认</view>
           </view>

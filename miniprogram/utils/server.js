@@ -42,7 +42,7 @@ function setBaseUrl(url) {
 }
 
 /** 单个地址探活：能拿到 code=0 就算通（字典接口不需要 token） */
-function pingHost(host, timeout = 900) {
+function pingHost(host, timeout = 2500) {
   return new Promise((resolve) => {
     wx.request({
       url: 'http://' + host + ':8080/api/v1/common/dictionaries',
@@ -78,13 +78,13 @@ function probe() {
 
   const candidates = [
     currentHost,
+    '10.225.223.179',
     '172.20.10.2', '172.20.10.3', '172.20.10.4',
     '192.168.43.2', '192.168.43.3', '192.168.43.4', '192.168.43.5',
     '192.168.43.6', '192.168.43.7', '192.168.43.8', '192.168.43.9',
     '192.168.137.2',
     '192.168.1.2', '192.168.1.3', '192.168.1.4', '192.168.1.5', '192.168.1.6',
-    '192.168.0.2', '192.168.0.3', '192.168.0.4',
-    '10.225.223.179'
+    '192.168.0.2', '192.168.0.3', '192.168.0.4'
   ].filter((v, i, a) => v && a.indexOf(v) === i)
 
   const BATCH = 8
@@ -121,8 +121,8 @@ function probe() {
 
     runBatch(0)
 
-    // 总兜底：整个探测不超过 7 秒
-    setTimeout(() => finish(null), 7000)
+    // 总兜底：整个探测不超过 12 秒（20 个候选分 3 批，每批 2.5 秒）
+    setTimeout(() => finish(null), 12000)
   })
 }
 

@@ -1,10 +1,10 @@
 /**
  * custom-tab-bar/index.js —— 自定义 tabBar
  *
- * 为什么用自定义而不是原生 tabBar（答辩可讲）：
- *   原生 tabBar 的图标必须是本地图片（png），而本项目零图片资源；
- *   且原生 tabBar 无法做「细线 + 文字 + 蓝色短横线」这套纸感设计。
- *   自定义 tabBar 用纯 WXML/WXSS 实现，零资源、样式完全可控。
+ * 为什么用自定义而不是原生 tabBar：
+ *   原生 tabBar 的图标只认本地 png，且样式（字号/字重/选中态）完全锁死，
+ *   做不了纸感体系要的细线 + 衬线数字那套。自定义版用 WXML/WXSS，
+ *   图标走内联 base64 SVG（见 icons.js），仍然零图片资源、零额外请求。
  *
  * 用法（每个 tab 页的 onShow 里）：
  *   if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -14,18 +14,31 @@
  * 组件实例是每个页面独立持有的，所以 selected 必须由页面主动同步，
  * 否则会出现"在记录页但首页高亮"的错位。
  */
+const { ICONS } = require('./icons')
+
+/**
+ * 图标的 on/off 两版 URL 在模块加载时就拼好塞进 list。
+ * 不写在 WXML 表达式里（ICONS[item.icon][...] 这种二级计算属性 WXML 解析不稳），
+ * 也让 setData 时只传已经算好的字符串。
+ */
+const LIST = [
+  { pagePath: '/pages/student/home/home', text: '首页', icon: 'home' },
+  { pagePath: '/pages/student/records/records', text: '记录', icon: 'records' },
+  { pagePath: '/pages/student/messages/messages', text: '消息', icon: 'messages' },
+  { pagePath: '/pages/student/profile/profile', text: '我的', icon: 'profile' }
+].map((it) => ({
+  ...it,
+  iconOn: ICONS[it.icon].on,
+  iconOff: ICONS[it.icon].off
+}))
+
 Component({
   data: {
     /** 当前选中项索引：0 首页 / 1 记录 / 2 消息 / 3 我的 */
     selected: 0,
     /** 消息未读数（>0 时在「消息」右上角显示小红点数字） */
     unread: 0,
-    list: [
-      { pagePath: '/pages/student/home/home', text: '首页' },
-      { pagePath: '/pages/student/records/records', text: '记录' },
-      { pagePath: '/pages/student/messages/messages', text: '消息' },
-      { pagePath: '/pages/student/profile/profile', text: '我的' }
-    ]
+    list: LIST
   },
 
   methods: {

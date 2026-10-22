@@ -74,6 +74,24 @@ function clockText(ms) {
 }
 
 /**
+ * 中文时长短语，用于首页状态辅助行："已等待 10 分钟" / "还剩 3 天 2 小时"。
+ *
+ * <p>为什么不复用 clockText（"0:10"）：mm:ss 这种表盘格式在首页会被读成倒计时，
+ * 而它其实只是"等了多久"的描述信息，不该占据视觉重心。
+ */
+function durationText(ms) {
+  ms = Math.max(0, ms || 0)
+  const totalMin = Math.floor(ms / 60000)
+  if (totalMin < 1) return '不到 1 分钟'
+  const d = Math.floor(totalMin / 1440)
+  const h = Math.floor((totalMin % 1440) / 60)
+  const m = totalMin % 60
+  if (d > 0) return h > 0 ? d + ' 天 ' + h + ' 小时' : d + ' 天'
+  if (h > 0) return m > 0 ? h + ' 小时 ' + m + ' 分钟' : h + ' 小时'
+  return m + ' 分钟'
+}
+
+/**
  * 自然语言时长，用于 "已过 1 天 2 小时" / "共 10 小时"。
  */
 function partsText(ms) {
@@ -148,6 +166,6 @@ function fileSize(bytes) {
 module.exports = {
   parseTime,
   md, hm, mdhm, mdCN, week,
-  clockText, partsText, greeting,
+  clockText, durationText, partsText, greeting,
   statusChip, sceneLabel, typeLabel, materialLabel, fileSize
 }

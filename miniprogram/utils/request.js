@@ -78,9 +78,13 @@ function request(url, method = 'GET', data = null, options = {}) {
         }
 
         // 业务失败：把 message 交给调用方决定怎么展示（有的场景要弹 toast，有的要显示在页面上）
+        // 带上 HTTP 状态码：真机上"请求失败"四个字没法排查，
+        // 是 404（路径不对）还是 500（后端报错）差别巨大。
+        const rawMsg = typeof body === 'object' ? body.message : ''
         reject({
           code: body.code,
-          message: body.message || '请求失败',
+          message: rawMsg || ('请求失败（HTTP ' + res.statusCode + '）'),
+          statusCode: res.statusCode,
           data: body.data || null
         })
       },

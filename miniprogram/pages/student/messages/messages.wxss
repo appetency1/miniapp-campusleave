@@ -18,13 +18,13 @@
   border-bottom: 1rpx solid var(--line);
 }
 .head__t {
-  font-size: 44rpx;
+  font-size: 48rpx;
   font-weight: 600;
   color: var(--ink);
 }
 .head__a {
-  font-size: 24rpx;
-  color: var(--blue-600);
+  font-size: 30rpx;
+  color: var(--accent-600);
 }
 .head__a--off {
   color: var(--ink-4);
@@ -54,7 +54,7 @@
   margin-top: 4rpx;
 }
 .msg--unread .msg__bar {
-  background: var(--blue-500);
+  background: var(--accent-500);
 }
 
 .msg__body {
@@ -70,7 +70,7 @@
 }
 .msg__t {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 34rpx;
   font-weight: 500;
   color: var(--ink-2);
   line-height: 1.4;
@@ -85,13 +85,13 @@
 
 .msg__time {
   flex: 0 0 auto;
-  font-size: 22rpx;
+  font-size: 28rpx;
   color: var(--ink-4);
 }
 
 .msg__c {
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 30rpx;
   line-height: 1.65;
   color: var(--ink-3);
 }
@@ -101,6 +101,6 @@
 
 .retry {
   margin-top: 20rpx;
-  font-size: 26rpx;
-  color: var(--blue-600);
+  font-size: 32rpx;
+  color: var(--accent-600);
 }

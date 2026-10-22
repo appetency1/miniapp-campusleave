@@ -1,6 +1,13 @@
 /* custom-tab-bar/index.wxss
- * 纸感 tabBar：纸底 + 顶部 1rpx 细线 + 文字 + 选中蓝线
- * 触控高度 104rpx（≈52px），满足 ≥44px 的触控目标要求
+ * 纸感 tabBar：纸底 + 顶部 1rpx 细线 + 线性图标 + 文字
+ *
+ * ── 安全区自适应 ──
+ * 不同机型底部留白不一样，只能靠 env(safe-area-inset-bottom) 拿，不能按机型写死：
+ *    iPhone X 及之后（灵动岛/刘海）  → 34pt
+ *    iPhone SE / 8 等无手势条机型   → 0
+ *    Android 三键虚拟导航            → 0（微信客户端已把窗口排掉了导航栏，无需再留）
+ *    Android 全面屏手势条            → 部分机型返回非 0，部分返回 0
+ * 所以：留白交给 env()，高度只写最小值，内容自己撑开。
  */
 .tabbar {
   position: fixed;
@@ -9,7 +16,11 @@
   bottom: 0;
   z-index: 100;
   display: flex;
-  height: calc(104rpx + env(safe-area-inset-bottom));
+  /* 小程序 WXSS 没有全局 border-box reset。不写这一行，min-height 里已含的 safe-area
+     会再叠一份 padding-bottom，总高多出一整个安全区 → 文字被顶到偏上。 */
+  box-sizing: border-box;
+  /* 用 min-height 而不是 height：字号再调、或系统字体放大时，tab 内容不会被压扁 */
+  min-height: calc(104rpx + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--paper, #FBFAF7);
   /* 顶部细线，替代阴影 —— 定稿的原则是只用 1px 线分区 */
@@ -22,22 +33,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  gap: 4rpx;
 }
 
+/* 图标容器：固定 44rpx 高，选中/未选中切换只换 src，不改变盒子尺寸（避免跳动） */
 .tab__wrap {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.tab__i {
+  display: block;
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .tab__t {
-  font-size: 26rpx;
+  /* tabBar label 必须比正文小一档：中文 12.6pt 是四字平铺的可读上限，
+     再大就会显得笨重、也会挤压图标 */
+  font-size: 24rpx;
   line-height: 1;
   letter-spacing: 0.04em;
-  /* 未选中：墨色 3 号（偏灰），选中：纯墨 */
-  color: var(--ink-3, #6B6559);
+  /* 未选中压到 4 号灰，选中的墨色 + 600 字重才拉得开对比 */
+  color: var(--ink-4, #8E887B);
   transition: color 0.2s ease;
 }
 
@@ -46,36 +68,20 @@
   font-weight: 600;
 }
 
-/* 选中态短横线：默认透明，选中时变蓝并略微上浮 */
-.tab__bar {
-  width: 28rpx;
-  height: 3rpx;
-  border-radius: 2rpx;
-  background: transparent;
-  transition: background 0.2s ease, transform 0.2s ease;
-  transform: translateY(-2rpx);
-}
-
-.tab--on .tab__bar {
-  background: var(--blue-500, #2563C9);
-  transform: translateY(0);
-}
-
-/* 未读角标 */
+/* 未读角标：贴在图标右上角 */
 .tab__badge {
-  font-family: "Noto Serif SC", "Songti SC", Georgia, serif;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   position: absolute;
-  left: 100%;
-  top: -10rpx;
-  margin-left: 2rpx;
-  min-width: 26rpx;
-  height: 26rpx;
-  padding: 0 6rpx;
-  border-radius: 13rpx;
+  left: 30rpx;
+  top: -8rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 7rpx;
+  border-radius: 14rpx;
   background: var(--red-600, #B23A28);
   color: #fff;
-  font-size: 18rpx;
-  line-height: 26rpx;
+  font-size: 19rpx;
+  line-height: 28rpx;
   text-align: center;
 }

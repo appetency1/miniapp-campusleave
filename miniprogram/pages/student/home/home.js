@@ -16,12 +16,15 @@
  */
 const { get, post } = require('../../../utils/request')
 const { getToken, getUser } = require('../../../utils/auth')
+const { getBaseUrl, probe, setBaseUrl } = require('../../../utils/server')
 const F = require('../../../utils/format')
 
 Page({
   data: {
     loading: true,
     error: '',
+    /** 出错时把当前生效的后端地址显示在页面上 —— 真机排查时一眼看出连的是谁 */
+    errBaseUrl: '',
     /** 状态栏高度（自定义导航栏时手动避开） */
     statusBarHeight: 20,
 
@@ -31,9 +34,10 @@ Page({
 
     // 主卡片
     hasHero: false,          // 有没有"当前请假"要展示
-    stateWord: '',
-    stateCls: '',
-    sceneType: '',           // "请假中 · 离校 · 事假"
+    stateMain: '',           // 第一优先级：待审批 / 请假中 / 逾期
+    stateSub: '',            // 第二优先级：离校 · 病假
+    stateCls: '',            // 状态色类（state--warn / state--done）
+    sceneType: '',           // "请假中 · 离校 · 事假"（旧字段，保留兼容）
 
     rangeText: '',
     bigLabel: '',
@@ -122,7 +126,38 @@ Page({
       this.setData({ loading: false, error: '' })
       this.syncBadge()
     } catch (err) {
-      this.setData({ loading: false, error: err.message || '加载失败' })
+      this.setData({ loading: false, error: err.message || '加载失败', errBaseUrl: getBaseUrl() })
+      // 地址类失败（换 WiFi / 热点后 IP 变了）自动纠正一次，不让用户去登录页手动改
+      this.autoFixBaseUrl()
+    }
+  },
+
+  /**
+   * 后端地址自动纠正。
+   *
+   * <p>真机调试最常见的坑：换网络后电脑 IP 变了，而手机 storage 里存着上次的地址，
+   * 页面只会显示"请求失败"。这里在失败后探测一次常见网段，找到就把地址改掉并重试。
+   *
+   * <p>只有检测到"另一个可用地址"才重试 —— 如果当前地址本身是通的（说明是业务错误），
+   * probe 会返回同一个 host，此时直接放弃，避免无限重试。
+   */
+  async autoFixBaseUrl() {
+    if (this._fixing) return
+    this._fixing = true
+    wx.showLoading({ title: '正在查找后端…', mask: true })
+    try {
+      const host = await probe()
+      wx.hideLoading()
+      if (!host) return
+      const next = setBaseUrl(host + ':8080')
+      if (next && next !== this.data.errBaseUrl) {
+        wx.showToast({ title: '已连接 ' + host, icon: 'none' })
+        this.load()
+      }
+    } catch (e) {
+      wx.hideLoading()
+    } finally {
+      this._fixing = false
     }
   },
 
@@ -134,10 +169,10 @@ Page({
     const stats = d.stats || {}
 
     // ---- 头部 ----
+    // 只留日期 + 星期。班级属于个人资料，放「我的」页 —— 首页不需要它抢注意力。
     const dateLine = [
       (now.getMonth() + 1) + '月' + now.getDate() + '日',
-      F.week(now),
-      student.className
+      F.week(now)
     ].filter(Boolean).join(' · ')
 
     const view = {
@@ -177,7 +212,7 @@ Page({
         othersPending: 0,
         // 清掉主卡片相关字段：虽然 wxml 里它们包在 wx:if="{{hasHero}}" 内不会渲染，
         // 但留着旧值会让 data 里出现"没有主卡片却还写着请假中"的脏状态
-        stateWord: '', stateCls: '', rangeText: '', bigLabel: '', bigText: '',
+        stateMain: '', stateSub: '', stateCls: '', rangeText: '', bigLabel: '', bigText: '',
         showRuler: false, flowSteps: [], facts: [], ctaText: '', links: [],
         readLeftPre: '', readLeftStrong: '', readLeftRest: '', readRight: '',
         rejectReason: ''
@@ -190,7 +225,11 @@ Page({
     const chip = F.statusChip(es)
 
     // ---- 主卡片 ----
+    // 拆成两级：状态词是用户第一眼要找的，类型是补充说明。
+    // 原来拼成一句"待审批 · 离校 · 病假"，三个信息等重，反而没有重点。
     const sceneType = chip.label + ' · ' + F.sceneLabel(hero.leaveScene) + ' · ' + F.typeLabel(hero.leaveType)
+    const stateMain = chip.label
+    const stateSub = F.sceneLabel(hero.leaveScene) + ' · ' + F.typeLabel(hero.leaveType)
 
     // 区间文字
     let rangeText = ''
@@ -214,7 +253,7 @@ Page({
     if (es === 'IN_PROGRESS') {
       // ---- 态 A ----
       bigLabel = '还剩'
-      bigText = F.clockText(hero.remainingMillis)
+      bigText = F.durationText(hero.remainingMillis)
       showRuler = true
       rulerPercent = this.percent(hero.elapsedMillis, hero.totalMillis)
       rulerLabels = this.buildLabels(hero.startTime, hero.endTime)
@@ -235,7 +274,7 @@ Page({
     } else if (es === 'OVERDUE') {
       // ---- 态 C ----
       bigLabel = '逾期'
-      bigText = F.clockText(hero.overdueMillis)
+      bigText = F.durationText(hero.overdueMillis)
       bigDanger = true
       showRuler = true
       rulerDanger = true
@@ -254,7 +293,7 @@ Page({
     } else if (es === 'PENDING') {
       // ---- 态 B ----
       bigLabel = '已等待'
-      bigText = F.clockText(hero.waitingMillis)
+      bigText = F.durationText(hero.waitingMillis)
       showFlow = true
       flowSteps = [
         { t: '提交', s: F.mdhm(hero.submittedAt), st: 'is-done' },
@@ -273,7 +312,7 @@ Page({
     } else if (es === 'WAITING_START') {
       // ---- 已通过未开始 ----
       bigLabel = '还有'
-      bigText = F.clockText(hero.beforeStartMillis)
+      bigText = F.durationText(hero.beforeStartMillis)
       readLeftStrong = F.mdCN(hero.startTime) + ' ' + F.hm(hero.startTime)
       readLeftRest = ' 开始'
       readRight = '共 ' + F.partsText(hero.totalMillis)
@@ -301,7 +340,7 @@ Page({
 
     Object.assign(view, {
       hasHero: true,
-      stateWord: sceneType,
+      stateMain, stateSub, sceneType,
       stateCls: chip.cls,
       rangeText,
       bigLabel, bigText, bigDanger,
