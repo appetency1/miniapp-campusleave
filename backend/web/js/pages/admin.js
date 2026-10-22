@@ -476,9 +476,9 @@
     box.appendChild(ui.table({
       rowKey: 'key',
       cols: [
-        { label: '配置项', width: 260, render: function (c) { return el('span', { class: 'mono', text: c.key }); } },
+        { label: '配置项', width: 296, render: function (c) { return el('span', { class: 'mono cfg-key', text: c.key }); } },
         { label: '说明', render: function (c) { return c.description || '—'; } },
-        { label: '类型', width: 92, render: function (c) { return c.type || '—'; } },
+        { label: '类型', width: 104, render: function (c) { return c.type || '—'; } },
         {
           label: '值', width: 200, render: function (c) {
             var input = el('input', {

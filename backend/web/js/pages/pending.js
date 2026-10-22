@@ -89,6 +89,7 @@
 
       if (!local.list.length) {
         listEl.appendChild(ui.empty({
+          art: 'assets/asset-stationery.png',
           title: tab === 'ext'
             ? '没有待处理的续假申请。'
             : '负责班级没有待审批，最早一条明天 08:00 开始。',
@@ -151,6 +152,7 @@
       detailEl.innerHTML = '';
       if (!local.shown) {
         detailEl.appendChild(ui.empty({
+          art: 'assets/asset-stationery.png',
           title: '左侧没有待处理的申请。',
           note: '选中任意一条即可查看详情并审批。'
         }));

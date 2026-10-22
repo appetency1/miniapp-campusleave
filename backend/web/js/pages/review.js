@@ -143,6 +143,7 @@
       listEl.innerHTML = '';
       if (!local.list.length) {
         listEl.appendChild(ui.empty({
+          art: 'assets/asset-stationery.png',
           title: '没有待核验的记录；',
           note: '自动通过的记录在申请详情里。'
         }));
@@ -179,6 +180,7 @@
       detailEl.innerHTML = '';
       if (!local.shown) {
         detailEl.appendChild(ui.empty({
+          art: 'assets/asset-stationery.png',
           title: '左侧没有待核验的记录。',
           note: '定位失败会先进入这里，自动通过的记录在申请详情里。'
         }));

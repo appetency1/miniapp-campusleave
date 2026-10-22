@@ -1156,3 +1156,9 @@
 }
 .login-body .btn { width: 100%; height: calc(42px * var(--fs, 1)); }
 .login-foot { margin-top: 26px; }
+
+/* 配置项 key 是长下划线大写串，12.5px 放不下，单独压到 11.5px 等宽 */
+.cfg-key {
+  font-size: calc(11.5px * var(--fs, 1));
+  letter-spacing: -.01em;
+}
