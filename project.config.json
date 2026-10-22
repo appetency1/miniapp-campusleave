@@ -30,7 +30,9 @@
     "swc": false,
     "disableSWC": true,
     "disableUseStrict": false,
-    "useCompilerPlugins": false
+    "useCompilerPlugins": false,
+    "urlCheck": false,
+    "compileHotReLoad": false
   },
   "condition": {},
   "editorSetting": {
