@@ -384,6 +384,26 @@
 
   /* ---------------- 启动 ---------------- */
   function boot() {
+    /* 双击打开（file://）时接口永远调不通：相对路径 /api/v1 会被解析成 file:///api/v1。
+       与其让用户点完登录才看到一句"连不上后端"，不如一进来就说清正确地址。 */
+    if (location.protocol === 'file:') {
+      document.body.dataset.role = 'guest';
+      var box = document.getElementById('login-root');
+      if (box) {
+        box.innerHTML = '';
+        box.appendChild(el('div', { class: 'login' }, [
+          el('h1', { class: 'login-h1', text: '请用网址访问' }),
+          el('div', { class: 'login-sub', text: '这个页面由后端托管，不能直接双击打开' }),
+          el('div', { class: 'login-body' }, [
+            el('div', { class: 'login-hint', text: '在浏览器地址栏输入：' }),
+            el('div', { class: 'file-hint-url', text: 'http://localhost:8080/admin/' }),
+            el('div', { class: 'login-hint', text: '前提是后端已启动 —— 双击项目根目录的 start-backend.cmd。' })
+          ])
+        ]));
+      }
+      return;
+    }
+
     /* 深链要在这里先存下来：router.start 的 guard 会把未登录的 hash 改写成 #/login，
        等异步登录完成后 location.hash 已经不是用户原本要去的页面了。 */
     var deepLink = location.hash.replace(/^#/, '') || '/workbench';

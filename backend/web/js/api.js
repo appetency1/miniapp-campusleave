@@ -81,7 +81,12 @@
         throw new Error((j && j.message) || ('请求失败（HTTP ' + r.status + '）'));
       });
     }, function () {
-      throw new Error('连不上后端：请确认服务已启动，且与浏览器同源');
+      // fetch 直接失败（连不上）。最常见的不是后端没起，而是用 file:// 打开了页面：
+      // 这时候 "/api/v1/..." 会被解析成 file:///api/v1/...，请求根本发不出去。
+      if (location.protocol === 'file:') {
+        throw new Error('页面是用文件方式打开的（file://）。请改用 http://localhost:8080/admin/ 访问');
+      }
+      throw new Error('连不上后端：请确认 8080 端口的服务已启动');
     });
   }
 
