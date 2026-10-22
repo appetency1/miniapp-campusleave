@@ -501,6 +501,18 @@
     rejectPanel: rejectPanel,
     drawer: drawer,
     lightbox: lightbox,
-    docImage: docImage
+    docImage: docImage,
+    /**
+     * 轻提示。原来这个函数只写在 admin.js 内部，app.js（顶栏）用不到，
+     * 于是"点击没反应"的场景连个提示都给不出来。样式 .toast 早就有了（components.css）。
+     */
+    toast: toast
   };
+
+  function toast(text) {
+    var t = el('div', { class: 'toast', text: text });
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-out'); }, 1600);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2100);
+  }
 })();

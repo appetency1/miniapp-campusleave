@@ -217,6 +217,9 @@
     {
       title: '系统管理',
       items: [
+        // 账号管理原来只藏在顶栏头像下拉里，左侧没有入口；而 activeKey 又把
+        // /admin/users 映射到 admin-students，点完之后左侧高亮不动 —— 看起来就像"点了没反应"。
+        { key: 'admin-users', label: '账号管理', icon: 'nav-person', href: '#/admin/users' },
         { key: 'admin-rules', label: '请假规则', icon: 'nav-shield-alert', href: '#/admin/rules' },
         { key: 'admin-configs', label: '系统设置', icon: 'nav-gear', href: '#/admin/configs' }
       ]
@@ -247,7 +250,7 @@
     if (p.indexOf('/admin/review') === 0) return 'admin-review';
     if (p.indexOf('/admin/students') === 0) return 'admin-students';
     if (p.indexOf('/admin/teachers') === 0) return 'admin-teachers';
-    if (p.indexOf('/admin/users') === 0) return 'admin-students';
+    if (p.indexOf('/admin/users') === 0) return 'admin-users';
     if (p.indexOf('/admin/classes') === 0) return 'admin-classes';
     if (p.indexOf('/admin/bindings') === 0) return 'admin-classes';
     if (p.indexOf('/admin/rules') === 0) return 'admin-rules';
@@ -340,16 +343,28 @@
       { label: '退出登录', onClick: function () { logout(); } }
     ];
 
-    /* 通知铃铛：点一下去待审批（教师）或账号页（管理员）。
-       红点表示有待办，没有待办就不显示。 */
-    var hasTodo = isAdmin ? false : pendingQueue().length > 0;
-    var bell = el('button', { class: 'top-bell', attrs: { type: 'button', 'aria-label': '通知' } }, [
+    /* 通知铃铛：教师跳待审批，管理员跳全校待处理申请。
+       红点表示有活要干，没有就不显示 —— 管理员这边原来写死 hasTodo=false、
+       点击只回概览页，等于一个永远不亮的装饰按钮。 */
+    var adminTodo = (STORE.admin && STORE.admin.overview && STORE.admin.overview.todo) || {};
+    var adminTodoCount = (adminTodo.pending || 0) + (adminTodo.pendingReview || 0) + (adminTodo.pendingExtension || 0);
+    var hasTodo = isAdmin ? adminTodoCount > 0 : pendingQueue().length > 0;
+    var bell = el('button', {
+      class: 'top-bell',
+      attrs: {
+        type: 'button',
+        'aria-label': '待办通知',
+        title: hasTodo ? '有 ' + (isAdmin ? adminTodoCount : pendingQueue().length) + ' 项待处理' : '暂无待办'
+      }
+    }, [
       ui.pngIcon('bell', 19),
       hasTodo ? el('i', { class: 'top-bell-dot' }) : null
     ]);
     bell.addEventListener('click', function (e) {
       e.stopPropagation();
-      router.go(isAdmin ? '/admin/home' : '/pending');
+      // 没待办也照样跳过去：落在空列表上比"点了什么都不发生"更容易理解
+      if (!hasTodo) ui.toast('当前没有待办');
+      router.go(isAdmin ? '/admin/apps' : '/pending');
     });
     top.appendChild(bell);
 

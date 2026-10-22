@@ -106,11 +106,10 @@
     });
   }
 
+  // 轻提示统一走 ui.toast（app.js 顶栏也要用），这里保留同名薄封装，
+  // 免得改十几处调用点
   function toast(text) {
-    var t = el('div', { class: 'toast', text: text });
-    document.body.appendChild(t);
-    setTimeout(function () { t.classList.add('is-out'); }, 1600);
-    setTimeout(function () { t.remove(); }, 2100);
+    ADMIN.ui.toast(text);
   }
 
   /** 页头右侧的动作按钮 */
@@ -672,7 +671,9 @@
     var state = { role: '', kw: '' };
 
     page.appendChild(ui.pageHead({
-      title: '账号',
+      // 标题与左侧菜单「账号管理」保持一致：原来标题只写"账号"，
+      // 从下拉跳过来的人不容易确认自己到没到对的地方
+      title: '账号管理',
       right: [
         el('div', { class: 'page-meta', text: '共 ' + all.length + ' 个' }),
         headBtn('新建账号', function () { openCreateUser(); })
