@@ -30,7 +30,7 @@
     extensions: [],
     students: [],
     stats: { totalApplications: 0, approved: 0, completed: 0, currentOverdue: 0 },
-    admin: { users: [], classes: [], bindings: [], configs: [], stats: {} }
+    admin: { users: [], classes: [], bindings: [], configs: [], stats: {}, overview: {} }
   };
 
   /** 当前登录角色：TEACHER 或 ADMIN，决定菜单和数据源 */
@@ -140,7 +140,10 @@
       get('/admin/classes?size=200'),
       get('/admin/teacher-classes'),
       get('/admin/configs'),
-      get('/admin/stats')
+      get('/admin/stats'),
+      // 概览失败不阻塞整个后台：即使这个接口还没上线（后端未重启），
+      // 也应该能进到其他页面，只是概览页显示空数据
+      get('/admin/overview').catch(function () { return null; })
     ]).then(function (r) {
       var me = r[0] || {};
       setStore({
@@ -165,7 +168,8 @@
           classes: (r[2] && r[2].list) || [],
           bindings: r[3] || [],
           configs: r[4] || [],
-          stats: r[5] || {}
+          stats: r[5] || {},
+          overview: r[6] || {}
         }
       });
       return window.STORE;

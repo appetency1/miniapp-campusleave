@@ -124,6 +124,14 @@ public class AdminController {
         return Result.ok();
     }
 
+    // ---------------- 7.6 管理端概览 ----------------
+
+    @GetMapping("/overview")
+    public Result<Map<String, Object>> overview() {
+        CurrentUser.requireRole("ADMIN");
+        return Result.ok(service.overview());
+    }
+
     // ---------------- 7.5 全校统计 ----------------
 
     @GetMapping("/stats")

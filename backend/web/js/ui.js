@@ -82,12 +82,15 @@
     return span;
   }
 
-  /** 设计稿切出来的 PNG 图标（assets/icon-*.png，128×128 透明底） */
+  /** 设计稿切出来的 PNG 图标。
+      两种命名都支持：'bell' -> assets/icon-bell.png；
+      'stat-student' / 'nav-home' 这类本身已带系列前缀的直接用原名。 */
   function pngIcon(name, size) {
     var s = size || 17;
+    var file = /^(stat|nav|avatar)-/.test(name) ? name : 'icon-' + name;
     return el('img', {
       class: 'png-icon',
-      attrs: { src: 'assets/icon-' + name + '.png', alt: '', 'aria-hidden': 'true' },
+      attrs: { src: 'assets/' + file + '.png', alt: '', 'aria-hidden': 'true' },
       style: { width: s + 'px', height: s + 'px' }
     });
   }

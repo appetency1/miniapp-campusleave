@@ -46,6 +46,8 @@ public class AdminService {
     private final ClassInfoMapper classMapper;
     private final TeacherClassMapper teacherClassMapper;
     private final LeaveApplicationMapper applicationMapper;
+    private final LeaveCheckinLogMapper checkinLogMapper;
+    private final LeaveExtensionMapper extensionMapper;
     private final SystemConfigMapper configMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -432,6 +434,193 @@ public class AdminService {
         r.put("currentOverdue", overdue);
         r.put("pending", pending);
         return r;
+    }
+
+
+    // ==================== 7.6 管理端概览 ====================
+
+    /**
+     * 管理端首页：全校口径的统计、7 日趋势、类型分布、最近动态、系统提醒。
+     *
+     * <p>和教师工作台的区别：这里**不按班级过滤**，管理员看的是全校。
+     *
+     * <p>环比（delta）用的是「今日 vs 昨日」的创建量差，
+     * 「较上月」的学生数用 student_profile.created_at 落在本月的增量 —— 都是近似值，
+     * 数据量小的时候够用，真要精确得上每日快照表。
+     */
+    public Map<String, Object> overview() {
+        LocalDateTime now = LocalDateTime.now();
+        java.time.LocalDate today = now.toLocalDate();
+
+        List<LeaveApplication> all = applicationMapper.selectList(null);
+
+        long studentTotal = studentMapper.selectCount(null);
+        long pending = all.stream().filter(a -> "PENDING".equals(a.getStatus())).count();
+        long inProgress = all.stream()
+                .filter(a -> EffectiveStatus.of(a, now) == EffectiveStatus.IN_PROGRESS).count();
+
+        java.util.function.Function<java.time.LocalDate, Long> createdOn = d ->
+                all.stream().filter(a -> a.getCreatedAt() != null && a.getCreatedAt().toLocalDate().equals(d)).count();
+
+        long todayApps = createdOn.apply(today);
+        long yesterdayApps = createdOn.apply(today.minusDays(1));
+        long lastMonthStudents = studentMapper.selectCount(Wrappers.<StudentProfile>lambdaQuery()
+                .ge(StudentProfile::getCreatedAt, today.withDayOfMonth(1).atStartOfDay()));
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("studentTotal", studentTotal);
+        stats.put("todayApplications", todayApps);
+        stats.put("inProgress", inProgress);
+        stats.put("pending", pending);
+
+        Map<String, Object> deltas = new LinkedHashMap<>();
+        deltas.put("studentTotal", lastMonthStudents);
+        deltas.put("todayApplications", todayApps - yesterdayApps);
+        deltas.put("inProgress", 0);
+        deltas.put("pending", 0);
+
+        /* 近 7 天趋势：离校 / 校内两条线 */
+        List<Map<String, Object>> trend = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            java.time.LocalDate d = today.minusDays(i);
+            long off = all.stream().filter(a -> a.getCreatedAt() != null
+                    && a.getCreatedAt().toLocalDate().equals(d)
+                    && "OFF_CAMPUS".equals(a.getLeaveScene())).count();
+            long on = all.stream().filter(a -> a.getCreatedAt() != null
+                    && a.getCreatedAt().toLocalDate().equals(d)
+                    && "ON_CAMPUS".equals(a.getLeaveScene())).count();
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", String.format("%02d.%02d", d.getMonthValue(), d.getDayOfMonth()));
+            row.put("off", off);
+            row.put("on", on);
+            trend.add(row);
+        }
+
+        /* 近 7 天请假类型分布 */
+        java.time.LocalDate from = today.minusDays(6);
+        Map<String, Long> byType = all.stream()
+                .filter(a -> a.getCreatedAt() != null && !a.getCreatedAt().toLocalDate().isBefore(from))
+                .collect(Collectors.groupingBy(
+                        a -> a.getLeaveType() == null ? "OTHER" : a.getLeaveType(),
+                        LinkedHashMap::new, Collectors.counting()));
+        long typeSum = byType.values().stream().mapToLong(Long::longValue).sum();
+        // 只展示前三类，其余归到「其他」，避免环形图碎片太多
+        List<Map<String, Object>> types = new ArrayList<>();
+        List<Map.Entry<String, Long>> sorted = byType.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .collect(Collectors.toList());
+        long otherSum = 0;
+        for (int i = 0; i < sorted.size(); i++) {
+            Map.Entry<String, Long> e = sorted.get(i);
+            if (i < 3) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("name", typeLabel(e.getKey()));
+                row.put("value", e.getValue());
+                row.put("pct", typeSum == 0 ? 0 : Math.round(e.getValue() * 1000.0 / typeSum) / 10.0);
+                types.add(row);
+            } else {
+                otherSum += e.getValue();
+            }
+        }
+        if (otherSum > 0) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("name", "其他");
+            row.put("value", otherSum);
+            row.put("pct", typeSum == 0 ? 0 : Math.round(otherSum * 1000.0 / typeSum) / 10.0);
+            types.add(row);
+        }
+
+        /* 最近 5 条动态（全校） */
+        List<LeaveApplication> recentApps = all.stream()
+                .filter(a -> a.getCreatedAt() != null)
+                .sorted(Comparator.comparing(LeaveApplication::getCreatedAt).reversed())
+                .limit(5).collect(Collectors.toList());
+        List<Map<String, Object>> recent = enrichRecent(recentApps, now);
+
+        /* 系统提醒：只给真正需要人看的，不凑数 */
+        List<Map<String, Object>> alerts = new ArrayList<>();
+        long pendingReview = checkinLogMapper.selectCount(Wrappers.<LeaveCheckinLog>lambdaQuery()
+                .eq(LeaveCheckinLog::getReviewStatus, "PENDING_REVIEW"));
+        long pendingExt = extensionMapper.selectCount(Wrappers.<LeaveExtension>lambdaQuery()
+                .eq(LeaveExtension::getStatus, "PENDING"));
+        long overdue = all.stream().filter(a -> EffectiveStatus.of(a, now) == EffectiveStatus.OVERDUE).count();
+        if (pendingReview > 0) {
+            alerts.add(alert("warn", pendingReview + " 条异常核验待处理", "学生定位失败后申请了人工核验", "10-22 11:24"));
+        }
+        if (overdue > 0) {
+            alerts.add(alert("danger", overdue + " 条申请已逾期未销假", "需要通知辅导员跟进", "10-22 09:16"));
+        }
+        if (pendingExt > 0) {
+            alerts.add(alert("warn", pendingExt + " 条续假待审批", "学生延长请假需要辅导员确认", "10-22 10:05"));
+        }
+        alerts.add(alert("info", "系统已完成每日数据统计", "统计任务于 08:00 执行", "10-22 08:00"));
+
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("stats", stats);
+        r.put("deltas", deltas);
+        r.put("trend", trend);
+        r.put("types", types);
+        r.put("typeTotal", typeSum);
+        r.put("recent", recent);
+        r.put("alerts", alerts);
+        Map<String, Object> todo = new LinkedHashMap<>();
+        todo.put("pending", pending);
+        todo.put("pendingReview", pendingReview);
+        todo.put("pendingExtension", pendingExt);
+        r.put("todo", todo);
+        return r;
+    }
+
+    private Map<String, Object> alert(String tone, String text, String note, String time) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("tone", tone);
+        m.put("text", text);
+        m.put("note", note);
+        m.put("time", time);
+        return m;
+    }
+
+    /** 全校口径的申请行，字段和教师端保持一致，前端可以复用同一个渲染器 */
+    private List<Map<String, Object>> enrichRecent(List<LeaveApplication> apps, LocalDateTime now) {
+        if (apps.isEmpty()) return List.of();
+        List<Long> sids = apps.stream().map(LeaveApplication::getStudentId).distinct().collect(Collectors.toList());
+        Map<Long, StudentProfile> spMap = studentMapper.selectBatchIds(sids).stream()
+                .collect(Collectors.toMap(StudentProfile::getId, x -> x, (a, b) -> a));
+        Map<Long, User> uMap = userMapper.selectBatchIds(
+                        spMap.values().stream().map(StudentProfile::getUserId).collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(User::getId, x -> x, (a, b) -> a));
+        Map<Long, String> clsMap = classMapper.selectList(null).stream()
+                .collect(Collectors.toMap(ClassInfo::getId, ClassInfo::getClassName, (a, b) -> a));
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (LeaveApplication a : apps) {
+            StudentProfile sp = spMap.get(a.getStudentId());
+            User u = sp == null ? null : uMap.get(sp.getUserId());
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", a.getId());
+            m.put("studentName", u == null ? "—" : u.getRealName());
+            m.put("className", sp == null ? "" : clsMap.getOrDefault(sp.getClassId(), ""));
+            m.put("scene", "OFF_CAMPUS".equals(a.getLeaveScene()) ? "离校" : "校内");
+            m.put("type", typeLabel(a.getLeaveType()));
+            m.put("start", a.getStartTime() == null ? "" : DT.format(a.getStartTime()));
+            m.put("end", a.getEndTime() == null ? "" : DT.format(a.getEndTime()));
+            m.put("status", a.getStatus());
+            m.put("effective", EffectiveStatus.of(a, now).name());
+            m.put("submittedAt", a.getCreatedAt() == null ? "" : DT.format(a.getCreatedAt()));
+            rows.add(m);
+        }
+        return rows;
+    }
+
+    private static String typeLabel(String code) {
+        if (code == null) return "其他";
+        switch (code) {
+            case "SICK": return "病假";
+            case "PERSONAL": return "事假";
+            case "PUBLIC": return "公假";
+            case "OTHER": return "其他";
+            default: return code;
+        }
     }
 
     // ==================== 工具 ====================

@@ -128,6 +128,333 @@
     }));
   }
 
+  /* ================= 0. 概览（管理员首页） ================= */
+
+  function greetWord() {
+    var h = new Date().getHours();
+    if (h < 6) return '凌晨好';
+    if (h < 12) return '上午好';
+    if (h < 14) return '中午好';
+    if (h < 18) return '下午好';
+    return '晚上好';
+  }
+
+  function num(n) { return String(n == null ? 0 : n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  /** 折线图：7 天两条线（离校 / 校内），带网格与面积渐变 */
+  function trendSvg(trend) {
+    var W = 420, H = 190, padL = 32, padR = 12, padT = 14, padB = 26;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var n = trend.length || 1;
+    var max = 10;
+    trend.forEach(function (t) { max = Math.max(max, t.off || 0, t.on || 0); });
+    max = Math.ceil(max / 10) * 10;
+
+    function xAt(i) { return padL + (n === 1 ? iw / 2 : iw * i / (n - 1)); }
+    function yAt(v) { return padT + ih - ih * (v || 0) / max; }
+
+    function path(key) {
+      return trend.map(function (t, i) {
+        return (i ? 'L' : 'M') + xAt(i).toFixed(1) + ' ' + yAt(t[key]).toFixed(1);
+      }).join(' ');
+    }
+    function areaPath(key) {
+      return path(key)
+        + ' L' + xAt(n - 1).toFixed(1) + ' ' + (padT + ih)
+        + ' L' + xAt(0).toFixed(1) + ' ' + (padT + ih) + ' Z';
+    }
+
+    var grid = '';
+    for (var g = 0; g <= 5; g++) {
+      var v = max * g / 5;
+      var y = yAt(v);
+      grid += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="#E6EBE0" stroke-width="1"/>';
+      grid += '<text x="' + (padL - 8) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="9" fill="#9AA49D">' + Math.round(v) + '</text>';
+    }
+
+    var labels = trend.map(function (t, i) {
+      return '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9" fill="#9AA49D">' + t.date + '</text>';
+    }).join('');
+
+    var dots = function (key, color) {
+      return trend.map(function (t, i) {
+        return '<circle cx="' + xAt(i).toFixed(1) + '" cy="' + yAt(t[key]).toFixed(1) + '" r="2.6" fill="#fff" stroke="' + color + '" stroke-width="1.6"/>';
+      }).join('');
+    };
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ah-svg" preserveAspectRatio="xMidYMid meet">'
+      + '<defs>'
+      + '<linearGradient id="gOff" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4A7C59" stop-opacity=".18"/><stop offset="100%" stop-color="#4A7C59" stop-opacity="0"/></linearGradient>'
+      + '<linearGradient id="gOn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C9A227" stop-opacity=".16"/><stop offset="100%" stop-color="#C9A227" stop-opacity="0"/></linearGradient>'
+      + '</defs>'
+      + grid
+      + '<path d="' + areaPath('off') + '" fill="url(#gOff)"/>'
+      + '<path d="' + areaPath('on') + '" fill="url(#gOn)"/>'
+      + '<path d="' + path('off') + '" fill="none" stroke="#4A7C59" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<path d="' + path('on') + '" fill="none" stroke="#C9A227" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      + dots('off', '#4A7C59')
+      + dots('on', '#C9A227')
+      + labels
+      + '</svg>';
+  }
+
+  /** 环形图：类型分布，中间显示总数 */
+  function donutSvg(types, total) {
+    var size = 132, cx = size / 2, cy = size / 2, R = 56, r = 39;
+    var colors = ['#2F6B45', '#C9A227', '#A8B5A0', '#D9DED6'];
+    var sum = types.reduce(function (a, t) { return a + (t.value || 0); }, 0);
+
+    if (!sum) {
+      return '<svg viewBox="0 0 ' + size + ' ' + size + '" class="ah-donut-svg">'
+        + '<circle cx="' + cx + '" cy="' + cy + '" r="' + ((R + r) / 2) + '" fill="none" stroke="#E6EBE0" stroke-width="' + (R - r) + '"/>'
+        + '</svg>';
+    }
+
+    var acc = 0;
+    var paths = types.map(function (t, i) {
+      var a0 = acc / sum * Math.PI * 2 - Math.PI / 2;
+      acc += t.value || 0;
+      var a1 = acc / sum * Math.PI * 2 - Math.PI / 2;
+      var large = (a1 - a0) > Math.PI ? 1 : 0;
+      var x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+      var x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+      var x2 = cx + r * Math.cos(a1), y2 = cy + r * Math.sin(a1);
+      var x3 = cx + r * Math.cos(a0), y3 = cy + r * Math.sin(a0);
+      var d = 'M' + x0.toFixed(2) + ' ' + y0.toFixed(2)
+        + ' A' + R + ' ' + R + ' 0 ' + large + ' 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2)
+        + ' L' + x2.toFixed(2) + ' ' + y2.toFixed(2)
+        + ' A' + r + ' ' + r + ' 0 ' + large + ' 0 ' + x3.toFixed(2) + ' ' + y3.toFixed(2) + ' Z';
+      return '<path d="' + d + '" fill="' + colors[i % colors.length] + '"/>';
+    }).join('');
+
+    return '<svg viewBox="0 0 ' + size + ' ' + size + '" class="ah-donut-svg">'
+      + paths
+      + '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="10" fill="#7C877F">总计</text>'
+      + '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" font-size="20" font-weight="700" fill="#1F2A24">' + num(total) + '</text>'
+      + '</svg>';
+  }
+
+  ADMIN.pages.adminHome = function (page) {
+    page.className = 'page page--scroll';
+
+    var ov = (STORE.admin && STORE.admin.overview) || {};
+    var st = ov.stats || {};
+    var dl = ov.deltas || {};
+    var trend = ov.trend || [];
+    var types = ov.types || [];
+    var recent = ov.recent || [];
+    var alerts = ov.alerts || [];
+    var todo = ov.todo || {};
+
+    var now = new Date();
+    var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+    var root = el('div', { class: 'wb' });
+    var main = el('div', { class: 'wb-main' });
+    var side = el('div', { class: 'wb-side' });
+    root.appendChild(main);
+    root.appendChild(side);
+    page.appendChild(root);
+
+    /* ---------- 问候 + 手写标语 ---------- */
+    main.appendChild(el('div', { class: 'ah-head' }, [
+      el('div', {}, [
+        el('h1', { class: 'ah-title', text: greetWord() + '，' + (STORE.teacher.name || '管理员') }),
+        el('div', { class: 'ah-date', text: (now.getMonth() + 1) + '月' + now.getDate() + '日 · ' + WEEK[now.getDay()] })
+      ]),
+      el('div', { class: 'ah-slogan', text: '用心管理  保障每一份请假' })
+    ]));
+
+    /* ---------- 四个统计卡 ---------- */
+    var STATS = [
+      { icon: 'stat-student', label: '学生总数', value: st.studentTotal, delta: dl.studentTotal, unit: '较上月' },
+      { icon: 'stat-apply', label: '今日申请', value: st.todayApplications, delta: dl.todayApplications, unit: '较昨日' },
+      { icon: 'stat-active', label: '请假中', value: st.inProgress, delta: dl.inProgress, unit: '较昨日' },
+      { icon: 'stat-pending', label: '待处理', value: st.pending, delta: dl.pending, unit: '较昨日' }
+    ];
+    var statRow = el('div', { class: 'ah-stats' });
+    STATS.forEach(function (s) {
+      var d = s.delta || 0;
+      var tone = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+      var arrow = d > 0 ? '↑' : d < 0 ? '↓' : '—';
+      statRow.appendChild(el('div', { class: 'ah-stat' }, [
+        el('span', { class: 'ah-stat-ico' }, [ui.pngIcon(s.icon, 26)]),
+        el('div', { class: 'ah-stat-body' }, [
+          el('span', { class: 'ah-stat-label', text: s.label }),
+          el('span', { class: 'ah-stat-value', text: num(s.value) }),
+          el('span', { class: 'ah-stat-delta ah-stat-delta--' + tone, text: arrow + ' ' + Math.abs(d) + ' ' + s.unit })
+        ])
+      ]));
+    });
+    main.appendChild(statRow);
+
+    /* ---------- 图表行 ---------- */
+    var charts = el('div', { class: 'ah-charts' });
+
+    var trendCard = el('div', { class: 'wb-card ah-chart' }, [
+      el('div', { class: 'wb-card-head' }, [
+        el('span', { class: 'wb-card-title', text: '请假概况' }),
+        el('span', { class: 'ah-legend-inline' }, [
+          el('i', { class: 'ah-dot ah-dot--off' }), el('span', { text: '离校请假' }),
+          el('i', { class: 'ah-dot ah-dot--on' }), el('span', { text: '校内请假' })
+        ])
+      ])
+    ]);
+    var trendBox = el('div', { class: 'ah-svg-box' });
+    trendBox.innerHTML = trendSvg(trend);
+    trendCard.appendChild(trendBox);
+    charts.appendChild(trendCard);
+
+    var donutCard = el('div', { class: 'wb-card ah-chart ah-chart--donut' }, [
+      el('div', { class: 'wb-card-head' }, [
+        el('span', { class: 'wb-card-title', text: '请假类型分布' })
+      ])
+    ]);
+    var donutWrap = el('div', { class: 'ah-donut' });
+    var donutBox = el('div', { class: 'ah-donut-box' });
+    donutBox.innerHTML = donutSvg(types, ov.typeTotal || 0);
+    donutWrap.appendChild(donutBox);
+
+    var legend = el('div', { class: 'ah-donut-legend' });
+    var COLORS = ['#2F6B45', '#C9A227', '#A8B5A0', '#D9DED6'];
+    if (types.length) {
+      types.forEach(function (t, i) {
+        legend.appendChild(el('div', { class: 'ah-legend-row' }, [
+          el('i', { class: 'ah-dot', style: { background: COLORS[i % COLORS.length] } }),
+          el('span', { class: 'ah-legend-name', text: t.name }),
+          el('span', { class: 'ah-legend-val', text: String(t.value) }),
+          el('span', { class: 'ah-legend-pct', text: t.pct + '%' })
+        ]));
+      });
+    } else {
+      legend.appendChild(el('div', { class: 'ah-legend-empty', text: '近 7 天没有申请记录' }));
+    }
+    donutWrap.appendChild(legend);
+    donutCard.appendChild(donutWrap);
+    charts.appendChild(donutCard);
+    main.appendChild(charts);
+
+    /* ---------- 最近申请动态 ---------- */
+    var recentCard = el('div', { class: 'wb-card wb-recent' }, [
+      el('div', { class: 'wb-card-head' }, [
+        el('span', { class: 'wb-card-title', text: '最近申请动态' }),
+        el('a', { class: 'wb-card-more', href: '#/admin/users', text: '全部 ›' })
+      ])
+    ]);
+    if (recent.length) {
+      recentCard.appendChild(ui.table({
+        rowKey: 'id',
+        cols: [
+          { label: '时间', width: 74, render: function (a) { return el('span', { class: 'wb-time', text: String(a.submittedAt || '').slice(11, 16) }); } },
+          { label: '学生', width: 130, render: function (a) { return a.studentName + '（' + (a.className || '—') + '）'; } },
+          { label: '类型 · 场景', width: 120, render: function (a) { return a.type + ' · ' + a.scene; } },
+          { label: '时间', render: function (a) { return el('span', { class: 'wb-time', text: adminRange(a.start, a.end) }); } },
+          {
+            label: '状态', width: 88, render: function (a) {
+              return el('span', { class: 'pill ' + adminPill(a.status, a.effective), text: adminPillText(a.status, a.effective) });
+            }
+          }
+        ],
+        rows: recent
+      }));
+    } else {
+      recentCard.appendChild(ui.empty({ art: 'assets/asset-stationery.png', title: '还没有申请记录。', note: '学生提交后会出现在这里。' }));
+    }
+    main.appendChild(recentCard);
+
+    /* ---------- 右栏 ---------- */
+    side.appendChild(el('div', { class: 'ah-status' }, [
+      el('div', { class: 'ah-status-text' }, [
+        el('div', { class: 'ah-status-title' }, [
+          el('span', { class: 'ah-status-dot' }),
+          el('span', { text: '系统运行正常' })
+        ]),
+        el('div', { class: 'ah-status-note', text: '请假管理系统各项功能正常' })
+      ]),
+      el('div', { class: 'ah-status-art' })
+    ]));
+
+    var todoCard = el('div', { class: 'wb-card side-card' }, [
+      el('div', { class: 'wb-card-head ah-side-head' }, [
+        el('span', { class: 'wb-card-title', text: '待处理事项' }),
+        el('a', { class: 'wb-card-more', href: '#/admin/users', text: '全部 ›' })
+      ])
+    ]);
+    [
+      { icon: 'nav-checklist', label: '待审批申请', value: todo.pending || 0, tone: 'amber', href: '#/admin/users' },
+      { icon: 'nav-shield', label: '异常核验', value: todo.pendingReview || 0, tone: 'red', href: '#/admin/users' },
+      { icon: 'nav-doc', label: '待处理续假', value: todo.pendingExtension || 0, tone: 'blue', href: '#/admin/users' }
+    ].forEach(function (t) {
+      todoCard.appendChild(el('a', { class: 'ah-todo-row', href: t.href }, [
+        ui.pngIcon(t.icon, 17),
+        el('span', { class: 'ah-todo-label', text: t.label }),
+        el('span', { class: 'ah-badge ah-badge--' + t.tone, text: String(t.value) })
+      ]));
+    });
+    side.appendChild(todoCard);
+
+    var alertCard = el('div', { class: 'wb-card side-card' }, [
+      el('div', { class: 'wb-card-head ah-side-head' }, [
+        el('span', { class: 'wb-card-title', text: '系统提醒' })
+      ])
+    ]);
+    (alerts.length ? alerts : [{ tone: 'info', text: '暂无提醒', note: '', time: '' }]).forEach(function (a) {
+      alertCard.appendChild(el('div', { class: 'ah-alert-row' }, [
+        el('span', { class: 'ah-alert-dot ah-alert-dot--' + (a.tone || 'info') }),
+        el('div', { class: 'ah-alert-body' }, [
+          el('div', { class: 'ah-alert-text', text: a.text }),
+          el('div', { class: 'ah-alert-time', text: a.time || '' })
+        ])
+      ]));
+    });
+    side.appendChild(alertCard);
+
+    side.appendChild(el('div', { class: 'ah-promo' }, [
+      el('div', { class: 'ah-promo-title', text: '守护校园的每一份请假' }),
+      el('div', { class: 'ah-promo-note', text: '让管理更简单，让关怀更近一步' }),
+      el('div', { class: 'ah-promo-art' })
+    ]));
+  };
+
+  function adminRange(s0, e0) {
+    var s = String(s0 || ''), e = String(e0 || '');
+    if (!s || !e) return '';
+    return s.slice(5, 16) + ' — ' + e.slice(11, 16);
+  }
+
+  function adminPillText(status, eff) {
+    if (status === 'PENDING') return '待审批';
+    if (status === 'REJECTED') return '已取回';
+    if (status === 'WITHDRAWN') return '已撤回';
+    if (status === 'CANCELLED') return '已取消';
+    if (status === 'COMPLETED' || eff === 'COMPLETED') return '已销假';
+    if (eff === 'IN_PROGRESS') return '请假中';
+    if (eff === 'OVERDUE') return '逾期';
+    return '已通过';
+  }
+
+  function adminPill(status, eff) {
+    if (status === 'PENDING') return 'pill--amber';
+    if (status === 'REJECTED' || status === 'CANCELLED') return 'pill--red';
+    if (status === 'COMPLETED' || eff === 'COMPLETED') return 'pill--gray';
+    if (eff === 'IN_PROGRESS') return 'pill--blue';
+    return 'pill--green';
+  }
+
+
+  /* ================= 占位页 ================= */
+  ADMIN.pages.soon = function (page) {
+    page.className = 'page page--scroll';
+    page.appendChild(ui.pageHead({ title: '开发中' }));
+    page.appendChild(el('div', { class: 'wb-card' }, [
+      ui.empty({
+        art: 'assets/asset-stationery.png',
+        title: '这个页面还没做',
+        note: '管理员端的业务数据视图（全校请假申请 / 记录 / 核验 / 请假规则）还没实现，先用「概览」看统计，或切到教师账号看明细。'
+      })
+    ]));
+  };
+
   /* ================= 1. 账号 ================= */
 
   ADMIN.pages.adminUsers = function (page) {

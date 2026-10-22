@@ -190,15 +190,35 @@
     }
   ];
 
-  /* 管理端菜单：只做基础数据维护，不碰审批（审批是教师职责） */
+  /* 管理端菜单：按设计稿的四组结构 */
   var MENU_ADMIN = [
     {
-      title: '基础数据',
+      title: '',
       items: [
-        { key: 'admin-users', label: '账号', icon: 'user', href: '#/admin/users' },
-        { key: 'admin-classes', label: '班级', icon: 'grid', href: '#/admin/classes' },
-        { key: 'admin-bindings', label: '辅导员绑定', icon: 'link', href: '#/admin/bindings' },
-        { key: 'admin-configs', label: '系统配置', icon: 'sliders', href: '#/admin/configs' }
+        { key: 'admin-home', label: '概览', icon: 'nav-home', href: '#/admin/home' }
+      ]
+    },
+    {
+      title: '业务管理',
+      items: [
+        { key: 'admin-apps', label: '请假申请', icon: 'nav-doc', href: '#/admin/apps' },
+        { key: 'admin-records', label: '请假记录', icon: 'nav-checklist', href: '#/admin/records' },
+        { key: 'admin-review', label: '异常核验', icon: 'nav-shield', href: '#/admin/review' }
+      ]
+    },
+    {
+      title: '人员管理',
+      items: [
+        { key: 'admin-students', label: '学生管理', icon: 'nav-person', href: '#/admin/students' },
+        { key: 'admin-teachers', label: '教师管理', icon: 'nav-people', href: '#/admin/teachers' },
+        { key: 'admin-classes', label: '班级管理', icon: 'nav-team', href: '#/admin/classes' }
+      ]
+    },
+    {
+      title: '系统管理',
+      items: [
+        { key: 'admin-rules', label: '请假规则', icon: 'nav-shield-alert', href: '#/admin/rules' },
+        { key: 'admin-configs', label: '系统设置', icon: 'nav-gear', href: '#/admin/configs' }
       ]
     }
   ];
@@ -206,7 +226,9 @@
   /* 设计稿切出来的 PNG 图标；不在这张表里的（管理端那几个）继续用内联 SVG */
   var PNG_ICON_NAMES = {
     gauge: 1, clipboard: 1, checklist: 1, folder: 1, person: 1,
-    bell: 1, 'calendar-clock': 1, book: 1
+    bell: 1, 'calendar-clock': 1, book: 1,
+    'nav-home': 1, 'nav-doc': 1, 'nav-shield': 1, 'nav-person': 1, 'nav-people': 1,
+    'nav-team': 1, 'nav-gear': 1, 'nav-checklist': 1, 'nav-shield-alert': 1, 'nav-sync': 1
   };
   function navIcon(name) {
     return PNG_ICON_NAMES[name] ? ui.pngIcon(name) : ui.icon(name);
@@ -219,9 +241,16 @@
 
   function activeKey() {
     var p = router.current() || '';
-    if (p.indexOf('/admin/users') === 0) return 'admin-users';
+    if (p.indexOf('/admin/home') === 0) return 'admin-home';
+    if (p.indexOf('/admin/apps') === 0) return 'admin-apps';
+    if (p.indexOf('/admin/records') === 0) return 'admin-records';
+    if (p.indexOf('/admin/review') === 0) return 'admin-review';
+    if (p.indexOf('/admin/students') === 0) return 'admin-students';
+    if (p.indexOf('/admin/teachers') === 0) return 'admin-teachers';
+    if (p.indexOf('/admin/users') === 0) return 'admin-students';
     if (p.indexOf('/admin/classes') === 0) return 'admin-classes';
-    if (p.indexOf('/admin/bindings') === 0) return 'admin-bindings';
+    if (p.indexOf('/admin/bindings') === 0) return 'admin-classes';
+    if (p.indexOf('/admin/rules') === 0) return 'admin-rules';
     if (p.indexOf('/admin/configs') === 0) return 'admin-configs';
     if (p.indexOf('/pending') === 0) return 'pending';
     if (p.indexOf('/review') === 0) return 'review';
@@ -306,7 +335,7 @@
     var name = STORE.teacher.name || '';
 
     var accountItems = [
-      { label: '个人信息', onClick: function () { router.go(isAdmin ? '/admin/users' : '/profile'); } },
+      { label: '账号管理', onClick: function () { router.go(isAdmin ? '/admin/users' : '/profile'); } },
       { sep: true },
       { label: '退出登录', onClick: function () { logout(); } }
     ];
@@ -320,14 +349,14 @@
     ]);
     bell.addEventListener('click', function (e) {
       e.stopPropagation();
-      router.go(isAdmin ? '/admin/users' : '/pending');
+      router.go(isAdmin ? '/admin/home' : '/pending');
     });
     top.appendChild(bell);
 
     /* 用户菜单：头像 + 姓名 + 箭头。
        头像图放 assets/avatar.png，没图时自动回退成姓名首字。 */
     var avatar = el('span', { class: 'top-avatar' }, [el('span', { text: (name || '?').slice(0, 1) })]);
-    var img = el('img', { attrs: { src: 'assets/avatar.png', alt: '' } });
+    var img = el('img', { attrs: { src: 'assets/avatar-teacher.png', alt: '' } });
     img.addEventListener('error', function () { img.remove(); });
     avatar.appendChild(img);
 
@@ -365,7 +394,7 @@
     renderNav();
     renderTop();
     // 按角色落到各自首页：管理员没有"工作台"，直接进账号管理
-    router.go(ADMIN.api.role() === 'ADMIN' ? '/admin/users' : '/workbench');
+    router.go(ADMIN.api.role() === 'ADMIN' ? '/admin/home' : '/workbench');
   }
 
   function logout() {
@@ -393,11 +422,19 @@
     router.on('/students', ADMIN.pages.students);
     router.on('/profile', ADMIN.pages.records);
 
-    /* ---- 管理端（M5）---- */
+    /* ---- 管理端 ---- */
+    router.on('/admin/home', ADMIN.pages.adminHome);
     router.on('/admin/users', ADMIN.pages.adminUsers);
+    router.on('/admin/students', ADMIN.pages.adminUsers);
+    router.on('/admin/teachers', ADMIN.pages.adminUsers);
     router.on('/admin/classes', ADMIN.pages.adminClasses);
     router.on('/admin/bindings', ADMIN.pages.adminBindings);
     router.on('/admin/configs', ADMIN.pages.adminConfigs);
+    /* 业务数据视图还没做，先给占位页，避免点了没反应 */
+    router.on('/admin/apps', ADMIN.pages.soon);
+    router.on('/admin/records', ADMIN.pages.soon);
+    router.on('/admin/review', ADMIN.pages.soon);
+    router.on('/admin/rules', ADMIN.pages.soon);
 
     router.on('/', ADMIN.pages.workbench);
   }
