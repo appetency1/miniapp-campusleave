@@ -439,3 +439,67 @@
   background-size: contain;
   background-repeat: no-repeat;
 }
+
+/* ---------- 个人信息页 ---------- */
+.pf {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 620px;
+}
+.pf-card { padding-bottom: 10px; }
+.pf-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.pf-avatar {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: calc(18px * var(--fs, 1));
+  font-weight: 600;
+}
+.pf-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pf-name {
+  font-size: calc(16px * var(--fs, 1));
+  font-weight: 700;
+  color: var(--ink);
+}
+.pf-sub {
+  margin-top: 2px;
+  font-size: calc(12px * var(--fs, 1));
+  color: var(--ink-4);
+}
+.pf-row {
+  display: flex;
+  gap: 16px;
+  padding: 9px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: calc(12.5px * var(--fs, 1));
+}
+.pf-row:last-child { border-bottom: 0; }
+.pf-k { flex: 0 0 64px; color: var(--ink-4); }
+.pf-v { flex: 1; color: var(--ink); }
+.pf-chips { padding: 6px 20px 10px; }
+.pf-empty {
+  padding: 6px 20px 14px;
+  font-size: calc(12px * var(--fs, 1));
+  color: var(--ink-4);
+}

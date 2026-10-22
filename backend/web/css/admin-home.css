@@ -268,3 +268,36 @@
   color: var(--ink-4);
 }
 .ah-rule-row .input--inline { width: 190px; flex: 0 0 190px; }
+
+/* ---------- 申请详情抽屉 ---------- */
+.app-detail-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: calc(11.5px * var(--fs, 1));
+  color: var(--ink-4);
+}
+.app-detail-list {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.app-detail-row {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: calc(12.5px * var(--fs, 1));
+  line-height: calc(19px * var(--fs, 1));
+}
+.app-detail-k {
+  flex: 0 0 78px;
+  color: var(--ink-4);
+}
+.app-detail-v {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  word-break: break-all;
+}
+.app-detail .drawer-title { font-size: calc(15px * var(--fs, 1)); font-weight: 600; }

@@ -420,7 +420,7 @@
     router.on('/records', ADMIN.pages.records);
     router.on('/records/:id', ADMIN.pages.records);
     router.on('/students', ADMIN.pages.students);
-    router.on('/profile', ADMIN.pages.records);
+    router.on('/profile', ADMIN.pages.profile);
 
     /* ---- 管理端 ---- */
     router.on('/admin/home', ADMIN.pages.adminHome);
@@ -431,9 +431,9 @@
     router.on('/admin/bindings', ADMIN.pages.adminBindings);
     router.on('/admin/configs', ADMIN.pages.adminConfigs);
     /* 业务数据视图还没做，先给占位页，避免点了没反应 */
-    router.on('/admin/apps', ADMIN.pages.soon);
-    router.on('/admin/records', ADMIN.pages.soon);
-    router.on('/admin/review', ADMIN.pages.soon);
+    router.on('/admin/apps', ADMIN.pages.adminApps);
+    router.on('/admin/records', ADMIN.pages.adminApps);
+    router.on('/admin/review', ADMIN.pages.adminApps);
     router.on('/admin/rules', ADMIN.pages.adminRules);
 
     router.on('/', ADMIN.pages.workbench);

@@ -132,6 +132,19 @@ public class AdminController {
         return Result.ok(service.overview());
     }
 
+    // ---------------- 7.7 全校申请列表 ----------------
+
+    @GetMapping("/applications")
+    public Result<PageResult<Map<String, Object>>> applications(
+            @RequestParam(required = false) String scope,
+            @RequestParam(required = false) String review,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        CurrentUser.requireRole("ADMIN");
+        return Result.ok(service.applications(scope, review, keyword, page, size));
+    }
+
     // ---------------- 7.5 全校统计 ----------------
 
     @GetMapping("/stats")

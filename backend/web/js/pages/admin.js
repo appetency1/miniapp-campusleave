@@ -466,6 +466,212 @@
     ]));
   };
 
+  /* ================= 3.6 申请列表（请假申请 / 请假记录 / 异常核验共用） ================= */
+
+  /** 三个菜单共用一套列表，靠 URL 判断取哪一份数据 */
+  function appsMode() {
+    var p = (ADMIN.router && ADMIN.router.current()) || '';
+    if (p.indexOf('/admin/records') === 0) return 'records';
+    if (p.indexOf('/admin/review') === 0) return 'review';
+    return 'pending';
+  }
+
+  var APPS_META = {
+    pending: { title: '请假申请', scope: 'pending', note: '按提交时间倒序 · 全校口径' },
+    records: { title: '请假记录', scope: 'all', note: '全部状态 · 按提交时间倒序' },
+    review: { title: '异常核验', scope: 'all', review: 'PENDING_REVIEW', note: '定位失败的申请，需要人工核验' }
+  };
+
+  function appPillText(r) {
+    if (r.status === 'PENDING') return '待审批';
+    if (r.status === 'REJECTED') return '已取回';
+    if (r.status === 'WITHDRAWN') return '已撤回';
+    if (r.status === 'CANCELLED') return '已取消';
+    if (r.status === 'COMPLETED' || r.effective === 'COMPLETED') return '已销假';
+    if (r.effective === 'IN_PROGRESS') return '请假中';
+    if (r.effective === 'OVERDUE') return '逾期';
+    if (r.needReview) return '待核验';
+    return '已通过';
+  }
+
+  function appPill(r) {
+    if (r.needReview) return 'pill--red';
+    if (r.status === 'PENDING') return 'pill--amber';
+    if (r.status === 'REJECTED' || r.status === 'CANCELLED') return 'pill--red';
+    if (r.status === 'COMPLETED' || r.effective === 'COMPLETED') return 'pill--gray';
+    if (r.effective === 'IN_PROGRESS') return 'pill--blue';
+    return 'pill--green';
+  }
+
+  /** 申请详情抽屉：管理员只读，不做审批动作 */
+  function openAppDetail(r) {
+    var inner = el('div', { class: 'app-detail' }, [
+      el('div', { class: 'drawer-title', text: r.studentName + ' · ' + r.type + ' · ' + r.scene }),
+      el('div', { class: 'app-detail-sub' }, [
+        el('span', { class: 'mono', text: r.applicationNo || '' }),
+        el('span', { class: 'pill ' + appPill(r), text: appPillText(r) })
+      ])
+    ]);
+    ui.drawer(inner);
+    var rows = [
+      ['学生', r.studentName + '（' + (r.studentNo || '—') + '）'],
+      ['班级', r.className || '—'],
+      ['类型 · 场景', r.type + ' · ' + r.scene],
+      ['请假区间', (r.start || '') + ' → ' + (r.end || '')],
+      ['提交时间', r.submittedAt || '—'],
+      ['请假原因', r.reason || '—']
+    ];
+    if (r.sceneCode === 'OFF_CAMPUS') rows.push(['离校去向', r.destination || '—']);
+    if (r.contactPhone) rows.push(['联系电话', r.contactPhone]);
+    if (r.approvedByName) {
+      rows.push(['审批人', r.approvedByName + (r.approvedAt ? ' · ' + r.approvedAt : '')]);
+    }
+    if (r.cancelReason) rows.push(['取消原因', r.cancelReason]);
+    if (r.needReview) rows.push(['核验状态', '学生定位失败，等待人工核验']);
+
+    var list = el('div', { class: 'app-detail-list' });
+    rows.forEach(function (kv) {
+      list.appendChild(el('div', { class: 'app-detail-row' }, [
+        el('span', { class: 'app-detail-k', text: kv[0] }),
+        el('span', { class: 'app-detail-v', text: kv[1] })
+      ]));
+    });
+    inner.appendChild(list);
+  }
+
+  ADMIN.pages.adminApps = function (page) {
+    page.className = 'page page--scroll';
+
+    var mode = appsMode();
+    var meta = APPS_META[mode];
+    var state = { kw: '', status: '' };
+
+    page.appendChild(ui.pageHead({
+      title: meta.title,
+      right: [el('div', { class: 'page-meta', text: meta.note })]
+    }));
+
+    var statBox = el('div', {});
+    page.appendChild(statBox);
+
+    var bar = el('div', { class: 'tbl-toolbar' });
+    if (mode === 'records') {
+      var seg = el('div', { class: 'seg' });
+      [
+        { key: '', label: '全部' },
+        { key: 'PENDING', label: '待审批' },
+        { key: 'APPROVED', label: '已通过' },
+        { key: 'COMPLETED', label: '已销假' },
+        { key: 'REJECTED', label: '已驳回' }
+      ].forEach(function (f) {
+        seg.appendChild(el('button', {
+          class: 'seg-item' + (f.key === '' ? ' is-on' : ''),
+          attrs: { type: 'button' },
+          dataset: { key: f.key },
+          text: f.label,
+          onClick: function () {
+            state.status = f.key;
+            Array.prototype.forEach.call(seg.children, function (n) {
+              n.classList.toggle('is-on', n.dataset.key === f.key);
+            });
+            load();
+          }
+        }));
+      });
+      bar.appendChild(seg);
+    }
+    bar.appendChild(el('input', {
+      class: 'input input--search',
+      attrs: { type: 'search', placeholder: '搜索姓名 / 学号 / 班级', autocomplete: 'off' },
+      onInput: function (e) {
+        state.kw = e.target.value.trim();
+        clearTimeout(bar._t);
+        bar._t = setTimeout(load, 260);
+      }
+    }));
+    page.appendChild(bar);
+
+    var box = el('div', { class: 'tbl-wrap' });
+    page.appendChild(box);
+    box.appendChild(ui.empty({ title: '加载中…', note: '' }));
+
+    function load() {
+      var qs = ['size=200'];
+      if (meta.scope) qs.push('scope=' + meta.scope);
+      if (meta.review) qs.push('review=' + meta.review);
+      if (state.kw) qs.push('keyword=' + encodeURIComponent(state.kw));
+
+      api.get('/admin/applications?' + qs.join('&')).then(function (res) {
+        var list = (res && res.list) || [];
+        if (state.status) {
+          list = list.filter(function (r) { return r.status === state.status; });
+        }
+
+        statBox.innerHTML = '';
+        statBox.appendChild(statStrip([
+          { label: '当前列表', value: list.length },
+          { label: '待审批', value: list.filter(function (r) { return r.status === 'PENDING'; }).length },
+          { label: '请假中', value: list.filter(function (r) { return r.effective === 'IN_PROGRESS'; }).length },
+          { label: '待核验', value: list.filter(function (r) { return r.needReview; }).length, warn: list.some(function (r) { return r.needReview; }) }
+        ]));
+
+        box.innerHTML = '';
+        if (!list.length) {
+          box.appendChild(ui.empty({
+            art: 'assets/asset-stationery.png',
+            title: mode === 'review' ? '没有待核验的申请。' : '没有匹配的申请。',
+            note: mode === 'review' ? '学生位置校验失败后才会进入这里。' : '换个关键词或筛选条件试试。'
+          }));
+          return;
+        }
+
+        box.appendChild(ui.table({
+          rowKey: 'id',
+          cols: [
+            {
+              label: '学生', width: 172, render: function (r) {
+                return el('span', { class: 'cell-2' }, [
+                  el('span', { text: r.studentName }),
+                  el('span', { class: 'cell-sub', text: r.className || '—' })
+                ]);
+              }
+            },
+            { label: '类型 · 场景', width: 118, render: function (r) { return r.type + ' · ' + r.scene; } },
+            {
+              label: '请假区间', render: function (r) {
+                return el('span', { class: 'wb-time', text: adminRange(r.start, r.end) });
+              }
+            },
+            {
+              label: '提交', width: 116, render: function (r) {
+                return el('span', { class: 'wb-time', text: String(r.submittedAt || '').slice(5, 16) });
+              }
+            },
+            {
+              label: '状态', width: 92, render: function (r) {
+                return el('span', { class: 'pill ' + appPill(r), text: appPillText(r) });
+              }
+            },
+            {
+              label: '操作', width: 76, align: 'right', render: function (r) {
+                return el('button', {
+                  class: 'link-btn', attrs: { type: 'button' }, text: '查看',
+                  onClick: function (e) { e.stopPropagation(); openAppDetail(r); }
+                });
+              }
+            }
+          ],
+          rows: list
+        }));
+      }).catch(function (e) {
+        box.innerHTML = '';
+        box.appendChild(ui.empty({ title: '加载失败', note: e.message || '' }));
+      });
+    }
+
+    load();
+  };
+
   /* ================= 1. 账号 ================= */
 
   ADMIN.pages.adminUsers = function (page) {

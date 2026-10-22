@@ -93,6 +93,90 @@
     return 'pill--gray';
   }
 
+
+  /* ================= 个人信息 ================= */
+  ADMIN.pages.profile = function (page) {
+    page.className = 'page page--scroll';
+
+    var t = STORE.teacher || {};
+    var st = STORE.stats || {};
+    var cls = t.classList || [];
+
+    page.appendChild(ui.pageHead({
+      title: '个人信息',
+      right: [el('div', { class: 'page-meta', text: '账号与带班信息由管理员维护' })]
+    }));
+
+    var root = el('div', { class: 'pf' });
+
+    /* 资料卡 */
+    var card = el('div', { class: 'wb-card pf-card' });
+    var head = el('div', { class: 'pf-head' });
+    var av = el('span', { class: 'pf-avatar' }, [el('span', { text: (t.name || '?').slice(0, 1) })]);
+    var avImg = el('img', { attrs: { src: 'assets/avatar-teacher.png', alt: '' } });
+    avImg.addEventListener('error', function () { avImg.remove(); });
+    av.appendChild(avImg);
+    head.appendChild(av);
+    head.appendChild(el('div', {}, [
+      el('div', { class: 'pf-name', text: t.name || '—' }),
+      el('div', { class: 'pf-sub', text: (t.no || '—') + ' · ' + (t.department || '未填写院系') })
+    ]));
+    card.appendChild(head);
+
+    [
+      ['工号', t.no || '—'],
+      ['姓名', t.name || '—'],
+      ['院系', t.department || '—'],
+      ['手机', t.phone || '—']
+    ].forEach(function (kv) {
+      card.appendChild(el('div', { class: 'pf-row' }, [
+        el('span', { class: 'pf-k', text: kv[0] }),
+        el('span', { class: 'pf-v', text: kv[1] })
+      ]));
+    });
+    root.appendChild(card);
+
+    /* 带班 */
+    var clsCard = el('div', { class: 'wb-card pf-card' }, [
+      el('div', { class: 'wb-card-head' }, [
+        el('span', { class: 'wb-card-title', text: '负责班级' }),
+        el('span', { class: 'wb-card-more', text: cls.length + ' 个' })
+      ])
+    ]);
+    if (cls.length) {
+      var chips = el('div', { class: 'pf-chips' });
+      cls.forEach(function (c) {
+        chips.appendChild(el('span', { class: 'chk-chip', text: c.name }));
+      });
+      clsCard.appendChild(chips);
+    } else {
+      clsCard.appendChild(el('div', { class: 'pf-empty', text: '还没有绑定班级，请联系管理员分配。' }));
+    }
+    root.appendChild(clsCard);
+
+    /* 数据概览 */
+    var statCard = el('div', { class: 'wb-card pf-card' }, [
+      el('div', { class: 'wb-card-head' }, [
+        el('span', { class: 'wb-card-title', text: '我的数据' }),
+        el('a', { class: 'wb-card-more', href: '#/records', text: '去记录页 ›' })
+      ])
+    ]);
+    [
+      { label: '累计申请', value: st.totalApplications || 0, cls: '' },
+      { label: '已批准', value: st.approved || 0, cls: 'ok' },
+      { label: '已完成', value: st.completed || 0, cls: '' },
+      { label: '当前逾期', value: st.overdue || 0, cls: 'bad' }
+    ].forEach(function (s2) {
+      statCard.appendChild(el('div', { class: 'stat-line' }, [
+        el('span', { text: s2.label }),
+        el('b', { class: s2.cls, text: String(s2.value) })
+      ]));
+    });
+    root.appendChild(statCard);
+
+    page.appendChild(root);
+  };
+
   ADMIN.pages.workbench = function (page) {
     page.className = 'page page--scroll';
 

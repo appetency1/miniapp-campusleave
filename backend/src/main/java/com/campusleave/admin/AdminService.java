@@ -623,6 +623,97 @@ public class AdminService {
         }
     }
 
+
+    // ==================== 7.7 全校申请列表（请假申请 / 记录 / 异常核验共用） ====================
+
+    /**
+     * 管理员视角的申请列表：全校口径，不按班级过滤。
+     *
+     * @param scope   pending=待审批 / done=已处理 / all=全部
+     * @param review  PENDING_REVIEW 时只返回有人工核验待处理的
+     * @param keyword 学生姓名 / 学号 / 班级 模糊匹配
+     */
+    public PageResult<Map<String, Object>> applications(String scope, String review,
+                                                        String keyword, int page, int size) {
+        LocalDateTime now = LocalDateTime.now();
+        List<LeaveApplication> all = applicationMapper.selectList(null);
+        List<Map<String, Object>> rows = enrichFull(all, now);
+
+        String kw = keyword == null ? "" : keyword.trim();
+        List<Map<String, Object>> filtered = rows.stream()
+                .filter(r -> {
+                    if ("pending".equalsIgnoreCase(scope) && !"PENDING".equals(r.get("status"))) return false;
+                    if ("done".equalsIgnoreCase(scope) && "PENDING".equals(r.get("status"))) return false;
+                    if ("PENDING_REVIEW".equalsIgnoreCase(review) && !Boolean.TRUE.equals(r.get("needReview"))) return false;
+                    if (kw.isEmpty()) return true;
+                    return String.valueOf(r.get("studentName")).contains(kw)
+                            || String.valueOf(r.get("studentNo")).contains(kw)
+                            || String.valueOf(r.get("className")).contains(kw);
+                })
+                .sorted((a, b) -> String.valueOf(b.get("submittedAt")).compareTo(String.valueOf(a.get("submittedAt"))))
+                .collect(Collectors.toList());
+
+        int total = filtered.size();
+        int from = Math.min((page - 1) * size, total);
+        int to = Math.min(from + size, total);
+        return new PageResult<>(filtered.subList(from, to), total, page, size);
+    }
+
+    /** 列表用的完整行：比 enrichRecent 多带原因、审批人、是否需要核验 */
+    private List<Map<String, Object>> enrichFull(List<LeaveApplication> apps, LocalDateTime now) {
+        if (apps.isEmpty()) return List.of();
+
+        List<Long> sids = apps.stream().map(LeaveApplication::getStudentId).distinct().collect(Collectors.toList());
+        Map<Long, StudentProfile> spMap = studentMapper.selectBatchIds(sids).stream()
+                .collect(Collectors.toMap(StudentProfile::getId, x -> x, (a, b) -> a));
+        List<Long> uids = spMap.values().stream().map(StudentProfile::getUserId).collect(Collectors.toList());
+        Map<Long, User> uMap = uids.isEmpty() ? Map.of()
+                : userMapper.selectBatchIds(uids).stream().collect(Collectors.toMap(User::getId, x -> x, (a, b) -> a));
+        Map<Long, String> clsMap = classMapper.selectList(null).stream()
+                .collect(Collectors.toMap(ClassInfo::getId, ClassInfo::getClassName, (a, b) -> a));
+        Map<Long, User> approverMap = userMapper.selectList(null).stream()
+                .collect(Collectors.toMap(User::getId, x -> x, (a, b) -> a));
+
+        // 需要人工核验的申请 id
+        Set<Long> needReviewIds = checkinLogMapper.selectList(Wrappers.<LeaveCheckinLog>lambdaQuery()
+                        .eq(LeaveCheckinLog::getReviewStatus, "PENDING_REVIEW"))
+                .stream().map(LeaveCheckinLog::getApplicationId).collect(Collectors.toSet());
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (LeaveApplication a : apps) {
+            StudentProfile sp = spMap.get(a.getStudentId());
+            User u = sp == null ? null : uMap.get(sp.getUserId());
+            User approver = a.getApprovedByUserId() == null ? null : approverMap.get(a.getApprovedByUserId());
+            EffectiveStatus eff = EffectiveStatus.of(a, now);
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", a.getId());
+            m.put("applicationNo", a.getApplicationNo());
+            m.put("studentId", a.getStudentId());
+            m.put("studentName", u == null ? "—" : u.getRealName());
+            m.put("studentNo", sp == null ? "" : sp.getStudentNo());
+            m.put("className", sp == null ? "" : clsMap.getOrDefault(sp.getClassId(), ""));
+            m.put("scene", "OFF_CAMPUS".equals(a.getLeaveScene()) ? "离校" : "校内");
+            m.put("sceneCode", a.getLeaveScene());
+            m.put("type", typeLabel(a.getLeaveType()));
+            m.put("typeCode", a.getLeaveType());
+            m.put("start", a.getStartTime() == null ? "" : DT.format(a.getStartTime()));
+            m.put("end", a.getEndTime() == null ? "" : DT.format(a.getEndTime()));
+            m.put("reason", a.getReason());
+            m.put("destination", a.getDestination());
+            m.put("contactPhone", a.getContactPhone());
+            m.put("status", a.getStatus());
+            m.put("effective", eff.name());
+            m.put("needReview", needReviewIds.contains(a.getId()));
+            m.put("approvedByName", approver == null ? null : approver.getRealName());
+            m.put("approvedAt", a.getApprovedAt() == null ? null : DT.format(a.getApprovedAt()));
+            m.put("submittedAt", a.getCreatedAt() == null ? "" : DT.format(a.getCreatedAt()));
+            m.put("cancelReason", a.getCancelReason());
+            rows.add(m);
+        }
+        return rows;
+    }
+
     // ==================== 工具 ====================
 
     private static String str(Map<String, Object> m, String k) {
