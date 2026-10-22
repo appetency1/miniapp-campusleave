@@ -36,21 +36,21 @@ ON DUPLICATE KEY UPDATE `class_code` = `class_code`;
 -- -------------------------------------------------------------
 INSERT INTO `student_profile`
     (`user_id`, `student_no`, `class_id`, `gender`, `major`, `grade`, `enrollment_year`, `emergency_contact`, `emergency_phone`)
-SELECT u.id, '2023001001', c.id, 'M', '计算机科学与技术', '2023', 2023, '李父', '13700000001'
+SELECT u.id, '2023001001', c.id, 'MALE', '计算机科学与技术', '2023', 2023, '李父', '13700000001'
   FROM `user` u JOIN `class_info` c ON c.class_code = 'CS2301'
  WHERE u.username = '2023001001'
 ON DUPLICATE KEY UPDATE `student_no` = `student_no`;
 
 INSERT INTO `student_profile`
     (`user_id`, `student_no`, `class_id`, `gender`, `major`, `grade`, `enrollment_year`, `emergency_contact`, `emergency_phone`)
-SELECT u.id, '2023001002', c.id, 'F', '计算机科学与技术', '2023', 2023, '陈母', '13700000002'
+SELECT u.id, '2023001002', c.id, 'FEMALE', '计算机科学与技术', '2023', 2023, '陈母', '13700000002'
   FROM `user` u JOIN `class_info` c ON c.class_code = 'CS2301'
  WHERE u.username = '2023001002'
 ON DUPLICATE KEY UPDATE `student_no` = `student_no`;
 
 INSERT INTO `student_profile`
     (`user_id`, `student_no`, `class_id`, `gender`, `major`, `grade`, `enrollment_year`, `emergency_contact`, `emergency_phone`)
-SELECT u.id, '2023002001', c.id, 'M', '计算机科学与技术', '2023', 2023, '周父', '13700000003'
+SELECT u.id, '2023002001', c.id, 'MALE', '计算机科学与技术', '2023', 2023, '周父', '13700000003'
   FROM `user` u JOIN `class_info` c ON c.class_code = 'CS2302'
  WHERE u.username = '2023002001'
 ON DUPLICATE KEY UPDATE `student_no` = `student_no`;

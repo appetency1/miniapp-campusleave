@@ -72,7 +72,10 @@ CREATE TABLE IF NOT EXISTS `student_profile` (
     UNIQUE KEY `uk_student_no` (`student_no`),
     KEY `idx_student_class` (`class_id`),
     CONSTRAINT `fk_student_user`  FOREIGN KEY (`user_id`)  REFERENCES `user` (`id`)       ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_student_class` FOREIGN KEY (`class_id`) REFERENCES `class_info` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT `fk_student_class` FOREIGN KEY (`class_id`) REFERENCES `class_info` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    -- 性别只允许 MALE/FEMALE。加之前实际库里混着 M / MALE / 男 三种写法（不同来源各写各的），
+    -- 因为没有任何地方读取 gender，一直没暴露；等哪天要显示就晚了
+    CONSTRAINT `ck_student_gender` CHECK (`gender` IS NULL OR `gender` IN ('MALE','FEMALE'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生信息表';
 
 -- -------------------------------------------------------------
@@ -146,6 +149,10 @@ CREATE TABLE IF NOT EXISTS `leave_application` (
     CONSTRAINT `ck_leave_period`      CHECK (`end_time` > `start_time`),
     CONSTRAINT `ck_leave_status`      CHECK (`status` IN ('PENDING','APPROVED','REJECTED','WITHDRAWN','CANCELLED','COMPLETED')),
     CONSTRAINT `ck_leave_scene`       CHECK (`leave_scene` IN ('ON_CAMPUS','OFF_CAMPUS')),
+    -- 请假类型 / 联系电话：Service 层已校验，这里做最后一道防线。
+    -- 直接调接口或后台导数据时，脏值不该只靠 Java 拦。
+    CONSTRAINT `ck_leave_type`        CHECK (`leave_type` IN ('SICK','PERSONAL','OTHER')),
+    CONSTRAINT `ck_leave_phone`       CHECK (`contact_phone` IS NULL OR `contact_phone` REGEXP '^1[3-9][0-9]{9}$'),
     CONSTRAINT `ck_leave_approved_actual` CHECK (`status` <> 'APPROVED'  OR `actual_end_time` IS NULL),
     CONSTRAINT `ck_leave_completed_actual` CHECK (`status` <> 'COMPLETED' OR `actual_end_time` IS NOT NULL)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='请假申请主表';
@@ -202,7 +209,12 @@ CREATE TABLE IF NOT EXISTS `leave_material` (
     PRIMARY KEY (`id`),
     KEY `idx_material_application` (`application_id`),
     CONSTRAINT `fk_material_application` FOREIGN KEY (`application_id`) REFERENCES `leave_application` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT `fk_material_uploader`    FOREIGN KEY (`uploaded_by`)    REFERENCES `user` (`id`)              ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT `fk_material_uploader`    FOREIGN KEY (`uploaded_by`)    REFERENCES `user` (`id`)              ON DELETE RESTRICT ON UPDATE CASCADE,
+    -- 材料类型 / 路径 / 大小：file_url 只接受本系统上传的相对路径，
+    -- 挡掉 http:// 外链和 ../ 路径穿越（前端会直接把它塞进 <img src>）
+    CONSTRAINT `ck_material_type` CHECK (`material_type` IN ('MEDICAL_PROOF','LEAVE_FORM','OTHER')),
+    CONSTRAINT `ck_material_url`  CHECK (`file_url` LIKE '/files/%'),
+    CONSTRAINT `ck_material_size` CHECK (`file_size` IS NULL OR (`file_size` > 0 AND `file_size` <= 10485760))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='请假材料表';
 
 -- -------------------------------------------------------------

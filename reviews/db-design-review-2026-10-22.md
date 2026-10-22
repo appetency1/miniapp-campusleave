@@ -154,5 +154,90 @@ SELECT ... FROM leave_application
 ## 七、遗留建议（未做）
 
 1. `02_数据库设计_V1.1.md` 补一节「为什么账号只建一张 user 表」—— 把本文 §二 的理由搬过去，答辩直接翻。
-2. 学号双写：按 §三 P1-2 二选一。
-3. 若要按学期做更细的统计（比如"本学期病假次数"），在 `stats` 里补分类型计数字段。
+2. 若要按学期做更细的统计（比如"本学期病假次数"），在 `stats` 里补分类型计数字段。
+
+---
+
+## 八、补充修复（2026-10-22 19:30）
+
+评审后按"能修的全修"又做了一轮，共 4 项：
+
+### 8.1 性别字段三种编码混用（真问题）
+
+```
+gender 实际分布：M(2)  F(1)  MALE(1)  FEMALE(1)  男(14)  女(11)  NULL(1)
+```
+
+同一个字段六种写法 —— 来自三个写入点各写各的：
+`V1.1__seed_demo.sql` 写 `M`/`F`、`AdminService` 直接存前端传值、`seed_bulk.py` 写 `男`/`女`。
+
+**为什么一直没被发现**：全项目没有任何地方**读** `gender`，只写不读，所以界面上看不出来。
+等哪天加"学生详情显示性别"就会看到 `MALE / M / 男` 混排。
+
+修法三层：
+1. 数据统一为 `MALE` / `FEMALE`（与 status/role/leaveType 的英文大写枚举风格一致）
+2. 数据库加 `ck_student_gender CHECK (gender IS NULL OR gender IN ('MALE','FEMALE'))`
+3. `AdminService.normalizeGender()`：兼容 `男/M/male`，无法识别直接 400，不再静默入库
+
+### 8.2 数据库层补 5 条 CHECK（Service 校验之外的最后一道防线）
+
+之前只有 Service 层校验，直接调 API 或手工导数据能写进脏值。现在 DB 也会拒绝：
+
+| 表 | 约束 | 拦截什么 |
+|---|---|---|
+| leave_application | `ck_leave_type` | `leave_type` 只允许 SICK/PERSONAL/OTHER |
+| leave_application | `ck_leave_phone` | 联系电话必须是 `^1[3-9]\d{9}$` |
+| leave_material | `ck_material_type` | 材料类型只允许三种枚举 |
+| leave_material | `ck_material_url` | `file_url` 只接受 `/files/%`，挡外链与路径穿越 |
+| leave_material | `ck_material_size` | 1 字节 ~ 10MB |
+
+实测（`INSERT` 脏数据）：
+
+```
+ERROR 3819: Check constraint 'ck_leave_type' is violated.
+ERROR 3819: Check constraint 'ck_leave_phone' is violated.
+```
+
+### 8.3 建号时"学号 = 登录名"由后端强制
+
+原来 `username` 和 `studentNo` 是从请求体各取一次，只要调用方漏改一处就能造出
+「能登录、但按学号搜不到、按学号建申请指向别人」的账号。前端是 `body.studentNo = v.username`，
+但那是**前端自觉**，后端没管。
+
+现在：`studentNo` 为空则取 `username`；两者不一致直接 400。
+
+同时把 `major` / `grade` 改成**从班级派生**，不再取请求体 —— 这两列在
+`student_profile` 里是冗余（班级表也有），冗余本身不是问题，问题是必须有单一写入源，
+否则会出现"班级转了专业、学生还是老的"。
+
+实测：
+
+```
+POST /admin/users {username:2024999001, studentNo:2024999002}
+→ 400 学号必须与登录账号一致（2024999002 ≠ 2024999001）
+
+POST /admin/users {username:2024999003, gender:"男"}  （不传 major）
+→ 200，落库 gender=MALE，major/grade 与班级一致
+```
+
+### 8.4 启动自检 `DataConsistencyChecker`
+
+有些约束数据库表达不了：「学号要等于登录名」跨两张表、「审批人必须是教师」跨角色。
+MySQL 的 CHECK 做不到跨表，只能靠应用层；而应用层保证的前提是没人绕过它写库
+（手工改库、导数据、跑脚本都会绕）。
+
+所以启动时跑 6 条 COUNT，发现不一致打 ERROR，**不阻塞启动**（演示当天因为一条历史脏数据起不来，
+比数据不一致严重得多）：
+
+```
+[数据自检] 学号与登录账号不一致            正常
+[数据自检] 工号与登录账号不一致            正常
+[数据自检] 学生所学专业/年级与所属班级不一致  正常
+[数据自检] 审批人不是教师角色              正常
+[数据自检] 状态与时间不自洽                正常
+[数据自检] 孤儿通知                      正常
+```
+
+**副作用**：加了 CHECK 之后，两个种子脚本必须同步改（`V1.1__seed_demo.sql` 的 `M`/`F`、
+`seed_bulk.py` 的 `男`/`女`），否则重跑直接 3819 报错。已改并重跑验证通过。
+

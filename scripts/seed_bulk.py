@@ -185,7 +185,7 @@ DELETE FROM `user` WHERE username LIKE '2024%';
         for k in range(count):
             no = '2024%03d%03d' % (ci + 1, idx)
             name = gen_name(used_names)
-            gender = '男' if k % 2 == 0 else '女'
+            gender = 'MALE' if k % 2 == 0 else 'FEMALE'
             students.append({
                 'no': no, 'name': name, 'class_code': code, 'class_name': cname,
                 'major': major, 'grade': grade, 'gender': gender, 'teacher': tno,

@@ -134,17 +134,35 @@ public class AdminService {
         userMapper.insert(u);
 
         if ("STUDENT".equals(role)) {
+            // 学号 = 登录名。原来 username 与 studentNo 各从 body 取一次，
+            // 只要调用方漏改一处就会造出「登录名 ≠ 学号」的账号：能登录，但按学号搜不到，
+            // 按学号建申请又指向别人。这里强制两者一致，不一致直接报错暴露问题。
             String studentNo = str(body, "studentNo");
-            Object classId = body.get("classId");
-            if (studentNo == null || classId == null) {
-                throw new BizException(ErrorCode.BAD_PARAM, "新建学生必须提供 studentNo 与 classId");
+            if (studentNo == null) {
+                studentNo = username;
+            } else if (!studentNo.equals(username)) {
+                throw new BizException(ErrorCode.BAD_PARAM,
+                        "学号必须与登录账号一致（" + studentNo + " ≠ " + username + "）");
             }
+            Object classId = body.get("classId");
+            if (classId == null) {
+                throw new BizException(ErrorCode.BAD_PARAM, "新建学生必须提供 classId");
+            }
+            ClassInfo cls = classMapper.selectById(Long.valueOf(String.valueOf(classId)));
+            if (cls == null) {
+                throw new BizException(ErrorCode.NOT_FOUND, "班级不存在");
+            }
+
             StudentProfile sp = new StudentProfile();
             sp.setUserId(u.getId());
             sp.setStudentNo(studentNo);
-            sp.setClassId(Long.valueOf(String.valueOf(classId)));
-            sp.setGender(str(body, "gender"));
-            sp.setMajor(str(body, "major"));
+            sp.setClassId(cls.getId());
+            sp.setGender(normalizeGender(str(body, "gender")));
+            // 专业/年级从班级派生，不取请求体。
+            // 这两列在 student_profile 里是冗余（班级表也有），冗余没问题，
+            // 但必须有唯一的写入源，否则"班级转了专业、学生还是老的"。
+            sp.setMajor(cls.getMajor());
+            sp.setGrade(cls.getGrade());
             sp.setCreatedAt(now);
             sp.setUpdatedAt(now);
             studentMapper.insert(sp);
@@ -734,5 +752,21 @@ public class AdminService {
 
     private static String nz(String s) {
         return s == null ? "" : s;
+    }
+
+    /**
+     * 性别归一化。
+     *
+     * <p>实际库里曾经混着 M / MALE / 男 三种写法（不同来源各写各的），
+     * 因为没有任何页面读取 gender，这个坑一直没暴露。统一成 MALE / FEMALE，
+     * 兼容旧的简写与中文写法，无法识别的值直接 400 而不是静默存进去。
+     */
+    private static String normalizeGender(String raw) {
+        if (raw == null) return null;
+        String v = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        if (v.isEmpty()) return null;
+        if (v.equals("MALE") || v.equals("M") || v.equals("男")) return "MALE";
+        if (v.equals("FEMALE") || v.equals("F") || v.equals("女")) return "FEMALE";
+        throw new BizException(ErrorCode.BAD_PARAM, "性别只能是 MALE / FEMALE");
     }
 }
