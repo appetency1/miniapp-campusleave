@@ -52,8 +52,19 @@
     var state = { filter: 'all', kw: '' };
     var all = STORE.apps || [];
 
-    var head = ui.pageHead({ title: '申请记录', meta: '共 ' + all.length + ' 条 · 仅含你负责的班级' });
+    var head = ui.pageHead({ title: '申请记录', meta: '仅含你负责的班级' });
     page.appendChild(head);
+
+    // 和管理端一样：页头 → 统计条 → 工具栏 → 表格
+    page.appendChild(ui.statStrip([
+      { label: '全部记录', value: all.length },
+      { label: '待审批', value: all.filter(function (a) { return a.status === 'PENDING'; }).length },
+      { label: '请假中', value: all.filter(function (a) { return a.effective === 'IN_PROGRESS'; }).length },
+      {
+        label: '逾期', value: all.filter(function (a) { return a.effective === 'OVERDUE'; }).length,
+        warn: all.some(function (a) { return a.effective === 'OVERDUE'; })
+      }
+    ]));
 
     var bar = el('div', { class: 'tbl-toolbar' });
     var tabs = el('div', { class: 'seg' });
@@ -154,11 +165,25 @@
 
     page.appendChild(ui.pageHead({
       title: '学生',
-      meta: '共 ' + all.length + ' 人 · ' + (STORE.teacher.classes || []).join(' / ')
+      meta: '仅含你负责的班级'
     }));
+
+    var clsSet = {};
+    all.forEach(function (x) { if (x.cls) clsSet[x.cls] = 1; });
+    page.appendChild(ui.statStrip([
+      { label: '学生总数', value: all.length },
+      { label: '覆盖班级', value: Object.keys(clsSet).length },
+      { label: '请假中', value: all.filter(function (x) { return x.current === '请假中'; }).length },
+      {
+        label: '待审批', value: all.filter(function (x) { return x.current === '待审批'; }).length,
+        warn: all.some(function (x) { return x.current === '待审批'; })
+      }
+    ]));
 
     var state = { kw: '' };
     var bar = el('div', { class: 'tbl-toolbar' });
+    // 左边留一句话，避免只有右侧一个搜索框、中间大片空白
+    bar.appendChild(el('span', { class: 'toolbar-hint', text: '按姓名或学号筛选' }));
     bar.appendChild(el('input', {
       class: 'input input--search',
       attrs: { type: 'search', placeholder: '搜索姓名 / 学号', autocomplete: 'off' },

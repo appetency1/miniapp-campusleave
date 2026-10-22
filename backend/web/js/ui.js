@@ -76,6 +76,16 @@
     bell: '<path d="M4.2 6.7a3.8 3.8 0 1 1 7.6 0c0 2.3.5 3.3 1.1 4H3.1c.6-.7 1.1-1.7 1.1-4z"/><path d="M6.6 12.6a1.5 1.5 0 0 0 2.8 0"/>'
   };
 
+  /** 统计条：列表页顶部的四格数字，教师端与管理端共用 */
+  function statStrip(cells) {
+    return el('div', { class: 'stat-strip' }, (cells || []).map(function (c) {
+      return el('div', { class: 'stat-cell' }, [
+        el('span', { class: 'stat-k', text: c.label }),
+        el('span', { class: 'stat-v' + (c.warn ? ' stat-v--warn' : ''), text: String(c.value == null ? 0 : c.value) })
+      ]);
+    }));
+  }
+
   function icon(name) {
     var span = el('span', { class: 'icon', attrs: { 'aria-hidden': 'true' } });
     span.innerHTML = '<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">' + (ICONS[name] || '') + '</svg>';
@@ -465,6 +475,7 @@
     frag: frag,
     append: append,
     icon: icon,
+    statStrip: statStrip,
     pngIcon: pngIcon,
     esc: esc,
     pageHead: pageHead,

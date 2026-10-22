@@ -1107,3 +1107,9 @@
   color: var(--ink-4);
   cursor: default;
 }
+
+/* 工具栏左侧的说明文字（只有搜索框时用来占位，避免中间空一大片） */
+.toolbar-hint {
+  font-size: calc(12px * var(--fs, 1));
+  color: var(--ink-4);
+}

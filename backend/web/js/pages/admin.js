@@ -118,15 +118,7 @@
     return el('button', { class: 'btn btn--primary btn--sm', attrs: { type: 'button' }, text: text, onClick: onClick });
   }
 
-  /** 统计条：一行四个数字，让表格页顶部立得住 */
-  function statStrip(cells) {
-    return el('div', { class: 'stat-strip' }, cells.map(function (c) {
-      return el('div', { class: 'stat-cell' }, [
-        el('span', { class: 'stat-k', text: c.label }),
-        el('span', { class: 'stat-v' + (c.warn ? ' stat-v--warn' : ''), text: String(c.value) })
-      ]);
-    }));
-  }
+  var statStrip = ui.statStrip;
 
   /* ================= 0. 概览（管理员首页） ================= */
 
