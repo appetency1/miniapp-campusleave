@@ -5,6 +5,7 @@ import com.campusleave.common.BizException;
 import com.campusleave.common.ErrorCode;
 import com.campusleave.domain.entity.*;
 import com.campusleave.domain.mapper.*;
+import com.campusleave.common.NotificationService;
 import com.campusleave.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,12 +41,11 @@ public class CheckinCompletionService {
 
     private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final StudentProfileMapper studentMapper;
     private final LeaveApplicationMapper applicationMapper;
     private final LeaveExtensionMapper extensionMapper;
     private final LeaveCheckinLogMapper checkinLogMapper;
     private final LeaveApprovalLogMapper approvalLogMapper;
-    private final NotificationMapper notificationMapper;
+    private final NotificationService notificationService;
 
     /**
      * 把申请置为 COMPLETED，并执行三个副作用（同一事务）。
@@ -124,11 +124,11 @@ public class CheckinCompletionService {
                         .eq(LeaveExtension::getApplicationId, app.getId())
                         .eq(LeaveExtension::getStatus, "PENDING"));
         if (withdrawn > 0) {
-            notify(app.getStudentId(), "EXTENSION_AUTO_WITHDRAWN", "续假已自动撤回",
+            notificationService.notifyStudent(app.getStudentId(), "EXTENSION_AUTO_WITHDRAWN", "续假已自动撤回",
                     "你已完成销假，待审的续假申请已自动撤回", app.getId());
         }
 
-        notify(app.getStudentId(), "CHECKIN_RESULT", "销假成功",
+        notificationService.notifyStudent(app.getStudentId(), "CHECKIN_RESULT", "销假成功",
                 (overdue ? "逾期补销假成功" : "销假成功") + "，本次请假已结束", app.getId());
 
         // ⑥ 留痕
@@ -168,24 +168,4 @@ public class CheckinCompletionService {
         checkinLogMapper.insert(row);
     }
 
-    /** 站内通知：dedup 用「业务 + 类型 + 自然日桶」，配合唯一键天然幂等 */
-    private void notify(Long studentId, String type, String title, String content, Long businessId) {
-        StudentProfile sp = studentMapper.selectById(studentId);
-        if (sp == null) return;
-        Notification n = new Notification();
-        n.setReceiverId(sp.getUserId());
-        n.setType(type);
-        n.setTitle(title);
-        n.setContent(content);
-        n.setBusinessId(businessId);
-        n.setBusinessType("APPLICATION");
-        n.setDedupKey("APP_" + businessId + "_" + type + "_" + LocalDate.now());
-        n.setIsRead(0);
-        n.setCreatedAt(LocalDateTime.now());
-        try {
-            notificationMapper.insert(n);
-        } catch (DuplicateKeyException e) {
-            // 同日同类型重复通知：忽略
-        }
-    }
 }

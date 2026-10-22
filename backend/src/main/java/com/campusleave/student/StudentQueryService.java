@@ -7,6 +7,7 @@ import com.campusleave.domain.entity.*;
 import com.campusleave.domain.mapper.*;
 import com.campusleave.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
  * 通过 student_profile.user_id 反查学生，再限定 application.student_id —— 
  * 学生永远只能看到自己的数据，不依赖前端传参。
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudentQueryService {
@@ -42,6 +44,8 @@ public class StudentQueryService {
     private final LeaveCheckinLogMapper checkinLogMapper;
     private final LeaveApprovalLogMapper approvalLogMapper;
     private final NotificationMapper notificationMapper;
+    /** 首页打开时顺带生成逾期/开始提醒（01 §36），失败不影响首页渲染 */
+    private final StudentReminderService reminderService;
 
     // ==================== 基础：当前学生 ====================
 
@@ -127,6 +131,14 @@ public class StudentQueryService {
         data.put("othersPending", othersPendingCount(all, hero, now));
         data.put("recent", recentBlock(all, hero, now));
         data.put("stats", statsBlock(all, now));
+
+        // 逾期 / 开始提醒（01 §36）：放在返回前，提醒失败不能影响首页数据
+        try {
+            reminderService.sweep(u == null ? null : u.getId(), all, now);
+        } catch (Exception e) {
+            log.warn("reminder sweep failed: studentId={} err={}", sp.getId(), e.getMessage());
+        }
+
         return data;
     }
 

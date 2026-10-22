@@ -8,6 +8,8 @@ node_modules/
 
 # 后端编译产物
 backend/target/
+# 用户上传的文件（运行期数据，不入库；演示用的诊断证明见 sql/demo-assets/）
+backend/uploads/
 # 含真实密码的本地配置（提交 example 模板即可）
 backend/src/main/resources/application-dev.yml
 

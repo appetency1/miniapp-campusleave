@@ -44,6 +44,12 @@ public class StudentCommandService {
 
     private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** 合法枚举（与 03_API 字典一致，前端下拉框同源） */
+    private static final Set<String> SCENES = Set.of("OFF_CAMPUS", "ON_CAMPUS");
+    private static final Set<String> TYPES = Set.of("SICK", "PERSONAL", "OTHER");
+    /** 材料类型白名单：为空时落 OTHER */
+    private static final Set<String> MATERIAL_TYPES = Set.of("MEDICAL_PROOF", "LEAVE_FORM", "OTHER");
+
     private final ClassInfoMapper classMapper;
     private final TeacherClassMapper teacherClassMapper;
     private final LeaveApplicationMapper applicationMapper;
@@ -79,7 +85,17 @@ public class StudentCommandService {
             throw new BizException(ErrorCode.NO_COUNSELOR);
         }
 
-        // ② 时间解析与合法性
+        // ② 枚举校验：不能只靠前端下拉框，接口是可以被直接调用的。
+        //    leave_scene 有 DB CHECK 兜底（会变成 500），leave_type 没有 CHECK，
+        //    脏值会一路存进库并显示成"其他"，所以两者都在这里挡住。
+        if (!SCENES.contains(req.getLeaveScene())) {
+            throw new BizException(ErrorCode.BAD_PARAM, "请假场景只能是 OFF_CAMPUS 或 ON_CAMPUS");
+        }
+        if (!TYPES.contains(req.getLeaveType())) {
+            throw new BizException(ErrorCode.BAD_PARAM, "请假类型只能是 SICK / PERSONAL / OTHER");
+        }
+
+        // ③ 时间解析与合法性
         LocalDateTime start = parseTime(req.getStartTime());
         LocalDateTime end = parseTime(req.getEndTime());
         LocalDateTime now = LocalDateTime.now();
@@ -130,7 +146,9 @@ public class StudentCommandService {
                 if (m.getFileUrl() == null || m.getFileUrl().isBlank()) continue;
                 LeaveMaterial mat = new LeaveMaterial();
                 mat.setApplicationId(app.getId());
-                mat.setMaterialType(m.getMaterialType() == null ? "OTHER" : m.getMaterialType());
+                // 未知材料类型统一落 OTHER，避免把前端传来的脏值写进库
+                mat.setMaterialType(MATERIAL_TYPES.contains(m.getMaterialType())
+                        ? m.getMaterialType() : "OTHER");
                 mat.setFileName(m.getFileName());
                 mat.setFileUrl(m.getFileUrl());
                 mat.setFileSize(m.getFileSize());

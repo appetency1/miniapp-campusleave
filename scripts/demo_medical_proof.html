@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 820px; height: 1120px;
+    background: #f3efe6;
+    font-family: "Microsoft YaHei", "SimSun", serif;
+    padding: 36px;
+  }
+  .sheet {
+    width: 100%; height: 100%;
+    background: #fffefb;
+    border: 1px solid #ddd6c8;
+    padding: 44px 52px;
+    position: relative;
+    box-shadow: 0 6px 24px rgba(60, 45, 20, .18);
+  }
+  .hospital { text-align: center; font-size: 21px; letter-spacing: 3px; color: #1b6b4a; font-weight: 700; }
+  .sub { text-align: center; font-size: 12px; color: #8a8377; letter-spacing: 1px; margin-top: 4px; }
+  .rule { height: 2px; background: #1b6b4a; margin: 14px 0 6px; opacity: .85; }
+  .rule.thin { height: 1px; background: #c9c2b2; margin: 0 0 26px; }
+  h1 { text-align: center; font-size: 27px; letter-spacing: 12px; margin: 26px 0 30px; color: #15202e; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; color: #2b3138; }
+  td { border-bottom: 1px dashed #cfc8b8; padding: 11px 6px; }
+  td.k { width: 96px; color: #7b7468; letter-spacing: 1px; }
+  .block { border: 1px solid #cfc8b8; padding: 16px 18px; margin-top: 22px; font-size: 15px; line-height: 2; color: #2b3138; min-height: 150px; }
+  .block .label { font-size: 12px; color: #8a8377; letter-spacing: 1px; margin-bottom: 6px; }
+  .sign { margin-top: 40px; display: flex; justify-content: space-between; font-size: 14px; color: #3a3f46; }
+  .sign .doc { font-family: "Kaiti SC", "KaiTi", serif; font-size: 26px; color: #1f3a6b; transform: rotate(-4deg); }
+  .seal {
+    position: absolute; right: 78px; bottom: 118px;
+    width: 148px; height: 148px; border: 4px solid #c0392b; border-radius: 50%;
+    color: #c0392b; display: flex; align-items: center; justify-content: center;
+    transform: rotate(-13deg); opacity: .82; text-align: center;
+  }
+  .seal .star { font-size: 26px; line-height: 1; }
+  .seal .txt { font-size: 11px; letter-spacing: 1px; line-height: 1.6; margin-top: 4px; }
+  .foot { position: absolute; left: 52px; bottom: 30px; font-size: 11px; color: #a49d90; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="hospital">江 城 市 第 一 人 民 医 院</div>
+    <div class="sub">Jiangcheng First People's Hospital · 门诊部</div>
+    <div class="rule"></div>
+    <div class="rule thin"></div>
+
+    <h1>诊 断 证 明 书</h1>
+
+    <table>
+      <tr><td class="k">姓　　名</td><td>李同学</td><td class="k">性　　别</td><td>男</td></tr>
+      <tr><td class="k">年　　龄</td><td>20 岁</td><td class="k">就诊科室</td><td>呼吸内科</td></tr>
+      <tr><td class="k">门诊号</td><td>MZ202610180237</td><td class="k">就诊日期</td><td>2026-10-18</td></tr>
+    </table>
+
+    <div class="block">
+      <div class="label">临 床 诊 断</div>
+      急性上呼吸道感染（发热 38.6℃，咽部充血，双肺呼吸音清）。
+    </div>
+
+    <div class="block" style="min-height:120px;">
+      <div class="label">医 嘱 与 建 议</div>
+      1. 口服药物对症治疗，多饮水、注意休息；<br>
+      2. 建议休息 3 天，避免剧烈运动与集体活动；<br>
+      3. 如持续发热超过 48 小时请复诊。
+    </div>
+
+    <div class="sign">
+      <div>医师签名：<span class="doc">陈志远</span></div>
+      <div style="text-align:right;">开具日期：2026 年 10 月 18 日</div>
+    </div>
+
+    <div class="seal">
+      <div>
+        <div class="star">★</div>
+        <div class="txt">江城市第一人民医院<br>门诊诊断专用章</div>
+      </div>
+    </div>
+
+    <div class="foot">本证明仅作病情说明，不作为其他用途凭证 · 编号 MZ202610180237</div>
+  </div>
+</body>
+</html>

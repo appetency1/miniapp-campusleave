@@ -88,30 +88,39 @@ Page({
     }
   },
 
-  /** 点一条消息：标记已读（可选跳详情） */
+  /**
+   * 点一条消息：标记已读 + 跳转到关联申请详情。
+   *
+   * 注意别写成"已读才跳、未读只标已读"——那样用户点第一条新消息毫无反应，
+   * 必须点第二次才进得去，是明显的体感 bug。
+   */
   async onTapMsg(e) {
     const id = e.currentTarget.dataset.id
     const idx = this.data.list.findIndex(m => m.id === id)
     if (idx < 0) return
 
     const msg = this.data.list[idx]
-    if (msg.isRead) {
-      // 已读消息：如果关联了请假申请，跳到详情
-      if (msg.businessType === 'APPLICATION' && msg.businessId) {
-        wx.navigateTo({ url: '/pages/student/detail/detail?id=' + msg.businessId })
+
+    if (!msg.isRead) {
+      try {
+        await post('/student/messages/' + id + '/read')
+        // 局部更新，避免整页重刷导致列表闪动
+        const key = 'list[' + idx + '].isRead'
+        const unread = Math.max(0, this.data.unread - 1)
+        this.setData({ [key]: true, unread })
+        this.syncBadge(unread)
+      } catch (err) {
+        // 标记已读失败不阻断跳转：用户点消息首先是要看内容
+        console.warn('mark read failed', err)
       }
-      return
     }
 
-    try {
-      await post('/student/messages/' + id + '/read')
-      // 局部更新，避免整页重刷导致列表闪动
-      const key = 'list[' + idx + '].isRead'
-      const unread = Math.max(0, this.data.unread - 1)
-      this.setData({ [key]: true, unread })
-      this.syncBadge(unread)
-    } catch (err) {
-      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    if (msg.businessType === 'APPLICATION' && msg.businessId) {
+      wx.navigateTo({
+        url: '/pages/student/detail/detail?id=' + msg.businessId,
+        // 详情页可能因权限/删除打不开，兜底提示而不是白屏
+        fail: () => wx.showToast({ title: '该申请已不存在', icon: 'none' })
+      })
     }
   },
 

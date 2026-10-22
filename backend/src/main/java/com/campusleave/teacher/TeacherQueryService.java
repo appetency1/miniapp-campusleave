@@ -240,6 +240,15 @@ public class TeacherQueryService {
                                 .eq(LeaveExtension::getStatus, "PENDING"))
                 .stream().map(LeaveExtension::getApplicationId).collect(Collectors.toSet());
 
+        // 审批人姓名：列表页原先恒给空串，导致"谁批的"这一列永远空着。
+        // 审批人是 user 表里的教师，和学生 user 不是同一批，需要单独查。
+        List<Long> approverIds = apps.stream()
+                .map(LeaveApplication::getApprovedByUserId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        Map<Long, String> approverMap = approverIds.isEmpty() ? Map.of()
+                : userMapper.selectBatchIds(approverIds).stream()
+                    .collect(Collectors.toMap(User::getId, u -> nz(u.getRealName()), (a, b) -> a));
+
         // 驳回原因：取最近一条 REJECT 日志
         Map<Long, String> rejectMap = new HashMap<>();
         approvalLogMapper.selectList(
@@ -274,7 +283,8 @@ public class TeacherQueryService {
             r.put("reason", nz(a.getReason()));
             r.put("destination", nz(a.getDestination()));
             r.put("submittedAt", a.getCreatedAt() == null ? "" : DT.format(a.getCreatedAt()));
-            r.put("approvedBy", "");
+            r.put("approvedBy", a.getApprovedByUserId() == null ? ""
+                    : approverMap.getOrDefault(a.getApprovedByUserId(), ""));
             r.put("approvedAt", a.getApprovedAt() == null ? "" : DT.format(a.getApprovedAt()));
             r.put("rejectReason", rejectMap.getOrDefault(a.getId(), ""));
             r.put("actualEnd", a.getActualEndTime() == null ? "" : DT.format(a.getActualEndTime()));
@@ -297,8 +307,11 @@ public class TeacherQueryService {
         return list.stream().map(m -> {
             Map<String, Object> x = new LinkedHashMap<>();
             x.put("id", m.getId());
-            x.put("name", fileName(m.getFileUrl()));
-            x.put("type", typeLabel(m.getMaterialType()));
+            // 显示用户上传时的原始文件名；file_url 里是 UUID 重命名后的名字，不能给用户看
+            x.put("name", nz(m.getFileName()).isEmpty() ? fileName(m.getFileUrl()) : m.getFileName());
+            // 材料类型不能复用 typeLabel（那是请假类型 SICK/PERSONAL 的翻译器），
+            // 否则 MEDICAL_PROOF 会被翻成"其他"，辅导员看不出这是诊断证明
+            x.put("type", materialTypeLabel(m.getMaterialType()));
             x.put("size", humanSize(m.getFileSize()));
             x.put("url", m.getFileUrl());
             return x;
@@ -678,6 +691,13 @@ public class TeacherQueryService {
         if ("SICK".equals(type)) return "病假";
         if ("PERSONAL".equals(type)) return "事假";
         return "其他";
+    }
+
+    /** 材料类型（与小程序 format.materialLabel 保持同一套中文） */
+    public static String materialTypeLabel(String type) {
+        if ("MEDICAL_PROOF".equals(type)) return "诊断证明";
+        if ("LEAVE_FORM".equals(type)) return "请假单";
+        return "其他材料";
     }
 
     public static String statusWord(EffectiveStatus es) {

@@ -3,6 +3,7 @@ package com.campusleave.teacher;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.campusleave.common.BizException;
 import com.campusleave.common.ErrorCode;
+import com.campusleave.common.NotificationService;
 import com.campusleave.domain.entity.*;
 import com.campusleave.domain.mapper.*;
 import com.campusleave.security.CurrentUser;
@@ -41,8 +42,7 @@ public class TeacherCommandService {
     private final LeaveExtensionMapper extensionMapper;
     private final LeaveCheckinLogMapper checkinLogMapper;
     private final LeaveApprovalLogMapper approvalLogMapper;
-    private final NotificationMapper notificationMapper;
-    private final StudentProfileMapper studentMapper;
+    private final NotificationService notificationService;
     private final UserMapper userMapper;
 
     // ==================== 6.4 批准 ====================
@@ -65,7 +65,7 @@ public class TeacherCommandService {
         }
 
         log(applicationId, null, "APPROVE", "PENDING", "APPROVED", blankTo(comment, "同意"));
-        notify(app.getStudentId(), "LEAVE_APPROVED", "请假已通过",
+        notificationService.notifyStudent(app.getStudentId(), "LEAVE_APPROVED", "请假已通过",
                 TeacherQueryService.sceneLabel(app.getLeaveScene()) + " · "
                         + TeacherQueryService.typeLabel(app.getLeaveType())
                         + " 的请假申请已通过审批", applicationId);
@@ -96,7 +96,7 @@ public class TeacherCommandService {
         // 驳回理由存进日志：主表没有 reject_reason 字段（02 §leave_application），
         // 学生端详情与后台列表都从 approval_log 取最近一条 REJECT 的 comment
         log(applicationId, null, "REJECT", "PENDING", "REJECTED", reason.trim());
-        notify(app.getStudentId(), "LEAVE_REJECTED", "请假被驳回",
+        notificationService.notifyStudent(app.getStudentId(), "LEAVE_REJECTED", "请假被驳回",
                 "驳回理由：" + reason.trim(), applicationId);
     }
 
@@ -150,7 +150,7 @@ public class TeacherCommandService {
 
         log(app.getId(), extensionId, "EXTENSION_APPROVE", "PENDING", "APPROVED",
                 blankTo(comment, "同意延长"));
-        notify(app.getStudentId(), "EXTENSION_APPROVED", "续假已通过",
+        notificationService.notifyStudent(app.getStudentId(), "EXTENSION_APPROVED", "续假已通过",
                 "请假结束时间延长至 " + ext.getRequestedEndTime().format(DT), app.getId());
     }
 
@@ -184,7 +184,7 @@ public class TeacherCommandService {
         }
 
         log(app.getId(), extensionId, "EXTENSION_REJECT", "PENDING", "REJECTED", reason.trim());
-        notify(app.getStudentId(), "EXTENSION_REJECTED", "续假被驳回",
+        notificationService.notifyStudent(app.getStudentId(), "EXTENSION_REJECTED", "续假被驳回",
                 "驳回理由：" + reason.trim(), app.getId());
     }
 
@@ -210,6 +210,12 @@ public class TeacherCommandService {
                     "该记录已处理（" + logRow.getReviewStatus() + "），不能重复核验");
         }
 
+        // 枚举必须显式校验：之前用 "APPROVE".equalsIgnoreCase(action) 判断，
+        // action 传 null 或拼错（如 approved:true）会静默走「驳回」分支 —— 
+        // 教师点"通过"却把学生判成未通过，且接口仍返回 200。
+        if (!"APPROVE".equalsIgnoreCase(action) && !"REJECT".equalsIgnoreCase(action)) {
+            throw new BizException(ErrorCode.BAD_PARAM, "核验动作只能是 APPROVE 或 REJECT");
+        }
         boolean approve = "APPROVE".equalsIgnoreCase(action);
         LocalDateTime now = LocalDateTime.now();
 
@@ -230,7 +236,7 @@ public class TeacherCommandService {
             // 用 MANUAL_REVIEW（ck_log_action 只允许这些枚举值），驳回靠 comment 与 new_status 区分
             log(app.getId(), null, "MANUAL_REVIEW", "APPROVED", "APPROVED",
                     blankTo(comment, "核验驳回，学生可重新定位"));
-            notify(app.getStudentId(), "CHECKIN_RESULT", "销假核验未通过",
+            notificationService.notifyStudent(app.getStudentId(), "CHECKIN_RESULT", "销假核验未通过",
                     blankTo(comment, "核验未通过，请重新定位销假或再次申请核验"), app.getId());
             return;
         }
@@ -287,7 +293,7 @@ public class TeacherCommandService {
 
         log(app.getId(), null, "MANUAL_REVIEW", "APPROVED", "COMPLETED",
                 blankTo(comment, "人工核验通过" + (overdue ? "（逾期 " + delayMinutes + " 分钟）" : "")));
-        notify(app.getStudentId(), "CHECKIN_RESULT", "销假核验通过",
+        notificationService.notifyStudent(app.getStudentId(), "CHECKIN_RESULT", "销假核验通过",
                 "人工核验已通过，本次请假已完成", app.getId());
     }
 
@@ -332,26 +338,6 @@ public class TeacherCommandService {
         approvalLogMapper.insert(row);
     }
 
-    /** 通知学生：dedupKey 保证同一申请同一类型每天只发一条，避免重复点击刷屏 */
-    private void notify(Long studentId, String type, String title, String content, Long businessId) {
-        StudentProfile sp = studentMapper.selectById(studentId);
-        if (sp == null) return;
-        Notification n = new Notification();
-        n.setReceiverId(sp.getUserId());
-        n.setType(type);
-        n.setTitle(title);
-        n.setContent(content);
-        n.setBusinessId(businessId);
-        n.setBusinessType("APPLICATION");
-        n.setDedupKey("APP_" + businessId + "_" + type + "_" + LocalDate.now());
-        n.setIsRead(0);
-        n.setCreatedAt(LocalDateTime.now());
-        try {
-            notificationMapper.insert(n);
-        } catch (Exception ignored) {
-            // 通知失败不影响审批结果（与学生端 CheckinCompletionService 的处理保持一致）
-        }
-    }
 
     private static String blankTo(String s, String fallback) {
         return s == null || s.isBlank() ? fallback : s.trim();

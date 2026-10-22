@@ -10,7 +10,7 @@
 --
 -- 现在的分配：
 --   李同学 2023001001（主流程，4 条，只 1 条活的）
---     ① 进行中      今天 08:00-18:00  离校·事假  → 首页唯一的卡片（态 A）
+--     ① 进行中      今天 08:00 — 次日 08:00  离校·事假  → 首页唯一的卡片（态 A）
 --     ② 已销假      4 天前            校内·病假
 --     ③ 已销假      7 天前            离校·病假（GPS 销假）
 --     ④ 已驳回      3 天前            校内·事假
@@ -56,25 +56,28 @@ DELETE FROM leave_application   WHERE student_id IN (@stu1, @stu2);
 -- 2. 李同学：1 条进行中 + 3 条已结束
 -- -------------------------------------------------------------
 
--- ① 进行中（今天 08:00-18:00 离校事假）—— 首页态 A
+-- ① 进行中（今天 08:00 — 明天 08:00 离校事假）—— 首页态 A
+--    为什么跨 24 小时：原来写"今天 08:00-18:00"，晚上准备答辩时一打开就是
+--    "已逾期"（态 C），演示不到"请假中"的刻度尺。跨到次日 08:00 后，
+--    任意时刻打开都落在区间内。
 INSERT INTO leave_application
     (application_no, student_id, leave_scene, leave_type, start_time, end_time,
      reason, destination, contact_phone, status, approved_by_user_id, approved_at, created_at)
 VALUES
     ('LA202610210001', @stu1, 'OFF_CAMPUS', 'PERSONAL',
-     DATE(NOW()) + INTERVAL 8 HOUR, DATE(NOW()) + INTERVAL 18 HOUR,
+     DATE(NOW()) + INTERVAL 8 HOUR, DATE(NOW()) + INTERVAL 32 HOUR,
      '家中急事需回去处理', '家中', '13900000001', 'APPROVED',
      @t1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY));
 
 -- ② 已销假·校内（4 天前）
 INSERT INTO leave_application
     (application_no, student_id, leave_scene, leave_type, start_time, end_time,
-     reason, status, actual_end_time, approved_by_user_id, approved_at, created_at)
+     reason, contact_phone, status, actual_end_time, approved_by_user_id, approved_at, created_at)
 VALUES
     ('LA202610210002', @stu1, 'ON_CAMPUS', 'SICK',
      DATE_SUB(DATE(NOW()), INTERVAL 4 DAY) + INTERVAL 9 HOUR,
      DATE_SUB(DATE(NOW()), INTERVAL 4 DAY) + INTERVAL 17 HOUR,
-     '感冒在校休养', 'COMPLETED',
+     '感冒在校休养', '13900000001', 'COMPLETED',
      DATE_SUB(DATE(NOW()), INTERVAL 4 DAY) + INTERVAL 15 HOUR,
      @t1, DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY));
 
@@ -94,12 +97,12 @@ VALUES
 -- ④ 已驳回（3 天前）
 INSERT INTO leave_application
     (application_no, student_id, leave_scene, leave_type, start_time, end_time,
-     reason, status, approved_by_user_id, approved_at, created_at)
+     reason, contact_phone, status, approved_by_user_id, approved_at, created_at)
 VALUES
     ('LA202610210004', @stu1, 'ON_CAMPUS', 'PERSONAL',
      DATE_SUB(DATE(NOW()), INTERVAL 3 DAY) + INTERVAL 10 HOUR,
      DATE_SUB(DATE(NOW()), INTERVAL 3 DAY) + INTERVAL 16 HOUR,
-     '个人事务处理', 'REJECTED',
+     '个人事务处理', '13900000001', 'REJECTED',
      @t1, DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY));
 
 -- -------------------------------------------------------------
@@ -120,12 +123,12 @@ VALUES
 -- ⑥ 逾期（昨天 08:00-12:00 校内病假，未销假）—— 态 C
 INSERT INTO leave_application
     (application_no, student_id, leave_scene, leave_type, start_time, end_time,
-     reason, status, approved_by_user_id, approved_at, created_at)
+     reason, contact_phone, status, approved_by_user_id, approved_at, created_at)
 VALUES
     ('LA202610210006', @stu2, 'ON_CAMPUS', 'SICK',
      DATE_SUB(DATE(NOW()), INTERVAL 1 DAY) + INTERVAL 8 HOUR,
      DATE_SUB(DATE(NOW()), INTERVAL 1 DAY) + INTERVAL 12 HOUR,
-     '身体不适在校休养', 'APPROVED',
+     '身体不适在校休养', '13900000002', 'APPROVED',
      @t1, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY));
 
 -- -------------------------------------------------------------
@@ -203,6 +206,24 @@ SELECT sp.user_id, 'OVERDUE_REMINDER', '请假逾期提醒',
        CONCAT('APP_', la.id, '_OVERDUE_REMINDER_', DATE_FORMAT(NOW(), '%Y-%m-%d')), 0, NOW()
   FROM leave_application la JOIN student_profile sp ON sp.id = la.student_id
  WHERE la.application_no = 'LA202610210006';
+
+-- =============================================================
+-- 5. 病假材料（演示「学生上传 → 辅导员查看」这条链路）
+--
+--    文件本体放在 backend/uploads/2026/10/demo-medical-proof.png
+--    （由 scripts/demo_medical_proof.html 用无头浏览器渲染成图，
+--      需要换内容就改 HTML 重新截一张，文件名保持不变即可）
+--    DB 只存相对 URL，与真实上传走的是同一套约定。
+-- =============================================================
+INSERT INTO leave_material
+    (application_id, material_type, file_name, file_url, file_size, mime_type, uploaded_by, created_at)
+SELECT la.id, 'MEDICAL_PROOF', '诊断证明.png',
+       '/files/2026/10/demo-medical-proof.png', 65789, 'image/png',
+       (SELECT sp.user_id FROM student_profile sp WHERE sp.id = la.student_id),
+       DATE_ADD(la.created_at, INTERVAL 5 MINUTE)
+  FROM leave_application la
+ WHERE la.application_no IN ('LA202610210002', 'LA202610210003',
+                             'LA202610210005', 'LA202610210006');
 
 -- =============================================================
 -- 自检：
