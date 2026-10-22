@@ -117,7 +117,7 @@
           },
           { label: '班级', width: 196, key: 'className' },
           {
-            label: '类型', width: 102, render: function (a) {
+            label: '类型', width: 128, render: function (a) {
               return a.scene + ' · ' + a.type;
             }
           },
@@ -183,14 +183,14 @@
       box.appendChild(ui.table({
         rowKey: 'id',
         cols: [
-          { label: '学号', width: 140, render: function (s) { return el('span', { class: 'mono', text: s.no }); } },
-          { label: '姓名', width: 110, key: 'name' },
-          { label: '班级', width: 190, key: 'cls' },
-          { label: '手机', width: 140, render: function (s) { return el('span', { class: 'mono', text: s.phone || '—' }); } },
-          { label: '申请', width: 80, align: 'right', render: function (s) { return el('span', { class: 'mono', text: s.total }); } },
-          { label: '批准', width: 80, align: 'right', render: function (s) { return el('span', { class: 'mono', text: s.approved }); } },
-          { label: '完成', width: 80, align: 'right', render: function (s) { return el('span', { class: 'mono', text: s.completed }); } },
-          { label: '当前', width: 110, align: 'right', render: function (s) { return el('span', { class: 'tag tag--quiet', text: s.current }); } }
+          { label: '学号', width: 126, render: function (s) { return el('span', { class: 'mono', text: s.no }); } },
+          { label: '姓名', width: 96, key: 'name' },
+          { label: '班级', width: 178, key: 'cls' },
+          { label: '手机', width: 128, render: function (s) { return el('span', { class: 'mono', text: s.phone || '—' }); } },
+          { label: '申请', width: 66, align: 'right', render: function (s) { return el('span', { class: 'mono', text: s.total }); } },
+          { label: '批准', width: 66, align: 'right', render: function (s) { return el('span', { class: 'mono', text: s.approved }); } },
+          { label: '完成', width: 66, align: 'right', render: function (s) { return el('span', { class: 'mono', text: s.completed }); } },
+          { label: '当前', width: 104, align: 'right', render: function (s) { return el('span', { class: 'tag tag--quiet', text: s.current }); } }
         ],
         rows: rows,
         onRowClick: function (s) {

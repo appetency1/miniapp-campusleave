@@ -202,8 +202,9 @@
           { label: '角色', width: 90, render: function (u) { return roleLabel(u.role); } },
           {
             label: '归属', width: 220, render: function (u) {
-              if (u.role === 'STUDENT') return (u.studentNo || '—') + ' · ' + (u.className || '未分班');
-              if (u.role === 'TEACHER') return (u.teacherNo || '—') + ' · ' + (u.department || '—');
+              // 账号列已经是学号/工号了，这里只给班级或院系，别重复
+              if (u.role === 'STUDENT') return u.className || '未分班';
+              if (u.role === 'TEACHER') return u.department || '—';
               return '—';
             }
           },

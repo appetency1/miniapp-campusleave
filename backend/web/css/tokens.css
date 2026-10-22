@@ -75,7 +75,7 @@
   --st-verified: var(--teal-600);   /* 已核实 · 仅用于核验结论条 */
 
   /* ---- 形状与动效 ---- */
-  --r: 6px;
+  --r: 8px;
   --dot: 6px;
   --bar-band: 4px;
   --bar-compare: 6px;

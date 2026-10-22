@@ -71,7 +71,7 @@
     var box = el('span', { class: 'todo-avatar' }, [
       el('span', { text: (name || '?').slice(0, 1) })
     ]);
-    var n = (Math.abs(seed || 1) % 8) + 1;
+    var n = (Math.abs(seed || 1) % 4) + 1;
     var img = el('img', { attrs: { src: 'assets/avatar-' + n + '.png', alt: '' } });
     img.addEventListener('error', function () { img.remove(); });
     box.appendChild(img);

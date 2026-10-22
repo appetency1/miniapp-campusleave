@@ -325,21 +325,35 @@ body[data-role="app"] #login-root { display: none; }
 }
 
 /* ---------- 主从 ---------- */
-.md { flex: 1; min-height: 0; display: flex; }
+/* 主从两栏：和工作台一样，各自独立成白卡，中间留 16px */
+.md {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
 
 .md-list {
   flex: 0 0 var(--pane-list);
   width: var(--pane-list);
   min-height: 0;
   overflow-y: auto;
-  border-right: 1px solid var(--line);
+  padding: 6px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(31, 42, 36, .03);
 }
 .md-detail {
   flex: 1;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--d-gutter-x);
+  padding: 20px 24px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(31, 42, 36, .03);
 }
 
 /* ---------- 列表（主从左栏） ---------- */
@@ -347,7 +361,7 @@ body[data-role="app"] #login-root { display: none; }
   height: 32px;
   display: flex;
   align-items: center;
-  padding: 0 14px;
+  padding: 0 6px;
   font-size: calc(11px * var(--fs, 1));
   line-height: calc(16px * var(--fs, 1));
   letter-spacing: .06em;
@@ -363,7 +377,8 @@ body[data-role="app"] #login-root { display: none; }
   gap: 2px;
   width: 100%;
   min-height: var(--row-2);
-  padding: 6px 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
   border-bottom: 1px solid var(--line);
   text-align: left;
 }
