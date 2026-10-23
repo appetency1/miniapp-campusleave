@@ -71,6 +71,12 @@
       body: opts.body != null ? JSON.stringify(opts.body) : undefined
     }).then(function (r) {
       return r.json().catch(function () {
+        // 405/404 几乎都是同一个原因：页面不是从 8080 打开的（file:// 或另起了
+        // 静态服务器），相对路径 /api/v1 的请求发到了托管页面的那个服务器上，
+        // 它只认 GET/HEAD，所以回 405。这时后端往往是好的，别误导人去查后端。
+        if (r.status === 405 || r.status === 404) {
+          throw new Error('页面不是从 8080 打开的：接口请求发到了「' + location.host + '」（HTTP ' + r.status + '）。请改用 http://localhost:8080/admin/ 访问');
+        }
         throw new Error('接口返回非 JSON（HTTP ' + r.status + '），请确认后端已启动');
       }).then(function (j) {
         if (j && j.code === 0) return j.data;

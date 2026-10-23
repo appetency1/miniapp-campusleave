@@ -269,10 +269,105 @@
     return '';
   }
 
+  /**
+   * 侧栏选中指示条（rail）的定位。
+   *
+   * rail 是一条**常驻**的 2px 墨线（css/layout.css .nav-rail），
+   * 挂在 .sidebar-nav 上，由这里负责把它放到当前选中项的位置。
+   * 为什么不用 .nav-item.is-on::before：那是每个条目各画一条，
+   * 切换导航时墨线是"啪"一下换位置（硬切），读感是"跳"不是"滑"。
+   * 改成一条常驻 rail 后，它能从旧位置连续地移到新位置。
+   *
+   * 四种情形：
+   *   ① 首次渲染（没有旧位置 / 没有新位置）：直接落位，**不加过渡**。
+   *      否则 rail 会从 height:0 滑下来 —— 看起来像"长出来"而不是"移过去"。
+   *      做法：先摘掉 .is-set（CSS 里 .is-set 才带 transition），
+   *      落位后下一帧再挂 .is-set，之后的移动才有动画。
+   *   ② 同一项（重建前后位置相同）：不写样式。写了值也不变，
+   *      但省掉一次重排。
+   *   ③ 换项（位置不同）：改 transform + height，走 CSS 过渡滑过去。
+   *   ④ 窄屏（<1420，侧栏收成图标条）：offsetTop 逻辑不变，
+   *      left 改用 active 项的 offsetLeft —— 图标条里条目可能不贴左缘。
+   *      （今天 .nav-item 是 width:100%，offsetLeft 恰好是 0，与旧的
+   *        .nav-item.is-on::before { left: 0 } 视觉完全一致；
+   *        但用 offsetLeft 而不是写死 0，墨线就永远贴着条目走。）
+   *
+   * @param {Element} rail     .nav-rail
+   * @param {Object|null} old  重建前的位置（{top, h}），null = 没有旧位置
+   * @param {Object|null} item 重建后的 active 项，null = 当前没有选中项
+   */
+  function placeRail(rail, old, item) {
+    if (!item) {
+      /* 当前没有选中项（登录页 / 个人中心）：墨线整体收起。
+         顺手摘掉 .is-set —— 收起是瞬时的，不该有"缩回去"的动画。 */
+      rail.classList.remove('is-set');
+      rail.style.height = '0px';
+      requestAnimationFrame(function () { rail.classList.add('is-set'); });
+      return;
+    }
+
+    var top = item.offsetTop + 8;   /* 上边距 8px：沿用旧 ::before 的 inset-block:8px */
+    var h = Math.max(0, item.offsetHeight - 16);
+    var left = item.offsetLeft;
+
+    /* ① 首次落位：直接就位，不加过渡。
+       先摘 .is-set（transition 只挂在 .is-set 上）→ 写值 → 强制回流，
+       让浏览器先按"无过渡"提交这一帧；下一帧再挂回 .is-set。
+       少了那次强制回流，浏览器会把首次落位也当成一次过渡，
+       墨线会从 translateY(0)、height:0 "长"出来而不是"移"过去。 */
+    if (!old) {
+      rail.classList.remove('is-set');
+      rail.style.height = h + 'px';
+      rail.style.transform = 'translateY(' + top + 'px)';
+      rail.style.left = left + 'px';
+      void rail.offsetHeight;              /* 强制回流：提交"无过渡"的这一帧 */
+      requestAnimationFrame(function () { rail.classList.add('is-set'); });
+      return;
+    }
+
+    /* ② 同一项：位置没变，不写（写了值也不变，白白触发一次重排）。 */
+    if (old.top === item.offsetTop && old.h === item.offsetHeight) return;
+
+    /* ③ 换项：改 transform + height，CSS 过渡负责从当前位置滑过去。
+       兜底补上 .is-set —— 极端情况下首次落位后的那一帧还没到，
+       这次移动就不该被吃掉。 */
+    if (!rail.classList.contains('is-set')) rail.classList.add('is-set');
+    rail.style.height = h + 'px';
+    rail.style.transform = 'translateY(' + top + 'px)';
+    /* ④ 窄屏（及任何条目不贴左缘的布局）：left 跟条目走。 */
+    rail.style.left = left + 'px';
+  }
+
   function renderNav() {
     var nav = document.getElementById('nav');
     if (!nav) return;
-    nav.innerHTML = '';
+
+    /* 重建**前**量下旧 active 项的位置。
+       必须在这里量：重建后旧节点已经不在文档里，offsetTop 会变成 0。
+       .sidebar-nav 现在是 position:relative，所以它就是 nav-item 的 offsetParent，
+       量出来的坐标与 rail 的定位基准同源。 */
+    var oldItem = nav.querySelector('.nav-item.is-on');
+    var old = oldItem ? { top: oldItem.offsetTop, h: oldItem.offsetHeight } : null;
+
+    /* 只删非 rail 的子节点：rail 是常驻的，删了它就没地方做滑动了。
+       nav.children 是**活集合**，边遍历边 remove 会漏删
+       （删掉一个，后面全部前移一位，末尾那个永远轮不到），
+       所以先把子节点摊成静态数组再删。 */
+    var kids = Array.prototype.slice.call(nav.children);
+    for (var i = 0; i < kids.length; i++) {
+      if (!kids[i].classList.contains('nav-rail')) kids[i].remove();
+    }
+    var rail = nav.querySelector('.nav-rail');
+    if (!rail) {
+      rail = el('i', { class: 'nav-rail', attrs: { 'aria-hidden': 'true' } });
+    }
+    /* rail 必须是 .sidebar-nav 的第一个子节点 —— 绝对定位的坐标基准。
+       已经在首位就别动它：insertBefore 会把节点摘下来再插回去，
+       正在跑的 CSS transition 会被打断（墨线会"顿"一下）。 */
+    if (rail.parentNode !== nav || nav.firstChild !== rail) {
+      nav.insertBefore(rail, nav.firstChild);
+    }
+
     var active = activeKey();
     menuOf().forEach(function (group) {
       var wrap = el('div', { class: 'nav-group' }, []);
@@ -293,6 +388,9 @@
       });
       nav.appendChild(wrap);
     });
+
+    /* 重建**后**取新 active 项，落位 rail。 */
+    placeRail(rail, old, nav.querySelector('.nav-item.is-on'));
   }
 
   /* ---------------- 顶栏 ---------------- */
@@ -395,6 +493,12 @@
   }
 
   /* ---------------- 面包屑 ---------------- */
+  /* 面包屑的"文案签名"：用来判断这一次是不是真的换了内容。
+     crumbs([]) 在路由的 onBefore 里会被调用一次（清场），页面随后再 crumbs([...]) 填内容。
+     只看容器内容的话，"清场"那一步会把签名冲掉，同页重绘（审批后 rerender）
+     就会被误判成"换了"→ 白闪一次。所以签名记在 JS 变量里，且只在有内容时更新。 */
+  var crumbSig = null;
+
   function crumbs(list) {
     var c = document.getElementById('crumbs');
     if (!c) return;
@@ -404,6 +508,18 @@
       if (item.href) c.appendChild(el('a', { href: item.href, text: item.label }));
       else c.appendChild(el('span', { class: 'crumb-last', text: item.label }));
     });
+
+    /* 换文案时淡入一次（--t-sel 220ms，定义在 motion.css 的 .crumbs.is-swap）。
+       同一个 class 重复加不会重启动画，所以先摘掉、强制回流、再挂回来。
+       只在文案真的变了时播：同页重绘不闪。 */
+    var sig = (list || []).map(function (it) {
+      return it.label + '|' + (it.href || '');
+    }).join('›');
+    if (!sig || sig === crumbSig) return;
+    crumbSig = sig;
+    c.classList.remove('is-swap');
+    void c.offsetWidth;          /* 强制回流：让下面重新挂 class 能再次触发动画 */
+    c.classList.add('is-swap');
   }
 
   /* ---------------- 登录态 ---------------- */

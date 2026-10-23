@@ -16,12 +16,32 @@
 
 /* ---------- 1. 页面入场（router 按"视图"判定，见 router.js sameView） ---------- */
 @keyframes pageEnter {
-  from { opacity: 0; }
+  from { opacity: var(--m-page-from); }
   to   { opacity: 1; }
 }
-/* 页根只动 opacity，从 0 起（整页首次出现，不是"重新落墨"） */
+/* 页根只动 opacity，起点不是 0（--m-page-from = .18）。
+   从 0 起时第一帧接近全白 —— 纸底整片透出来，读感是"闪"不是"过渡"。 */
 .page--enter {
   animation: pageEnter var(--t-fade) var(--ease) both;
+}
+
+/* 内容根淡入：壳在淡入、内容却是"啪"一下满格 —— 这是"切页生硬"的另一半。
+   作用对象是 .page 的**内容根**（.page 的直接子级，排除 .page-head），
+   不是每张卡片：给每个内容块排阶梯会让页面读起来像一堆卡片依次飞进来。
+
+   硬约束：**只做透明度，绝不给内容根加 transform**。
+   .md-detail 里的 .action-bar 是 position:sticky，祖先一旦有 transform，
+   包含块就变了，粘性定位会失效（会跟着页面一起飘走而不是钉在底部）。
+   同理 .page 自身绝不能有 transform：它是 height:100% 的 flex 容器，
+   还要承接 router.js 里 scrollMap 的 scrollTop 恢复。
+
+   起点用 --m-ink-from(.45) 而不是 0：内容全程可读，只是"还没印实"。 */
+@keyframes pageContentIn {
+  from { opacity: var(--m-ink-from); }
+  to   { opacity: 1; }
+}
+.page--enter > *:not(.page-head) {
+  animation: pageContentIn var(--t-mid) var(--ease) var(--m-delay-content) both;
 }
 
 /* 页头一寸落墨：只位移不改透明度（父级已经在淡入，
@@ -231,7 +251,20 @@
   border: 0;
 }
 
-/* ---------- 14. reduced-motion 的第三个洞在 CSS 侧 ---------- */
+/* ---------- 14. 面包屑换文案：淡入一次 ---------- */
+/* 面包屑是"我在哪"的唯一指示，路由一切就整段换掉。
+   硬切会让它像弹窗一样闪一下；淡入一次（--t-sel 220ms）就够 ——
+   顶栏是导航，不是内容，它只需要"跟上"，不需要"表演"。
+   由 app.js 的 crumbs() 在文案真的变了时挂 .is-swap。 */
+@keyframes crumbSwap {
+  from { opacity: var(--m-ink-from); }
+  to   { opacity: 1; }
+}
+.crumbs.is-swap {
+  animation: crumbSwap var(--t-sel) var(--ease) both;
+}
+
+/* ---------- 15. reduced-motion 的第三个洞在 CSS 侧 ---------- */
 @media (prefers-reduced-motion: reduce) {
   /* 洞 1：tokens.css 的全局 .01ms + infinite 是反效果 ——
      那等于"以 0.01ms 为周期无限循环"，浏览器会尽力按帧率跑，

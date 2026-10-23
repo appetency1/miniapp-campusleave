@@ -73,6 +73,11 @@ body[data-role="app"] #login-root { display: none; }
   min-height: 0;
   padding: 2px 0 20px;
   overflow-y: auto;
+  /* 选中指示条（rail）的坐标基准：
+     rail 是 position:absolute，必须有 positioned 祖先才能定位。
+     也让 nav-item 的 offsetParent 变成 .sidebar-nav —— app.js 量
+     rail 位置时用的就是 offsetTop/offsetHeight，两边坐标必须同源。 */
+  position: relative;
 }
 
 .nav-group { margin-top: 18px; }
@@ -109,21 +114,29 @@ body[data-role="app"] #login-root { display: none; }
   color: var(--blue-700);
   font-weight: 600;
 }
-/* 选中指示器：2px 墨线，与 .li.is-on::before 是同一套视觉语言。
-   这条基础规则以前根本不存在（<1420 的媒体查询里只覆写了 top/bottom），
-   所以宽屏侧栏一直没有墨线，只有底色 —— 覆写的是不存在的属性。
-   这里只做静态墨线，不做入场动画：renderNav() 每次路由都重建 nav，
-   给 ::before 挂 animation 会变成「每次翻页都重播一次」。
-   两处 inset 都要有：宽屏 8px、图标条 6px（见下面媒体查询），
-   否则视觉上像换了产品。 */
-.nav-item.is-on::before {
-  content: "";
+/* 选中指示器：一条**常驻**的 2px 墨线，切换导航时在条目之间滑动。
+   原来每个 .nav-item.is-on::before 各画一条 —— 切导航时墨线是"啪"一下
+   换位置，和底色一起硬切，读感是"跳"不是"滑"。现在改成一条 rail：
+   位置由 app.js 的 renderNav() 量出来写进 transform（translateY + height），
+   CSS 只负责外观与过渡。
+
+   过渡挂在 .is-set 上：第一次落位时 rail 还没有"上一帧的位置"，
+   从 height:0 滑过来会像"长出来"而不是"移过去"，所以首次直接就位，
+   落位后的下一帧才挂 .is-set（见 app.js placeRail）。
+
+   宽度 2px、颜色 var(--ink)，与 .li.is-on::before 是同一套视觉语言。
+   pointer-events:none —— 它压在条目左边，不能挡住点击。 */
+.nav-rail {
   position: absolute;
   left: 0;
-  top: 8px;
-  bottom: 8px;
+  top: 0;
   width: 2px;
+  height: 0;
   background: var(--ink);
+  pointer-events: none;
+}
+.nav-rail.is-set {
+  transition: transform var(--t-mid) var(--ease), height var(--t-mid) var(--ease);
 }
 /* 宽屏也是「图标 + 文字」并排。原来宽屏只显示文字、图标留给窄屏，
    结果桌面端一排纯文字，像文档目录而不是导航。 */
@@ -175,7 +188,8 @@ body[data-role="app"] #login-root { display: none; }
   .nav-item .nav-glyph .icon { width: 18px; height: 18px; flex: 0 0 18px; }
   .nav-item .nav-glyph .icon svg { width: 18px; height: 18px; stroke-width: 1.5; }
   .nav-item .count { display: none; }
-  .nav-item.is-on::before { top: 6px; bottom: 6px; }
+  /* 选中墨线现在由 .nav-rail 统一承担（layout.css 上方），
+     这里不再有 per-item 的 ::before，否则会出现两条线。 */
   .nav-item::after {
     content: attr(data-label);
     position: absolute;
