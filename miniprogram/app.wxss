@@ -38,6 +38,7 @@ page {
   /* ---- 圆角 / 间距 ---- */
   --r: 12rpx;          /* = 6px，内容分区的方角基调 */
   --r-btn: 24rpx;      /* = 12px，按钮单独用更圆的角 */
+  --r-card: 28rpx;     /* = 14px，卡片专用：比 --r 圆一档，但远不到胶囊 */
 
   background: var(--paper);
   color: var(--ink);
@@ -84,6 +85,28 @@ page {
 }
 
 /* ------------------------------------------------------------
+ * 卡片
+ * 使用范围有语义，不是"所有区块都套一层"：
+ *   卡片 = **此刻正在发生的事**（当前请假 / 最近记录）；
+ *   细线 = **清单与说明**（本学期概览 / 请假须知）。
+ * 两套语言并存，卡片才有资格叫"重点"。
+ *
+ * 实测过的坑：纸底 #FAF9F6 与白面 #FFFFFF 的亮度对比只有 1.05:1，
+ * 面差撑不起边界 —— 卡片的边界是「1rpx 线 + 极浅双层阴影」给的。
+ * 谁要是把 border 去掉，卡片就消失了（这不是装饰，是结构）。
+ * ------------------------------------------------------------ */
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1rpx solid var(--line-2);
+  border-radius: var(--r-card);
+  box-shadow:
+    0 1rpx 2rpx rgba(24, 35, 49, 0.03),
+    0 10rpx 28rpx rgba(24, 35, 49, 0.045);
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------
  * 区块标题：左侧小标题 + 右侧文字按钮
  * 定稿 .sec h2 是 12px（Web 尺度），真机上抬到 30rpx≈15.7pt 才够读
  * ------------------------------------------------------------ */
@@ -126,8 +149,11 @@ button::after {
   font-size: 30rpx;
   font-weight: 500;
   letter-spacing: 0.02em;
-  border: 1rpx solid var(--ink);
-  background: var(--ink);
+  /* 主按钮由墨色改为深橄榄：墨 #182331 的白字对比 15.6:1，
+     橄榄 --accent-600 #455B4B 是 7.4:1 —— 仍远超 AA，但把"绿色的份量"
+     从状态色扩展到了主操作上。不做设计稿那个 #557665（白字只 4.96:1）。 */
+  border: 1rpx solid var(--accent-600);
+  background: var(--accent-600);
   color: #FCFBF8;
   transition: opacity 0.18s ease, transform 0.18s ease;
 }

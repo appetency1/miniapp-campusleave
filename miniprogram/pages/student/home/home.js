@@ -129,8 +129,10 @@ Page({
       this.syncBadge()
     } catch (err) {
       this.setData({ loading: false, error: err.message || '加载失败', errBaseUrl: getBaseUrl() })
-      // 地址类失败（换 WiFi / 热点后 IP 变了）自动纠正一次，不让用户去登录页手动改
-      this.autoFixBaseUrl()
+      // 只有网络层失败（request.js 里统一 code=-1）才去探测后端地址。
+      // 页面渲染/数据映射抛出的 TypeError 不代表后端不可达 —— 之前就是因为
+      // F.weekday 写错被当成"找不到后端"，弹出"正在查找后端…"满屏转圈，很难排查。
+      if (err && err.code === -1) this.autoFixBaseUrl()
     }
   },
 
@@ -187,6 +189,7 @@ Page({
         id: r.applicationId,
         no: r.applicationNo,
         date: F.md(r.startTime),
+        dow: F.week(r.startTime),
         summary: r.summary,
         statusText: F.statusChip(r.effectiveStatus).label,
         chip: F.statusChip(r.effectiveStatus).chip

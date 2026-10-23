@@ -33,11 +33,12 @@
     <block wx:if="{{hasHero}}">
 
       <!--
-        当前请假状态区。刻意不套卡片、不加阴影、不加圆角容器：
-        靠 字号层级 + 留白 + 左对齐 形成一组，最后用一条极细线收口。
-        四级优先级：状态词 > 类型 > 时间区间 > 辅助时长
+        当前请假状态区。
+        卡片只负责"这是一件正在发生的事"这个边界（1rpx 线 + 极浅阴影，见 app.wxss .card），
+        卡片内部仍然是**无卡片的**四层级：状态词 > 类型 > 时间区间 > 辅助时长，
+        靠字号、字重、颜色深浅和留白分层。别在卡里再套卡。
       -->
-      <view class="hero">
+      <view class="hero card card--hero">
 
         <!-- 第一优先级：待审批 / 请假中 / 逾期 -->
         <view class="hero__status {{stateCls}}">{{stateMain}}</view>
@@ -91,7 +92,6 @@
 
         <!-- 驳回原因 -->
         <view wx:if="{{rejectReason}}" class="notice" style="margin-top: 24rpx;">{{rejectReason}}</view>
-      </view>
 
       <!-- 操作区 -->
       <view class="action">
@@ -113,12 +113,13 @@
         </view>
       </view>
 
-      <!-- 事实行：提交 10.22 11:16 · 审批 待分配 -->
-      <view wx:if="{{facts.length}}" class="facts num">
-        <block wx:for="{{facts}}" wx:key="label">
-          <text wx:if="{{index > 0}}" class="facts__dot">·</text>
-          <text>{{item.label}} <text class="facts__b">{{item.value}}</text></text>
-        </block>
+        <!-- 事实行：提交 10.22 11:16 · 审批 待分配 -->
+        <view wx:if="{{facts.length}}" class="facts num">
+          <block wx:for="{{facts}}" wx:key="label">
+            <text wx:if="{{index > 0}}" class="facts__dot">·</text>
+            <text>{{item.label}} <text class="facts__b">{{item.value}}</text></text>
+          </block>
+        </view>
       </view>
 
     </block>
@@ -182,7 +183,7 @@
         <text class="sec__t">最近记录</text>
         <text class="sec__a" bindtap="onAllRecords">全部记录</text>
       </view>
-      <view class="recs">
+      <view class="recs card card--list">
         <view
           wx:for="{{recent}}"
           wx:key="id"
@@ -190,7 +191,10 @@
           data-id="{{item.id}}"
           bindtap="onOpenRecord"
         >
-          <text class="rec__d num">{{item.date}}</text>
+          <view class="rec__d">
+            <text class="rec__d1 num">{{item.date}}</text>
+            <text class="rec__d2">{{item.dow}}</text>
+          </view>
           <text class="rec__t">{{item.summary}}</text>
           <text class="rec__s {{item.chip}}">{{item.statusText}}</text>
         </view>
