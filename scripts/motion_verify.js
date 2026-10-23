@@ -306,6 +306,32 @@ async function main() {
   check('折线用的是 --ease-draw（不是强 ease-out）',
     !/0\.2,\s*0\.8/.test(pace.lineEase || ''), 'ease=' + pace.lineEase)
 
+  /* ---------- v2.1：导航切换的连续性与"曲线不能前置" ---------- */
+  const navPace = await cdp.eval(`(function(){
+    var rail = document.querySelector('.nav-rail');
+    var page = document.querySelector('.page');
+    var content = page ? page.querySelector(':scope > *:not(.page-head)') : null;
+    return {
+      rail: !!rail,
+      railTf: rail ? getComputedStyle(rail).transitionTimingFunction : null,
+      railDur: rail ? getComputedStyle(rail).transitionDuration : null,
+      contentAnim: content ? getComputedStyle(content).animationTimingFunction : null,
+      contentName: content ? getComputedStyle(content).animationName : null,
+      activeNavs: document.querySelectorAll('.nav-item.is-on').length
+    };
+  })()`)
+  check('.nav-rail 存在且只有一个选中项（没有双墨线）',
+    navPace.rail && navPace.activeNavs <= 1, JSON.stringify(navPace.activeNavs))
+  check('rail 过渡时长 ≥ 400ms', ms(navPace.railDur) >= 400, 'dur=' + navPace.railDur)
+  /* 关键防回退：rail 是"两点之间滑行"，必须用对称曲线。
+     如果换回 --ease（0.2,0.8,...），72px 的位移会在 ~150ms 内跑完，
+     后 270ms 只挪 2-3px —— 逐帧看三帧几乎一样，读起来还是"跳"。 */
+  check('rail 用对称曲线 --ease-tog（不能用前置的 0.2/0.8）',
+    !!navPace.railTf && !/0\.2,\s*0\.8/.test(navPace.railTf), 'ease=' + navPace.railTf)
+  check('内容根有淡入动画，且曲线不是前置的（写在 420ms、看着也 420ms）',
+    navPace.contentName !== 'none' && !/0\.2,\s*0\.8/.test(navPace.contentAnim || ''),
+    'name=' + navPace.contentName + ' ease=' + navPace.contentAnim)
+
   // 10) 页面无 JS 异常
   const errs = cdp.events.filter(e => e.method === 'Runtime.exceptionThrown')
     .map(e => e.params.exceptionDetails.exception?.description || e.params.exceptionDetails.text)

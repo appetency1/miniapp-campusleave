@@ -40,8 +40,12 @@
   from { opacity: var(--m-ink-from); }
   to   { opacity: 1; }
 }
+/* 曲线用对称的 --ease-tog，不用 --ease。
+   --ease 会把 420ms 里的变化压在头 100ms 做完（逐帧实测：100ms 时已接近满格），
+   写着 420ms、看着 150ms —— 等于没加。对称曲线才真的摊到 420ms。
+   页根仍用 --ease：外壳该快点亮起来，"快起慢收"在那里是对的。 */
 .page--enter > *:not(.page-head) {
-  animation: pageContentIn var(--t-mid) var(--ease) var(--m-delay-content) both;
+  animation: pageContentIn var(--t-mid) var(--ease-tog) var(--m-delay-content) both;
 }
 
 /* 页头一寸落墨：只位移不改透明度（父级已经在淡入，

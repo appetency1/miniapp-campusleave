@@ -136,7 +136,13 @@ body[data-role="app"] #login-root { display: none; }
   pointer-events: none;
 }
 .nav-rail.is-set {
-  transition: transform var(--t-mid) var(--ease), height var(--t-mid) var(--ease);
+  /* 曲线必须是**对称**的 --ease-tog，不能用 --ease。
+     --ease 是 cubic-bezier(.2,.8,.25,1)：头 25% 时间走完 80% 路程。
+     实测（scripts/nav_frames.js 逐帧）：72px 的位移在约 150ms 内就跑完了，
+     后 270ms 只挪 2-3px —— 100/300/600ms 三帧几乎一模一样，
+     读起来还是"跳"，只是从"瞬移"变成了"150ms 冲刺"。
+     对称曲线把路程摊到整个 420ms，才是"滑"。 */
+  transition: transform var(--t-mid) var(--ease-tog), height var(--t-mid) var(--ease-tog);
 }
 /* 宽屏也是「图标 + 文字」并排。原来宽屏只显示文字、图标留给窄屏，
    结果桌面端一排纯文字，像文档目录而不是导航。 */
