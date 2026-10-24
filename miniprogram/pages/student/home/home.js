@@ -239,7 +239,10 @@ Page({
     // 区间文字
     let rangeText = ''
     if (es === 'PENDING') {
-      rangeText = '申请区间 ' + F.md(hero.startTime) + ' ' + F.hm(hero.startTime) +
+      // 原来这里加「申请区间 」前缀（5 个字，约 70px）。去掉的两个原因：
+      //   1) 视觉：面板右上现在是校园线稿，前缀会把这一行顶到插画底下；
+      //   2) 语义：状态词已经是「待审批」，这两个时间本来就只可能是申请值，不需要再标。
+      rangeText = F.md(hero.startTime) + ' ' + F.hm(hero.startTime) +
         ' — ' + F.md(hero.endTime) + ' ' + F.hm(hero.endTime)
     } else {
       rangeText = F.md(hero.startTime) + ' ' + F.hm(hero.startTime) +

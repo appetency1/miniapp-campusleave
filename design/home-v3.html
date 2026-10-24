@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>学生端首页 · V3 结合稿</title>
+<style>
+  /* 参数与 miniprogram/app.wxss + pages/student/home/home.wxss 同源，1rpx = 0.5px */
+  :root{
+    --paper:#FAF9F6; --paper-2:#F4F2EC; --surface:#FFFFFF;
+    --ink:#182331; --ink-2:#4A5450; --ink-3:#68706C; --ink-4:#9A9A93;
+    --line:#E8E6DF; --line-2:#DEDBD2;
+    --accent-500:#536B59; --accent-600:#455B4B; --accent-700:#374A3D;
+    --amber-600:#A4773A; --red-600:#A85445;
+    --r:6px; --r-btn:12px; --r-card:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#EFEDE6; color:var(--ink); padding:40px 24px 64px;
+    font:400 15px/1.55 "Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  /* ---------- 说明区 ---------- */
+  .doc{max-width:900px;margin:0 auto 36px}
+  .doc h1{font-size:22px;font-weight:600;letter-spacing:-.01em}
+  .doc__sub{margin-top:8px;font-size:13px;color:#5C635F;line-height:1.6}
+  .doc__tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .tag{font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid #DAD6CB;color:#4A5450;background:#FAF9F6}
+  .tag b{font-weight:600;color:var(--ink)}
+  .tag.keep{background:#EDF1EC;border-color:#C9D4CB;color:#374A3D}
+  .tag.fix{background:#F7F1E6;border-color:#E3D3B6;color:#8A6425}
+
+  /* ---------- 机身 ---------- */
+  .stage{display:flex;gap:56px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    position:relative;
+    width:375px;background:var(--paper);border-radius:30px;overflow:hidden;
+    box-shadow:0 2px 6px rgba(24,35,49,.06),0 24px 60px rgba(24,35,49,.10);
+  }
+  .cap{font-size:12px;letter-spacing:.08em;color:#6B6F6A;margin-bottom:10px;text-align:center}
+  .wrap{display:flex;flex-direction:column}
+
+  /* ---------- 状态栏 ---------- */
+  .bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600}
+  .cap-ico{width:87px;height:32px;border:1px solid rgba(24,35,49,.14);border-radius:16px;display:flex;align-items:center;justify-content:space-around;padding:0 9px}
+  .cap-ico i{width:4px;height:4px;border-radius:50%;background:var(--ink);opacity:.75}
+  .cap-ico u{width:12px;height:12px;border:1.5px solid var(--ink);border-radius:50%;opacity:.75}
+
+  /* ---------- 页身 ---------- */
+  .screen{padding:0 20px 18px}
+  .greet{padding-top:18px}
+  .greet__hi{font-size:28px;font-weight:600;line-height:1.26;letter-spacing:-.01em}
+  .greet__meta{margin-top:8px;font-size:15px;color:var(--ink-3);letter-spacing:.01em}
+
+  /* ---------- 卡片 ---------- */
+  .card{
+    position:relative;background:var(--surface);border:1px solid var(--line-2);
+    border-radius:var(--r-card);overflow:hidden;
+    box-shadow:0 1px 2px rgba(24,35,49,.03),0 5px 14px rgba(24,35,49,.045);
+  }
+  .card--hero{margin-top:24px;padding:17px 16px 15px}
+  .card--hero .art{position:absolute;top:13px;right:9px;width:100px;z-index:0;pointer-events:none}
+  .card--hero > *:not(.art){position:relative;z-index:1}
+
+  .st{font-size:20px;line-height:1.25;font-weight:600;letter-spacing:-.005em;color:var(--accent-600)}
+  .st.warn{color:var(--amber-600)}
+  .st.danger{color:var(--red-600)}
+  .sub{margin-top:4px;font-size:13px;color:var(--ink-3)}
+  .range{margin-top:12px;font-size:14px;color:var(--ink-2)}
+  .aux{margin-top:4px;font-size:14px;color:var(--ink-2)}
+  .aux.danger{color:var(--red-600)}
+
+  /* 四步流程 */
+  .flow{display:flex;margin-top:14px}
+  .step{flex:1;position:relative;padding-top:12px}
+  .step::before{content:"";position:absolute;left:0;right:0;top:2.5px;height:1px;background:var(--line)}
+  .step.done::before{background:var(--ink-4)}
+  .dot{position:absolute;left:0;top:0;width:6px;height:6px;border-radius:50%;background:var(--paper);border:1px solid var(--line-2)}
+  .step.done .dot{background:var(--ink-4);border-color:var(--ink-4)}
+  .step.now .dot{background:var(--ink);border-color:var(--ink)}
+  .step .t{display:block;font-size:13px;line-height:1.5;font-weight:500;color:var(--ink-4)}
+  .step.done .t{color:var(--ink-2)}
+  .step.now .t{color:var(--ink);font-weight:600}
+  .step .s{display:block;margin-top:1px;font-size:11px;line-height:1.6;color:var(--ink-4);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  /* 刻度尺 */
+  .rl{margin-top:16px}
+  .rl__track{position:relative;height:40px;border-bottom:1px solid var(--line)}
+  .rl__range{position:absolute;left:0;bottom:0;height:40px;border-bottom:2px solid var(--accent-500);background:linear-gradient(180deg,rgba(83,107,89,0) 0%,rgba(83,107,89,.16) 100%)}
+  .rl__grid{position:absolute;inset:0;background-image:linear-gradient(to right,rgba(21,32,46,.20) 1px,transparent 1px);background-size:calc(100%/12) 8px;background-repeat:repeat-x;background-position:left bottom}
+  .rl__grid::after{content:"";position:absolute;left:0;right:0;bottom:0;height:15px;background-image:linear-gradient(to right,rgba(21,32,46,.34) 1px,transparent 1px);background-size:calc(100%/6) 15px;background-repeat:repeat-x}
+  .rl__now{position:absolute;top:0;width:1.5px;height:40px;background:var(--accent-600);transform:translateX(-.75px)}
+  .rl__nowlab{margin-top:5px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .rl__labs{display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:var(--ink-4);font-variant-numeric:tabular-nums}
+  .reads{display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--ink-3)}
+  .reads b{font-weight:500;color:var(--ink-2)}
+
+  /* 操作区 */
+  .action{margin-top:23px}
+  .btn{display:flex;align-items:center;justify-content:center;width:100%;height:42px;border:none;border-radius:var(--r-btn);background:var(--accent-600);color:#FCFBF8;font-size:15px;font-weight:500;letter-spacing:.01em;font-family:inherit;cursor:pointer}
+  .btn.ghost{background:var(--surface);border:1px solid var(--line-2);color:var(--ink)}
+  .links{display:flex;align-items:center;justify-content:center;margin-top:3px}
+  .link-btn{font-size:12px;color:var(--ink-4);padding:8px 5px;cursor:pointer}
+  .link-btn.danger{color:var(--red-600)}
+  .links__div{width:1px;height:11px;margin:0 13px;background:var(--line-2)}
+  .facts{margin-top:10px;font-size:13px;color:var(--ink-4)}
+  .facts b{color:var(--ink-3);font-weight:500}
+  .facts i{font-style:normal;margin:0 5px;color:var(--line-2)}
+
+  /* 区块标题 */
+  .sec{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 7px}
+  .sec__t{font-size:15px;font-weight:600;letter-spacing:.01em}
+  .sec__a{font-size:15px;color:var(--ink-3)}
+
+  /* 记录卡 */
+  .list{padding:2px 15px}
+  .rec{display:flex;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .rec:last-child{border-bottom:none}
+  .rec__d{flex:0 0 auto;display:flex;flex-direction:column;width:42px}
+  .rec__d1{font-size:13px;line-height:1.35;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .rec__d2{margin-top:1px;font-size:11px;line-height:1.3;color:var(--ink-4)}
+  .rec__t{flex:1;font-size:15px}
+  .rec__s{flex:0 0 auto;font-size:13px;color:var(--ink-4)}
+  .rec__s.ok{color:var(--accent-600)}
+  .rec__s.grey{color:var(--ink-4)}
+
+  /* tabbar */
+  .tabbar{position:relative;height:52px;padding-top:4px;display:flex;background:var(--paper);border-top:1px solid var(--line)}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:var(--ink-4)}
+  .tab.on{color:var(--accent-600);font-weight:600}
+  .tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .home-ind{margin:20px auto 10px;width:134px;height:5px;border-radius:3px;background:var(--ink);opacity:.85}
+</style>
+</head>
+<body>
+
+<div class="doc">
+  <h1>学生端首页 · V3 结合稿</h1>
+  <p class="doc__sub">
+    左：待审批（四步流程）　右：请假中（刻度尺）。<br>
+    参数与 <code>miniprogram/</code> 里的真实代码同源（1rpx = 0.5px），375 逻辑宽渲染。
+  </p>
+  <div class="doc__tags">
+    <span class="tag keep">取自设计图 · <b>卡片分组</b></span>
+    <span class="tag keep">取自设计图 · <b>橄榄绿主按钮</b></span>
+    <span class="tag keep">你提供的图 · <b>校园线稿（染成橄榄）</b></span>
+    <span class="tag keep">取自设计图 · <b>日期两列</b></span>
+    <span class="tag">保留自有 · <b>刻度尺 / 细线 / 纸底</b></span>
+    <span class="tag fix">已修 · <b>主按钮 4.96:1 → 7.4:1</b></span>
+    <span class="tag fix">已修 · <b>卡边界加 1rpx 线</b></span>
+    <span class="tag fix">已修 · <b>去掉「申请区间」前缀</b></span>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ================= 待审批 ================= -->
+  <div>
+    <div class="cap">待审批 · 四步流程 + 白底主按钮</div>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><div class="cap-ico"><i></i><i></i><i></i><u></u></div></div>
+
+      <div class="screen">
+        <div class="greet">
+          <div class="greet__hi">中午好，李同学</div>
+          <div class="greet__meta num">10月23日 周五 · 阴 18° · 计算机2203班</div>
+        </div>
+
+        <div class="card card--hero">
+          <img class="art" src="../miniprogram/assets/campus.png" alt="">
+          <div class="st warn">待审批</div>
+          <div class="sub">离校 · 病假</div>
+          <div class="range num">10.23 11:30 — 10.23 12:30</div>
+          <div class="aux num">已等待 26 分钟</div>
+
+          <div class="flow">
+            <div class="step done"><span class="dot"></span><span class="t">提交</span><span class="s">10.23 11:16</span></div>
+            <div class="step now"><span class="dot"></span><span class="t">审批</span><span class="s">处理中</span></div>
+            <div class="step"><span class="dot"></span><span class="t">生效</span><span class="s">10.23</span></div>
+            <div class="step"><span class="dot"></span><span class="t">销假</span><span class="s">—</span></div>
+          </div>
+
+          <div class="action">
+            <button class="btn ghost">查看详情</button>
+            <div class="links"><span class="link-btn danger">撤回申请</span></div>
+          </div>
+
+          <div class="facts num">提交 <b>10.23 11:16</b><i>·</i>审批 <b>待分配</b></div>
+        </div>
+
+        <div class="sec"><span class="sec__t">最近记录</span><span class="sec__a">全部记录 ›</span></div>
+
+        <div class="card list">
+          <div class="rec">
+            <div class="rec__d"><span class="rec__d1">10.21</span><span class="rec__d2">周三</span></div>
+            <span class="rec__t">离校 · 病假</span><span class="rec__s ok">已销假</span>
+          </div>
+          <div class="rec">
+            <div class="rec__d"><span class="rec__d1">10.18</span><span class="rec__d2">周日</span></div>
+            <span class="rec__t">校内 · 事假</span><span class="rec__s ok">已销假</span>
+          </div>
+          <div class="rec">
+            <div class="rec__d"><span class="rec__d1">10.15</span><span class="rec__d2">周四</span></div>
+            <span class="rec__t">离校 · 病假</span><span class="rec__s grey">已撤回</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9.5 20v-5h5v5"/></svg>首页</div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M6 3.5h12v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>记录</div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v11H9l-5 3.5z"/></svg>消息</div>
+        <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6"/></svg>我的</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+  <!-- ================= 请假中 ================= -->
+  <div>
+    <div class="cap">请假中 · 刻度尺 + 墨绿实心主按钮</div>
+    <div class="phone">
+      <div class="bar"><span>15:48</span><div class="cap-ico"><i></i><i></i><i></i><u></u></div></div>
+
+      <div class="screen">
+        <div class="greet">
+          <div class="greet__hi">下午好，李同学</div>
+          <div class="greet__meta num">10月23日 周五 · 阴 18° · 计算机2203班</div>
+        </div>
+
+        <div class="card card--hero">
+          <img class="art" src="../miniprogram/assets/campus.png" alt="">
+          <div class="st">请假中</div>
+          <div class="sub">离校 · 事假</div>
+          <div class="range num">10.23 08:00 — 10.23 22:00</div>
+          <div class="aux num">还剩 6 小时 12 分</div>
+
+          <div class="rl">
+            <div class="rl__track">
+              <div class="rl__range" style="width:70%"></div>
+              <div class="rl__grid"></div>
+              <div class="rl__now" style="left:70%"></div>
+            </div>
+            <div class="rl__nowlab" style="margin-left:calc(70% - 24px)">现在 15:48</div>
+            <div class="rl__labs"><span>08:00</span><span>10:20</span><span>12:40</span><span>15:00</span><span>17:20</span><span>19:40</span><span>22:00</span></div>
+            <div class="reads num"><span>已过 <b>7 小时 48 分</b></span><span>共 14 小时</span></div>
+          </div>
+
+          <div class="action">
+            <button class="btn">返校定位并销假</button>
+            <div class="links">
+              <span class="link-btn">申请续假</span>
+              <span class="links__div"></span>
+              <span class="link-btn">查看详情</span>
+            </div>
+          </div>
+
+          <div class="facts num">审批 <b>王老师 10.22 16:40</b><i>·</i>销假 <b>返校定位</b></div>
+        </div>
+
+        <div class="sec"><span class="sec__t">最近记录</span><span class="sec__a">全部记录 ›</span></div>
+
+        <div class="card list">
+          <div class="rec">
+            <div class="rec__d"><span class="rec__d1">10.21</span><span class="rec__d2">周三</span></div>
+            <span class="rec__t">校内 · 事假</span><span class="rec__s ok">已销假</span>
+          </div>
+          <div class="rec">
+            <div class="rec__d"><span class="rec__d1">10.15</span><span class="rec__d2">周四</span></div>
+            <span class="rec__t">离校 · 病假</span><span class="rec__s grey">已撤回</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9.5 20v-5h5v5"/></svg>首页</div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M6 3.5h12v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>记录</div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v11H9l-5 3.5z"/></svg>消息</div>
+        <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6"/></svg>我的</div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

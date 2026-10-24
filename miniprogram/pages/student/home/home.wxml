@@ -38,7 +38,11 @@
         卡片内部仍然是**无卡片的**四层级：状态词 > 类型 > 时间区间 > 辅助时长，
         靠字号、字重、颜色深浅和留白分层。别在卡里再套卡。
       -->
-      <view class="hero card card--hero">
+      <view class="hero panel panel--hero">
+
+        <!-- 校园线稿：纯气氛元素，压在正文之下（z-index 见 home.wxss .hero__art）。
+             原图是彩色线稿，已处理成单色蒙版并染成 --accent-500，300×262 / 57KB -->
+        <image class="hero__art" src="/assets/campus.png" mode="widthFix" />
 
         <!-- 第一优先级：待审批 / 请假中 / 逾期 -->
         <view class="hero__status {{stateCls}}">{{stateMain}}</view>
@@ -183,7 +187,7 @@
         <text class="sec__t">最近记录</text>
         <text class="sec__a" bindtap="onAllRecords">全部记录</text>
       </view>
-      <view class="recs card card--list">
+      <view class="recs panel panel--list">
         <view
           wx:for="{{recent}}"
           wx:key="id"

@@ -39,29 +39,34 @@
 .hero {
   margin-top: 48rpx;
 }
-.hero.card {
+.hero.panel {
   padding: 34rpx 32rpx 30rpx;
 }
 
-/* 卡片右上的教学楼线稿（内联 SVG data URI，零外部资源、无位图请求）。
- * 只做气氛，不承载信息 —— 所以压到 0.17 不透明度，左侧 60% 完全让给正文。
- * 位置必须让开卡片的 28rpx 圆角：top/right 都大于圆角半径，否则会被圆角裁掉一截
- * （第一版放 top:18rpx right:6rpx，右侧那棵树正好被切在弧线上）。
- * 想关掉它：删掉这一段即可，卡片其余部分不依赖它。 */
-.card--hero::after {
-  content: "";
+/* 面板右上的校园线稿（用户提供的图：彩色线稿 → 单色蒙版 → 染 --accent-500，
+ * 300×262 / 57KB，存 miniprogram/assets/campus.png）。
+ *
+ * 两个必须记住的点：
+ * 1) 位置要让开 28rpx 圆角，top/right 都得大于半径，否则边缘会被弧线切掉。
+ * 2) 它是 z-index:0，**正文层是 1**（见下面 .panel--hero > view 那条）。
+ *    真实数据里「申请区间 10.23 11:30 — 10.23 12:30」这行比设计稿长 5 个字，
+ *    一定会钻到插画下面；不压层的话插画会盖在字上，把正文染灰。
+ * 想关掉它：删掉这一段和 wxml 里的 <image>，面板其余部分不依赖它。 */
+.hero__art {
   position: absolute;
   top: 26rpx;
   right: 18rpx;
-  width: 210rpx;
-  height: 132rpx;
-  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNDAgMTUwJz48ZyBmaWxsPSdub25lJyBzdHJva2U9JyM0NTVCNEInIHN0cm9rZS13aWR0aD0nMi42JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIHN0cm9rZS1saW5lam9pbj0ncm91bmQnPjxwYXRoIGQ9J004IDEzNGgyMjQnLz48cGF0aCBkPSdNMzQgMTM0Vjk2aDYydjM4Jy8+PHBhdGggZD0nTTE0NCAxMzRWOTZoNjJ2MzgnLz48cGF0aCBkPSdNOTYgMTM0Vjc0aDQ4djYwJy8+PHBhdGggZD0nTTk2IDc0bDI0LTE4IDI0IDE4Jy8+PHBhdGggZD0nTTEyMCA1NlY0NGgxMycvPjxwYXRoIGQ9J00xMTQgMTM0di0xNmgxMnYxNicvPjxwYXRoIGQ9J000NCAxMDZoMTR2MTRINDR6Jy8+PHBhdGggZD0nTTY4IDEwNmgxNHYxNEg2OHonLz48cGF0aCBkPSdNMTU4IDEwNmgxNHYxNGgtMTR6Jy8+PHBhdGggZD0nTTE4MiAxMDZoMTR2MTRoLTE0eicvPjxwYXRoIGQ9J00yMiAxMzR2LTE0Jy8+PHBhdGggZD0nTTE0IDEyMGw4LTE4IDggMTh6Jy8+PHBhdGggZD0nTTIxOCAxMzR2LTE0Jy8+PHBhdGggZD0nTTIxMCAxMjBsOC0xOCA4IDE4eicvPjwvZz48L3N2Zz4=") no-repeat center / contain;
-  opacity: 0.17;
+  width: 200rpx;
+  z-index: 0;
   pointer-events: none;
 }
+.hero.panel--hero > view,
+.hero.panel--hero > button,
+.hero.panel--hero > ruler {
+  position: relative;
+  z-index: 1;
+}
 
-/* 第一优先级。颜色不在这里写死：由 .state--warn / --danger 提供，
-   这样五种状态各有自己的语气，不需要为每种状态写一份字号 */
 .hero__status {
   margin-top: 0;
   font-size: 40rpx;
@@ -393,7 +398,7 @@
 }
 /* 记录也走卡片：它是"已经发生的事"的清单，和当前请假同属"事实"；
    卡内的行分隔仍用 hairline，所以视觉上是一张卡里排 3 行，不是 3 张卡。 */
-.card--list {
+.panel--list {
   padding: 4rpx 30rpx;
 }
 .rec {
