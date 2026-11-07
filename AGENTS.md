@@ -98,13 +98,16 @@ design/ docs/ outputs/ reviews/ archive/
 
 ## 9. Git 与进度纪律
 
+**动手前先提交（用户明确要求）**：每次小修改 / 迭代**开始前**，先把当前状态 commit 并 push，确保随时可回滚；
+改完再提交一次。不允许在未提交的脏工作区上开新改动。
+
 每完成一个小进展（阶段 / 里程碑 / 子任务）：
 
-1. `git add -A && git commit -m "<做了什么>" && git push origin main`
+1. `git add -A && git commit -m "<做了什么>" && git push origin master`
 2. 追加当日进度到 `.workbuddy/memory/YYYY-MM-DD.md`（若该目录被忽略，改记 `04` 文档即可）
 3. 更新 `04_开发方案_V1.0.md`：勾掉已完成里程碑、改「当前进度」表、「下一步」指向。
 
-- 远端：`origin = https://github.com/appetency1/miniapp-campusleave.git`（public）。推送前确认 `application-dev.yml`、`backend/uploads/`、`backend/target/`、`outputs/` 未被提交。
+- 远端：`origin = https://github.com/appetency1/miniapp-campusleave.git`（public），分支是 **`master`**。推送前确认 `application-dev.yml`、`backend/uploads/`、`backend/target/`、`outputs/` 未被提交。
 - 提交说明用中文，写清改了什么、为什么；一次提交只做一件事。
 
 ## 10. 测试与回归
