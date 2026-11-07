@@ -15,4 +15,8 @@ backend/src/main/resources/application-dev.yml
 
 # 自动化验证的截图产物（可重新生成，不入库）
 outputs/
+
+# DSH 安装/调试残留（工具自身产物，与本项目无关，不入库）
+.install-backup/
+.tmp-asar/
 node_modules/
