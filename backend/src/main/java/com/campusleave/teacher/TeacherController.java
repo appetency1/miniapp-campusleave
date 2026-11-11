@@ -1,6 +1,7 @@
 package com.campusleave.teacher;
 
 import com.campusleave.common.PageResult;
+import com.campusleave.common.PageQuery;
 import com.campusleave.common.Result;
 import com.campusleave.domain.entity.ClassInfo;
 import com.campusleave.domain.entity.TeacherProfile;
@@ -82,7 +83,8 @@ public class TeacherController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("TEACHER");
-        return Result.ok(query.applications(tab, status, classId, keyword, startDate, endDate, page, size));
+        return Result.ok(query.applications(tab, status, classId, keyword, startDate, endDate,
+                PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     // ---------------- 6.12 逾期（放在 {id} 之前声明，语义更清晰） ----------------
@@ -93,7 +95,7 @@ public class TeacherController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("TEACHER");
-        return Result.ok(query.overdue(classId, page, size));
+        return Result.ok(query.overdue(classId, PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     // ---------------- 6.3 申请详情 ----------------
@@ -128,7 +130,7 @@ public class TeacherController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("TEACHER");
-        return Result.ok(query.extensions(status, page, size));
+        return Result.ok(query.extensions(status, PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     @GetMapping("/extensions/{id}")
@@ -160,7 +162,8 @@ public class TeacherController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("TEACHER");
-        return Result.ok(query.checkinLogs(reviewStatus, checkResult, page, size));
+        return Result.ok(query.checkinLogs(reviewStatus, checkResult,
+                PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     @GetMapping("/checkin-logs/{id}")
@@ -186,7 +189,7 @@ public class TeacherController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("TEACHER");
-        return Result.ok(query.students(keyword, classId, page, size));
+        return Result.ok(query.students(keyword, classId, PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     @GetMapping("/students/{id}")

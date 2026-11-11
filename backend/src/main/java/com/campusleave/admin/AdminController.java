@@ -1,6 +1,7 @@
 package com.campusleave.admin;
 
 import com.campusleave.common.PageResult;
+import com.campusleave.common.PageQuery;
 import com.campusleave.common.Result;
 import com.campusleave.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("ADMIN");
-        return Result.ok(service.users(role, keyword, page, size));
+        return Result.ok(service.users(role, keyword, PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     @PostMapping("/users")
@@ -63,7 +64,7 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("ADMIN");
-        return Result.ok(service.classes(keyword, page, size));
+        return Result.ok(service.classes(keyword, PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     @PostMapping("/classes")
@@ -142,7 +143,8 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         CurrentUser.requireRole("ADMIN");
-        return Result.ok(service.applications(scope, review, keyword, page, size));
+        return Result.ok(service.applications(scope, review, keyword,
+                PageQuery.clampPage(page), PageQuery.clampSize(size)));
     }
 
     // ---------------- 7.5 全校统计 ----------------

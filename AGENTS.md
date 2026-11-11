@@ -123,8 +123,8 @@ design/ docs/ outputs/ reviews/ archive/
 
 | 级别 | 问题 | 位置 |
 |---|---|---|
-| **P0** | JWT 密钥是仓库公开占位串 `campus-leave-jwt-secret-key-change-me-2026`，可自签 `role=ADMIN` 令牌 | `backend/src/main/resources/application-dev.yml:14` / `application-dev.yml.example:14`（`application.yml:5` 是 `profiles.active: dev`，不含密钥） |
-| **P0** | `/files/**` 匿名可读，无 token 可拿到诊断证明 | `StaticResourceConfig.java:22` |
+| **已修复** | ~~JWT 密钥是仓库公开占位串，可自签 `role=ADMIN` 令牌~~ → 密钥改为环境变量 `CAMPUS_JWT_SECRET` 注入（≥32 字节），空/旧占位串/过短三种情况启动即失败（`JwtUtil.validateSecret`）。2026-11-11 | `application-dev.yml.example:14` |
+| **已修复** | ~~`/files/**` 匿名可读~~ → 出 URL 时带 `exp`+`sig`（HMAC-SHA256，10 分钟有效），`FileAccessFilter` 拦 `/files/*` 无签名/过期/篡改一律 403 JSON。2026-11-11 | `storage/FileUrlSigner.java` / `storage/FileAccessFilter.java` |
 | P1 | `JwtAuthFilter` 只验签不查库，停用账号旧令牌仍有效 | `JwtAuthFilter.java:37-49` |
 | P1 | 登录零限流 + 默认口令 `123456` | `AuthController.java:18` / `AdminService.java:122` |
 | P1 | 上传实际上限 1MB（文档写 10MB），超限 500 | 缺 `spring.servlet.multipart.max-file-size` |
