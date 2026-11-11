@@ -185,10 +185,10 @@
 | 产出 | 位置 | 行数 | 复现 |
 |---|---|---|---|
 | 六章大纲 | `outputs/thesis/outline.md` | 131 | `wc -l outputs/thesis/outline.md` |
-| 图表清单（14 图 + 11 表） | `outputs/thesis/figures.md` | 40 | 同上 |
-| 素材待办清单 | `outputs/thesis/materials.md` | 51 | 同上 |
-| 审核口径与模板 | `outputs/review/_审核口径与模板.md` | 148 | `ls outputs/review/` |
-| 基线抽查报告 | `outputs/review/_基线抽查报告.md` | 158 | 同上 |
+| 图表清单（**18 图 + 9 表**） | `outputs/thesis/figures.md` | 40 | `grep -cE '^\| *图' outputs/thesis/figures.md` → 18；`grep -cE '^\| *表' outputs/thesis/figures.md` → 9 |
+| 素材待办清单 | `outputs/thesis/materials.md` | 51 | `wc -l outputs/thesis/materials.md` |
+| 审核口径与模板 | `outputs/review/_审核口径与模板.md` | 148 | `wc -l outputs/review/_审核口径与模板.md` |
+| 基线抽查报告 | `outputs/review/_基线抽查报告.md` | 158 | `wc -l outputs/review/_基线抽查报告.md` |
 
 **正文一个字都没写**，因为学校格式要求没到。别派正文写作，写了也要重排。
 
