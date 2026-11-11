@@ -10,8 +10,9 @@ spring:
 
 campus-leave:
   jwt:
-    # 生产环境请替换为随机长串（>= 32 字节）
-    secret: campus-leave-jwt-secret-key-change-me-2026
+    # 必须由环境变量注入，长度 >= 32 字节；本文件入库，绝不写真实密钥。
+    # 未设置 / 为空 / 仍是旧占位串 / 长度不足时，应用会直接启动失败（JwtUtil.validateSecret）。
+    secret: ${CAMPUS_JWT_SECRET:}
     expire-seconds: 604800   # 7 天
   upload:
     dir: uploads
