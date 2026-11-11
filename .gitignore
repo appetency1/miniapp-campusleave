@@ -20,3 +20,8 @@ outputs/
 .install-backup/
 .tmp-asar/
 node_modules/
+
+# dsh-experts：DS Bot 团队状态备份（含对话与配置，绝不入库）
+dsh-experts/state.json*
+dsh-experts/*.bak-*
+dsh-experts/.tmp/
