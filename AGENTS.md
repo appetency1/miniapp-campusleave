@@ -40,10 +40,11 @@ backend/src/main/java/com/campusleave/
   config/    WebMvcConfig（静态映射 + CORS）/ MybatisPlusConfig / JacksonConfig
   security/  JwtUtil / JwtAuthFilter / LoginUser / CurrentUser / @RequireRole
   auth/ student/ teacher/ admin/     按端分包的 Controller + Service
-  domain/    entity(12) / enums(LeaveStatus…) / mapper
-  service/   LeaveStateService / ConflictService / ApprovalService / CheckinService
-             NotificationService / LogService / ScopeService / DictService
-  storage/   FileStorageService（本地 uploads/，路径 /yyyy/MM/uuid.ext）
+  domain/    entity(12) / enums(UserRole) / mapper
+             业务状态用 String 常量（无 Status 枚举类）
+  service/   CommonController（字典接口）· DictService
+             NotificationService 在 common/，其余业务服务在各自按端包内
+  storage/   FileController · FileStorageService（本地 uploads/，路径 /yyyy/MM/uuid.ext）
 backend/web/        教师 + 管理端静态资源（css/js/pages），构建时复制到 static/admin/
 miniprogram/        小程序源码（pages/ components/ utils/ custom-tab-bar/）
 sql/                V1.0__schema.sql · V1.0__seed.sql · V1.1__seed_demo.sql …
@@ -66,28 +67,30 @@ design/ docs/ outputs/ reviews/ archive/
 ## 5. 后端硬约定（评审反复强调）
 
 - 统一响应 `Result<T>{code,message,data,traceId}`，`code=0` 成功；异常统一走 `BizException(ErrorCode)` + `GlobalExceptionHandler`，业务码与 HTTP 状态同时设置。
-- `effective_status`（待开始/请假中/待销假/逾期）**只能在 `LeaveStateService` 算**，Controller / Mapper 不得各自按时间判断。
+- `effective_status`（待开始/请假中/待销假/逾期）**只能在 `student/EffectiveStatus.java` 的静态方法 `of(app, now)` 算**（纯函数，时间基准外部传入），Controller / Mapper 不得各自按时间判断。
 - 写操作一律 `@Transactional`；审批/销假/续假锁序固定：`leave_application → leave_extension → log → notification`。
 - 时间：JVM 与 MySQL 统一 `Asia/Shanghai`；`LocalDateTime` 序列化 `yyyy-MM-dd HH:mm:ss`。
 - `leave_extension.pending_app_id` 是生成列 → 实体上 `@TableField(exist = false)`。
 - 列表接口分页必须走 DB 分页（`page`/`size` 有上限），**禁止**先 `selectList(null)` 再内存过滤切片。
 - 通知去重靠 `dedup_key` + `ON DUPLICATE KEY UPDATE`；日志写 `leave_approval_log`。
-- 教师数据范围统一走 `ScopeService`（teacher_class → class → student），不散落 SQL。
+- 教师数据范围统一走 `TeacherScopeService`（`teacher/TeacherScopeService.java`，teacher_class → class → student），不散落 SQL。
 
 ## 6. 小程序约定
 
 - 请求一律走 `utils/request.js`（Promise 封装 + token 注入 + 401 拦截 + Idempotency-Key），不裸用 `wx.request`。
-- 页面结构：4 个 tab（首页 / 申请 / 消息 / 我的）；组件在 `components/`（ruler / status-tag / timeline / sheet / empty）。
+- 页面结构：4 个 tab（首页 / 申请 / 消息 / 我的）；组件只有 `components/ruler`（刻度尺），其余状态标签 / 时间轴 / 弹层 / 空态均为各页内联类实现，不抽公共组件。
 - **设计基线（定稿，别改）**：纸感体系 `#FBFAF7` 纸 / `#15202E` 墨 / `#2563C9` 蓝 / `#E7E3D9` 线；中文 Noto Sans SC，数字与编号 Noto Serif SC；圆角 6；页边距 20；主按钮墨色实心，蓝只给状态、刻度尺、tab 选中；记忆点是「把请假区间画成刻度尺」。
+  **落地实况（以代码为准）**：`miniprogram/app.wxss:17-36` 实际色板是暖白 `--paper #FAF9F6` + 橄榄绿 `--accent-500 #536B59`，`#2563C9` 仅作 CSS fallback 出现且从未生效；圆角实有三档（`--r`12rpx / `--r-btn`24rpx / `--r-card`28rpx）。写论文时按**实际色板**描述，不要照抄基线四色。
 - **禁用清单**（用户明确否决）：蓝色发光 CTA、大圆角、宽字距按钮、白卡+右箭头列表、照片底、自绘铃铛、深色满屏。
 - 改完小程序跑一次 `cli preview` 编译校验（`E:\微信web开发者工具\cli.bat preview --project "D:/AI Code/CampusLeave"`）；WXML/WXSS 语法错只有编译能暴露。
 
 ## 7. Web 后台约定
 
 - 同域静态托管：`backend/web/` → 运行时 `static/admin/`；访问 `/admin/`。
-- hash 路由手写（约 40 行），按 role 渲染菜单（教师 5 项 / 管理员 5 项），不引路由库。
+- hash 路由手写（约 40 行），按 role 渲染菜单（教师 4 组 5 项 / 管理员 4 组 10 项，见 `backend/web/js/app.js:177-233`），不引路由库。
 - 主从布局：待审批、核验用「左列表 40% / 右详情 60%」，不跳页。
-- 视觉复用 `formal-v2` 的 tokens（`css/tokens.css`），组件统一 `components.css`；动效规范见 `backend/web/MOTION.md`，改时长必须同步 JS 兜底定时器（抽屉 620ms / 列表门控 1400ms / toast 2300ms）。
+- 视觉**不**复用 `formal-v2` 的 tokens：`backend/web/css/tokens.css:13` 是 `--paper: #F7F9F4` + 橄榄绿 `--blue-500: #4A7C59`、圆角 8；`formal-v2/index.html:16-19` 是 `#FBFAF7` / `#2563C9` 蓝 / `#E7E3D9`、圆角 6，两者**不同源**，写论文不能说「复用定稿视觉」。组件统一 `components.css`；动效规范见 `backend/web/MOTION.md`，改时长必须同步 JS 兜底定时器（抽屉 620ms / 列表门控 1400ms / toast 2300ms）。
+  尺寸实况：`tokens.css:48` `--d-sidebar: 208px`、`:52` `--d-maxw: 1440px`（文档旧稿写的 220/1200 不是实际值）。
 - 材料：图片直看，PDF `iframe`/新窗口（小程序做不到，这是后台的价值）。
 
 ## 8. 数据库约定
@@ -120,7 +123,7 @@ design/ docs/ outputs/ reviews/ archive/
 
 | 级别 | 问题 | 位置 |
 |---|---|---|
-| **P0** | JWT 密钥是仓库公开占位串，可自签 `role=ADMIN` 令牌 | `application-dev.yml:14` / `.example:14` / `application.yml:5` |
+| **P0** | JWT 密钥是仓库公开占位串 `campus-leave-jwt-secret-key-change-me-2026`，可自签 `role=ADMIN` 令牌 | `backend/src/main/resources/application-dev.yml:14` / `application-dev.yml.example:14`（`application.yml:5` 是 `profiles.active: dev`，不含密钥） |
 | **P0** | `/files/**` 匿名可读，无 token 可拿到诊断证明 | `StaticResourceConfig.java:22` |
 | P1 | `JwtAuthFilter` 只验签不查库，停用账号旧令牌仍有效 | `JwtAuthFilter.java:37-49` |
 | P1 | 登录零限流 + 默认口令 `123456` | `AuthController.java:18` / `AdminService.java:122` |

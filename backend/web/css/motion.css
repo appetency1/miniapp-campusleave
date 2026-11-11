@@ -140,9 +140,9 @@
    没有这个类时路径就是满绘状态，重绘不会重播。 */
 /* <path pathLength="1"> 已经在 admin.js 里打上，所以进度可以归一成 0–1，
    不需要 getTotalLength()，也不需要 JS 量长度。 */
-/* 时长走 --t-draw（760ms）而不是交互档的 --t-slow（320ms）：
-   320ms 是"点一下要立刻有回音"的量级，用在"把七天折线画出来"上等于没画 ——
-   用户只来得及看到一道残影。760ms + --ease-draw 的起手慢，才读得出"笔在走"。 */
+/* 时长走 --t-draw（900ms，v2 定稿）而不是交互档的 --t-fast（160ms）：
+   160ms 是"点一下要立刻有回音"的量级，用在"把七天折线画出来"上等于没画 ——
+   用户只来得及看到一道残影。900ms + --ease-draw 的起手慢，才读得出"笔在走"。 */
 .ah-chart.is-draw .ah-trend-line {
   stroke-dasharray: 1;
   animation: ahLine var(--t-draw) var(--ease-draw) both;
