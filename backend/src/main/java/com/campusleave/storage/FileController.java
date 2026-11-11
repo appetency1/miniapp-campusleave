@@ -30,6 +30,9 @@ public class FileController {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("fileName", file.getOriginalFilename());
+        // 刻意返回「不带签名」的纯存储路径：小程序会把它原样塞回 materials 提交入库
+        // （apply.js -> StudentCommandService.setFileUrl），落库的必须是永久标识。
+        // 带时效的 exp/sig 只出现在详情读取接口（StudentQueryService / TeacherQueryService）。
         data.put("fileUrl", url);
         data.put("fileSize", file.getSize());
         data.put("mimeType", file.getContentType());

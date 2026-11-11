@@ -6,6 +6,7 @@ import com.campusleave.common.ErrorCode;
 import com.campusleave.domain.entity.*;
 import com.campusleave.domain.mapper.*;
 import com.campusleave.security.CurrentUser;
+import com.campusleave.storage.FileUrlSigner;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,8 @@ public class StudentQueryService {
     private final LeaveCheckinLogMapper checkinLogMapper;
     private final LeaveApprovalLogMapper approvalLogMapper;
     private final NotificationMapper notificationMapper;
+    /** 材料 URL 签名（P0-3：/files/** 不再匿名可读，出 URL 时补 exp+sig） */
+    private final FileUrlSigner fileUrlSigner;
     /** 首页打开时顺带生成逾期/开始提醒（01 §36），失败不影响首页渲染 */
     private final StudentReminderService reminderService;
 
@@ -558,7 +561,7 @@ public class StudentQueryService {
             mm.put("id", x.getId());
             mm.put("materialType", x.getMaterialType());
             mm.put("fileName", x.getFileName());
-            mm.put("fileUrl", x.getFileUrl());
+            mm.put("fileUrl", fileUrlSigner.sign(x.getFileUrl()));
             mm.put("fileSize", x.getFileSize());
             return mm;
         }).collect(Collectors.toList()));

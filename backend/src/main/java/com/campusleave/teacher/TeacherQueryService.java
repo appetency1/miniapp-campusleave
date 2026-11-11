@@ -8,6 +8,7 @@ import com.campusleave.common.PageResult;
 import com.campusleave.domain.entity.*;
 import com.campusleave.domain.mapper.*;
 import com.campusleave.security.CurrentUser;
+import com.campusleave.storage.FileUrlSigner;
 import com.campusleave.student.EffectiveStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,8 @@ public class TeacherQueryService {
     private final LeaveMaterialMapper materialMapper;
     private final LeaveCheckinLogMapper checkinLogMapper;
     private final LeaveApprovalLogMapper approvalLogMapper;
+    /** 材料 URL 签名（P0-3：/files/** 不再匿名可读，出 URL 时补 exp+sig） */
+    private final FileUrlSigner fileUrlSigner;
 
     // ==================== 6.1 工作台 ====================
 
@@ -313,7 +316,7 @@ public class TeacherQueryService {
             // 否则 MEDICAL_PROOF 会被翻成"其他"，辅导员看不出这是诊断证明
             x.put("type", materialTypeLabel(m.getMaterialType()));
             x.put("size", humanSize(m.getFileSize()));
-            x.put("url", m.getFileUrl());
+            x.put("url", fileUrlSigner.sign(m.getFileUrl()));
             return x;
         }).collect(Collectors.toList());
     }
