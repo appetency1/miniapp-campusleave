@@ -47,6 +47,14 @@
       <text class="row__l">辅导员</text>
       <text class="row__v">{{counselorName || '—'}}</text>
     </view>
+    <view class="row" bindtap="onEditContact" hover-class="is-active">
+      <text class="row__l">紧急联系人</text>
+      <text class="row__v">{{emergencyContact || '点击填写'}}</text>
+    </view>
+    <view class="row" bindtap="onEditContactPhone" hover-class="is-active">
+      <text class="row__l">紧急联系电话</text>
+      <text class="row__v num">{{emergencyPhone || '点击填写'}}</text>
+    </view>
     <view class="row">
       <text class="row__l">本学期平均请假</text>
       <text class="row__v num">{{stats.averageDays}} 天</text>

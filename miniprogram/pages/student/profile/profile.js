@@ -10,7 +10,7 @@
  * 注意 JWT 是无状态的，服务端没有"会话"可销毁，
  * 所以退出就是客户端删 token（后端 /auth/logout 仅占位）。
  */
-const { get } = require('../../../utils/request')
+const { get, put } = require('../../../utils/request')
 const { getToken, getUser, clearAuth } = require('../../../utils/auth')
 
 Page({
@@ -20,6 +20,8 @@ Page({
     studentNo: '',
     className: '',
     counselorName: '',
+    emergencyContact: '',
+    emergencyPhone: '',
     stats: {
       totalApplications: 0,
       completed: 0,
@@ -68,6 +70,8 @@ Page({
         studentNo: student.studentNo || this.data.studentNo,
         className: student.className || '',
         counselorName: student.counselorName || '',
+        emergencyContact: student.emergencyContact || '',
+        emergencyPhone: student.emergencyPhone || '',
         stats: {
           totalApplications: stats.totalApplications || 0,
           completed: stats.completed || 0,
@@ -77,6 +81,53 @@ Page({
       })
     } catch (err) {
       // 静默失败：缓存的姓名/学号仍可显示，不至于整页空白
+    }
+  },
+
+  /**
+   * 编辑紧急联系人 / 电话。
+   *
+   * <p>为什么由学生自己维护：紧急联系人属于学生档案，教师无权改档案（数据边界是
+   * "负责班级的请假数据"）；管理员只在开户时录初始值，家长换号必须学生自己能改。
+   */
+  onEditContact() {
+    this.promptEdit('紧急联系人', this.data.emergencyContact, (v) => {
+      this.saveProfile(v, this.data.emergencyPhone)
+    })
+  },
+
+  onEditContactPhone() {
+    this.promptEdit('紧急联系电话', this.data.emergencyPhone, (v) => {
+      this.saveProfile(this.data.emergencyContact, v)
+    })
+  },
+
+  promptEdit(label, current, done) {
+    // showModal 的 editable 需要基础库 2.17.1+；不支持时给明确提示，
+    // 否则会弹一个没有输入框的窗，点确定反而把原值清空。
+    if (!wx.canIUse('showModal.object.editable')) {
+      wx.showToast({ title: '当前微信版本不支持编辑，请升级', icon: 'none' })
+      return
+    }
+    wx.showModal({
+      title: label,
+      editable: true,
+      placeholderText: current ? '当前：' + current : '请输入' + label,
+      confirmText: '保存',
+      success: (res) => {
+        if (!res.confirm) return
+        done((res.content || '').trim())
+      }
+    })
+  },
+
+  async saveProfile(contact, phone) {
+    try {
+      await put('/student/profile', { emergencyContact: contact, emergencyPhone: phone })
+      this.setData({ emergencyContact: contact || '', emergencyPhone: phone || '' })
+      wx.showToast({ title: '已保存', icon: 'none' })
+    } catch (e) {
+      wx.showToast({ title: e.message || '保存失败', icon: 'none' })
     }
   },
 

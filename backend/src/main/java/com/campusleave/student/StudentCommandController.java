@@ -88,7 +88,23 @@ public class StudentCommandController {
         return Result.ok();
     }
 
+    /** 维护紧急联系人（学生本人；教师端只读，管理员开户时录初始值） */
+    @PutMapping("/profile")
+    public Result<Void> updateProfile(@RequestBody(required = false) ProfileBody body) {
+        CurrentUser.requireRole("STUDENT");
+        commandService.updateEmergencyContact(
+                body == null ? null : body.getEmergencyContact(),
+                body == null ? null : body.getEmergencyPhone());
+        return Result.ok();
+    }
+
     // ---------------- 请求体 ----------------
+
+    @Data
+    public static class ProfileBody {
+        private String emergencyContact;
+        private String emergencyPhone;
+    }
 
     @Data
     public static class ReasonBody {

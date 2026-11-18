@@ -158,6 +158,9 @@ public class AdminService {
             sp.setStudentNo(studentNo);
             sp.setClassId(cls.getId());
             sp.setGender(normalizeGender(str(body, "gender")));
+            // 紧急联系人：开户时录初始值（来自入学登记），之后由学生自己在「我的」里维护
+            sp.setEmergencyContact(str(body, "emergencyContact"));
+            sp.setEmergencyPhone(str(body, "emergencyPhone"));
             // 专业/年级从班级派生，不取请求体。
             // 这两列在 student_profile 里是冗余（班级表也有），冗余没问题，
             // 但必须有唯一的写入源，否则"班级转了专业、学生还是老的"。

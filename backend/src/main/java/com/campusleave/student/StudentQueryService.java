@@ -128,6 +128,9 @@ public class StudentQueryService {
         student.put("major", sp.getMajor());
         student.put("grade", sp.getGrade());
         student.put("counselorName", cls == null ? null : counselorName(cls.getId()));
+        // 紧急联系人属于学生档案，放在这里是为了「我的」页一次拿全、可直接编辑
+        student.put("emergencyContact", sp.getEmergencyContact());
+        student.put("emergencyPhone", sp.getEmergencyPhone());
         data.put("student", student);
 
         data.put("current", hero == null ? null : currentBlock(hero, now));

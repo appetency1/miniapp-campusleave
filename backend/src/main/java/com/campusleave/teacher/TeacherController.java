@@ -64,6 +64,18 @@ public class TeacherController {
 
     // ---------------- 6.1 工作台 ----------------
 
+    /**
+     * 轻量角标计数（后台每 20 秒轮询一次）。
+     *
+     * <p>不复用 `/workbench`：那个要拉全部申请再算待办，轮询会把性能问题放大。
+     * 这里只跑 3 个 count。
+     */
+    @GetMapping("/badges")
+    public Result<Map<String, Object>> badges() {
+        CurrentUser.requireRole("TEACHER");
+        return Result.ok(query.badges());
+    }
+
     @GetMapping("/workbench")
     public Result<Map<String, Object>> workbench() {
         CurrentUser.requireRole("TEACHER");

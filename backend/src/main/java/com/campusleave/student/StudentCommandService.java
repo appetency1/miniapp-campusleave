@@ -201,6 +201,33 @@ public class StudentCommandService {
         throw new BizException(ErrorCode.INTERNAL_ERROR, "生成申请编号失败，请重试");
     }
 
+    // ==================== 学生档案：紧急联系人 ====================
+
+    /**
+     * 学生自己维护紧急联系人（家长换号时要能改）。
+     *
+     * <p><b>为什么是学生端而不是教师端</b>：紧急联系人属于学生档案，
+     * 教师的数据边界是"负责班级的请假数据"，不应能改学生档案。
+     * 管理员只在开户时录初始值（来自入学登记），之后由学生自己维护，教师只读。
+     */
+    @Transactional
+    public void updateEmergencyContact(String contact, String phone) {
+        StudentProfile sp = queryService.currentStudent();
+        String c = contact == null ? null : contact.trim();
+        String p = phone == null ? null : phone.trim();
+        if (c != null && c.length() > 50) {
+            throw new BizException(ErrorCode.BAD_PARAM, "紧急联系人姓名不能超过 50 字");
+        }
+        if (p != null && !p.isEmpty() && !p.matches("^1[3-9]\\d{9}$")) {
+            throw new BizException(ErrorCode.BAD_PARAM, "紧急联系人手机号格式不正确");
+        }
+        studentMapper.update(null, Wrappers.<StudentProfile>lambdaUpdate()
+                .set(StudentProfile::getEmergencyContact, c == null || c.isEmpty() ? null : c)
+                .set(StudentProfile::getEmergencyPhone, p == null || p.isEmpty() ? null : p)
+                .set(StudentProfile::getUpdatedAt, LocalDateTime.now())
+                .eq(StudentProfile::getId, sp.getId()));
+    }
+
     // ==================== 5.5 撤回 ====================
 
     @Transactional

@@ -393,6 +393,71 @@
     placeRail(rail, old, nav.querySelector('.nav-item.is-on'));
   }
 
+  /* ---------------- 轮询：角标 + 静默刷新 ---------------- */
+  var pollTimer = null;
+  var lastBadge = null;
+
+  /** 只改侧栏某个菜单项的角标数字，不重建 nav（重建会重播 rail 动画） */
+  function setBadge(href, n) {
+    var a = document.querySelector('.nav-item[href="' + href + '"]');
+    if (!a) return;
+    var c = a.querySelector('.count');
+    if (n > 0) {
+      if (!c) {
+        c = el('span', { class: 'count count--alert' });
+        a.appendChild(c);
+      }
+      c.textContent = String(n);
+    } else if (c && c.parentNode) {
+      c.parentNode.removeChild(c);
+    }
+  }
+
+  /**
+   * 有变化时的刷新策略：
+   * - 用户正在抽屉/下拉里操作 → 只 toast 提示，不打断；
+   * - 否则静默重拉 STORE 并重绘当前页，做到「不用手动点刷新」。
+   */
+  function softRefresh(msg) {
+    var busy = document.querySelector('.drawer.is-open, .dd.is-open');
+    if (busy) { ui.toast(msg); return; }
+    ADMIN.api.refresh().then(function () {
+      router.refresh();
+      ui.toast(msg);
+    }).catch(function () { /* 忽略：下一轮再试 */ });
+  }
+
+  /**
+   * 教师端每 20 秒拉一次角标计数。
+   *
+   * <p>为什么需要：学生提交、撤回、以及「老师批了假之后学生又取消」都发生在别处。
+   * 后台不轮询就会一直停在打开页面那一刻的数据 —— 老师按过期名单点名、查寝。
+   * 只拉 3 个 count（不走 /workbench），20 秒一次对单机没有压力。
+   */
+  function startPolling() {
+    if (pollTimer) return;
+    if (ADMIN.api.role() !== 'TEACHER') return;   // 管理端只读，不轮询
+    pollTimer = setInterval(function () {
+      ADMIN.api.get('/teacher/badges').then(function (b) {
+        if (!b) return;
+        var prev = lastBadge;
+        lastBadge = b;
+        setBadge('#/pending', b.pending || 0);
+        setBadge('#/review', b.review || 0);
+        if (!prev) return;
+        if ((b.pending || 0) > (prev.pending || 0)) {
+          softRefresh('有 ' + (b.pending - prev.pending) + ' 条新的待审批');
+        } else if ((b.review || 0) > (prev.review || 0)) {
+          softRefresh('有 ' + (b.review - prev.review) + ' 条新的待核验');
+        } else if ((b.cancelled7d || 0) > (prev.cancelled7d || 0)) {
+          softRefresh('有学生取消了已批准的申请');
+        } else if ((b.pending || 0) < (prev.pending || 0) || (b.review || 0) < (prev.review || 0)) {
+          softRefresh('列表有更新');
+        }
+      }).catch(function () { /* 网络抖动忽略 */ });
+    }, 20000);
+  }
+
   /* ---------------- 顶栏 ---------------- */
   function closeMenus() {
     Array.prototype.forEach.call(document.querySelectorAll('.dd.is-open'), function (dd) {
@@ -651,6 +716,7 @@
           crumbs([]);
         }
       });
+      startPolling();
     }
 
     /** 慢加载骨架：只在"真的要等数据"的分支里挂。400ms 内到达就完全不出现。 */

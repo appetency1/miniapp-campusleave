@@ -165,7 +165,9 @@
       { label: '累计申请', value: st.totalApplications || 0, cls: '' },
       { label: '已批准', value: st.approved || 0, cls: 'ok' },
       { label: '已完成', value: st.completed || 0, cls: '' },
-      { label: '当前逾期', value: st.overdue || 0, cls: 'bad' }
+      // 后端 /teacher/stats 返回的字段是 currentOverdue（不是 overdue）；
+      // 读 overdue 会恒为 0 —— 之前「当前逾期」一直显示 0 就是这个原因。
+      { label: '当前逾期', value: st.currentOverdue || 0, cls: 'bad' }
     ].forEach(function (s2) {
       statCard.appendChild(el('div', { class: 'stat-line' }, [
         el('span', { text: s2.label }),
@@ -358,6 +360,41 @@
       }));
     }
     main.appendChild(recentCard);
+
+    /* ---------- 白卡：近期被学生取消 ----------
+       老师批了假，学生仍可在"待开始"阶段取消，而取消不会通知老师（D-04 教师不建消息中心）。
+       不在这里露出来，老师就会按"该生还在请假"去点名、查寝。 */
+    var cancelledRecent = wb.cancelledRecent || [];
+    if (cancelledRecent.length) {
+      var cxCard = el('div', { class: 'wb-card' }, [
+        el('div', { class: 'wb-card-head' }, [
+          el('span', { class: 'wb-card-title', text: '近期被学生取消' }),
+          el('a', { class: 'wb-card-more', href: '#/records', text: '去记录页 ›' })
+        ]),
+        el('div', {
+          style: { fontSize: '12px', color: 'var(--ink-3)', padding: '0 2px 10px' },
+          text: '你已批准、但学生在开始前取消了。点名与查寝请按此名单核对。'
+        })
+      ]);
+      cxCard.appendChild(ui.table({
+        rowKey: 'id',
+        cols: [
+          {
+            label: '学生', width: 160, render: function (a) {
+              return (a.studentName || '') + (a.studentNo ? ' ' + a.studentNo : '');
+            }
+          },
+          { label: '类型 · 场景', width: 130, render: function (a) { return a.type + ' · ' + a.scene; } },
+          {
+            label: '原请假时间', width: 220, render: function (a) {
+              return el('span', { class: 'wb-time', text: recentTime(a.start, a.end) });
+            }
+          }
+        ],
+        rows: cancelledRecent
+      }));
+      main.appendChild(cxCard);
+    }
 
     /* ---------- 右栏：3 张独立卡 ---------- */
     // 现在的素材换成管理员端那只没有气泡的熊，文案改回代码渲染

@@ -152,6 +152,60 @@ public class TeacherQueryService {
         todayStats.put("cancelled", cancelledToday);
         r.put("todayStats", todayStats);
 
+        /* ---- 近期被学生取消（7 天内，最多 5 条）----
+         * 业务背景：老师批准后，学生仍可在"待开始"阶段取消。
+         * 取消不会通知老师（D-04 教师不建消息中心），如果不在这里露出来，
+         * 老师会以为该生还在请假（查寝/点名就会按错的名单走）。 */
+        List<LeaveApplication> cancelledRecent = all.stream()
+                .filter(a -> "CANCELLED".equals(a.getStatus()) && a.getCancelledAt() != null)
+                .filter(a -> a.getCancelledAt().isAfter(now.minusDays(7)))
+                .sorted(Comparator.comparing(LeaveApplication::getCancelledAt).reversed())
+                .limit(5)
+                .collect(Collectors.toList());
+        r.put("cancelledRecent", enrich(cancelledRecent, now));
+
+        return r;
+    }
+
+    /**
+     * 轻量角标计数，供后台轮询（每 20 秒）。
+     *
+     * @return pending 待审批数 / review 待核验数 / cancelled7d 近 7 天学生主动取消数
+     */
+    public Map<String, Object> badges() {
+        List<Long> students = scope.studentIds();
+        Map<String, Object> r = new LinkedHashMap<>();
+        if (students.isEmpty()) {
+            r.put("pending", 0);
+            r.put("review", 0);
+            r.put("cancelled7d", 0);
+            return r;
+        }
+
+        Long pending = applicationMapper.selectCount(
+                Wrappers.<LeaveApplication>lambdaQuery()
+                        .in(LeaveApplication::getStudentId, students)
+                        .eq(LeaveApplication::getStatus, "PENDING"));
+
+        // 近 7 天学生主动取消的已批准申请 —— 这是「老师批了假、学生又取消」的坏账来源，
+        // 必须让老师能看见，否则他会按"该生在外请假"处理。
+        Long cancelled = applicationMapper.selectCount(
+                Wrappers.<LeaveApplication>lambdaQuery()
+                        .in(LeaveApplication::getStudentId, students)
+                        .eq(LeaveApplication::getStatus, "CANCELLED")
+                        .ge(LeaveApplication::getCancelledAt, LocalDateTime.now().minusDays(7)));
+
+        // 待核验：用子查询，避免把本班全部申请 id 拉回内存再拼 IN
+        String idSql = students.stream().map(String::valueOf).collect(Collectors.joining(","));
+        Long review = checkinLogMapper.selectCount(
+                Wrappers.<LeaveCheckinLog>lambdaQuery()
+                        .eq(LeaveCheckinLog::getReviewStatus, "PENDING_REVIEW")
+                        .inSql(LeaveCheckinLog::getApplicationId,
+                                "SELECT id FROM leave_application WHERE student_id IN (" + idSql + ")"));
+
+        r.put("pending", pending == null ? 0 : pending);
+        r.put("review", review == null ? 0 : review);
+        r.put("cancelled7d", cancelled == null ? 0 : cancelled);
         return r;
     }
 
