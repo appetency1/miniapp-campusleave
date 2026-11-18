@@ -7,7 +7,8 @@
     "pages/login/login",
     "pages/student/detail/detail",
     "pages/student/apply/apply",
-    "pages/student/checkin/checkin"
+    "pages/student/checkin/checkin",
+    "pages/student/password/password"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FBFAF7",
@@ -36,7 +37,7 @@
   "requiredPrivateInfos": ["getLocation"],
   "permission": {
     "scope.userLocation": {
-      "desc": "用于返校销假时校验是否已回到校区"
+      "desc": "用于返校销假时校验是否已返校"
     }
   }
 }

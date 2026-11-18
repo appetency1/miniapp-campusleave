@@ -59,6 +59,10 @@
       <text class="row__l">本学期平均请假</text>
       <text class="row__v num">{{stats.averageDays}} 天</text>
     </view>
+    <view class="row" bindtap="onChangePassword" hover-class="is-active">
+      <text class="row__l">修改密码</text>
+      <text class="row__v row__v--sm">去修改 ›</text>
+    </view>
   </view>
 
   <view class="sec">

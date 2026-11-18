@@ -1,7 +1,7 @@
 /**
  * pages/student/profile/profile.js —— 我的
  *
- * 数据来源：GET /student/home 一次拿到 student（姓名/学号/班级/辅导员）+ stats。
+ * 数据来源：GET /student/home 一次拿到 student（姓名/学号/班级/辅导员/紧急联系人）+ stats。
  * 为什么复用首页接口而不新建 /student/profile：
  *   两者返回的数据高度重合（都是"学生基本信息 + 统计"），
  *   新建一个接口意味着两处 SQL、两处维护，收益很小。
@@ -129,6 +129,11 @@ Page({
     } catch (e) {
       wx.showToast({ title: e.message || '保存失败', icon: 'none' })
     }
+  },
+
+  /** 去修改密码（独立页面：三个输入框，弹窗链式太难受） */
+  onChangePassword() {
+    wx.navigateTo({ url: '/pages/student/password/password' })
   },
 
   /** 退出登录：二次确认，避免误触 */

@@ -49,7 +49,7 @@
 
     page.className = 'page page--scroll';
 
-    var state = { filter: 'all', kw: '' };
+    var state = { filter: 'all', kw: '', cls: '' };
     var all = STORE.apps || [];
     var searchTimer = 0;
 
@@ -84,6 +84,26 @@
       }
     });
     bar.appendChild(tabs);
+
+    /* 班级筛选：教师带多个班时（张老师 3 个班），记录全混在一张表里不好找。
+       只列本人负责的班级（/teacher/profile 的 classList），单班教师不显示这个下拉。 */
+    var clsNames = (STORE.teacher.classList || []).map(function (c) { return c.name; });
+    if (clsNames.length > 1) {
+      var clsSel = el('select', {
+        class: 'input input--sel',
+        attrs: { 'aria-label': '按班级筛选' },
+        onChange: function (e) {
+          state.cls = e.target.value;
+          paint();
+        }
+      });
+      clsSel.appendChild(el('option', { attrs: { value: '' }, text: '全部班级' }));
+      clsNames.forEach(function (name) {
+        clsSel.appendChild(el('option', { attrs: { value: name }, text: name }));
+      });
+      bar.appendChild(clsSel);
+    }
+
     bar.appendChild(search);
     page.appendChild(bar);
 
@@ -111,6 +131,7 @@
       var kw = state.kw;
       var rows = all.filter(function (a) {
         if (!f.test(a)) return false;
+        if (state.cls && a.className !== state.cls) return false;
         if (!kw) return true;
         return (a.studentName || '').indexOf(kw) >= 0 || (a.studentNo || '').indexOf(kw) >= 0;
       });
