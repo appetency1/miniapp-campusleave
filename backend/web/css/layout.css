@@ -86,7 +86,7 @@ body[data-role="app"] #login-root { display: none; }
 .nav-title {
   padding: 0 10px;
   margin-bottom: 2px;
-  font-size: calc(11px * var(--fs, 1));
+  font-size: calc(11.5px * var(--fs, 1));
   line-height: calc(16px * var(--fs, 1));
   font-weight: 500;
   letter-spacing: .06em;
@@ -102,7 +102,9 @@ body[data-role="app"] #login-root { display: none; }
   height: 40px;
   padding: 0 10px;
   border-radius: 8px;
-  font-size: calc(13px * var(--fs, 1));
+  /* 14.3 → 13.75：侧栏原来和表格正文一样大，导致"菜单抢数据"的观感。
+     降半档后退到辅助层，正文成为视觉主体。 */
+  font-size: calc(12.5px * var(--fs, 1));
   line-height: calc(20px * var(--fs, 1));
   color: var(--ink-2);
   text-align: left;

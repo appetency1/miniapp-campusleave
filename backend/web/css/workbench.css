@@ -20,15 +20,18 @@
 .wb-greet { padding: 2px 2px 0; }
 .wb-greet h1 {
   margin: 0;
-  font-size: calc(24px * var(--fs, 1));
-  line-height: calc(32px * var(--fs, 1));
+  /* 26.4 → 24.2（×1.1 后）：原来与正文 14.3 相比是 1.85:1，头重脚轻；
+     降到 1.7:1，仍是页面最大的字，但不再压着内容。 */
+  font-size: calc(22px * var(--fs, 1));
+  line-height: calc(30px * var(--fs, 1));
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--ink);
 }
 .wb-date {
   margin-top: 2px;
-  font-size: calc(12.5px * var(--fs, 1));
+  /* 日期与正文同档（14.3），原来 13.75 比表格正文还小半档，读起来像注释 */
+  font-size: calc(13px * var(--fs, 1));
   line-height: calc(18px * var(--fs, 1));
   color: var(--ink-4);
 }
@@ -432,9 +435,11 @@
 
 /* 空态插画 */
 .empty-art {
-  width: 150px;
-  height: 116px;
-  margin: 0 auto 12px;
+  /* 150×116 在 660 宽的卡片里太抢眼：图比"没有待审批的申请"这句话还重。
+     缩到 132×102，并拉开与文字的间距（12 → 18）。 */
+  width: 132px;
+  height: 102px;
+  margin: 0 auto 18px;
   background-position: center;
   background-size: contain;
   background-repeat: no-repeat;
