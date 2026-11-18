@@ -358,7 +358,21 @@ public class AdminService {
         Long teacherId = Long.valueOf(String.valueOf(tid));
         Long classId = Long.valueOf(String.valueOf(cid));
 
-        if (teacherMapper.selectById(teacherId) == null) {
+        /*
+         * teacherId 的语义是 **user.id**（前端下拉来自 /admin/users，给的是用户主键），
+         * 但 teacher_class.teacher_id 存的是 teacher_profile.id —— 必须在这里换算。
+         *
+         * 之前直接 selectById(teacherId) 当 profile.id 用：演示数据里张老师是
+         * user.id=2 / profile.id=1，于是"选张老师"会绑到 profile.id=2（王老师），
+         * 接口还返回成功，页面提示"已改派" —— 典型的静默绑错人。
+         */
+        TeacherProfile tp = teacherMapper.selectOne(
+                Wrappers.<TeacherProfile>lambdaQuery().eq(TeacherProfile::getUserId, teacherId));
+        if (tp == null) {
+            // 兼容老调用/脚本：直接给了 teacher_profile.id 也认
+            tp = teacherMapper.selectById(teacherId);
+        }
+        if (tp == null) {
             throw new BizException(ErrorCode.NOT_FOUND, "教师不存在");
         }
         if (classMapper.selectById(classId) == null) {
@@ -372,7 +386,7 @@ public class AdminService {
         }
 
         TeacherClass tc = new TeacherClass();
-        tc.setTeacherId(teacherId);
+        tc.setTeacherId(tp.getId());
         tc.setClassId(classId);
         tc.setCreatedAt(LocalDateTime.now());
         teacherClassMapper.insert(tc);

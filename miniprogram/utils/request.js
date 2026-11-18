@@ -62,12 +62,25 @@ function request(url, method = 'GET', data = null, options = {}) {
       success(res) {
         const body = res.data || {}
 
-        // HTTP 401：未登录或 token 过期（后端 40101 / 40102）
+        // HTTP 401 有两种含义，必须分开：
+        //   40101/40102 未登录 / token 过期 → 清登录态、跳登录页
+        //   40103 账号禁用、40104 用户名或密码错误 → 登录本身失败，**不能跳转**
+        // 原来一律 goLogin()，导致登录页输错密码时把本页 reLaunch 掉，
+        // 内联错误提示落在已销毁的页面上，输入框被清空，看起来像"点了没反应"。
         if (res.statusCode === 401) {
+          const code = body.code || 40101
+          if (code === 40103 || code === 40104) {
+            reject({
+              code: code,
+              message: body.message || (code === 40103 ? '账号已禁用' : '用户名或密码错误'),
+              statusCode: 401
+            })
+            return
+          }
           const msg = body.message || '登录已失效，请重新登录'
           wx.showToast({ title: msg, icon: 'none' })
           goLogin()
-          reject({ code: body.code || 40101, message: msg })
+          reject({ code: code, message: msg })
           return
         }
 
@@ -153,6 +166,11 @@ function upload(filePath, formData = {}) {
           return
         }
         if (res.statusCode === 401) {
+          // 同 request()：登录类失败（40103/40104）不跳转
+          if (body.code === 40103 || body.code === 40104) {
+            reject({ code: body.code, message: body.message || '登录失败' })
+            return
+          }
           goLogin()
           reject({ code: 40101, message: '登录已失效' })
           return
