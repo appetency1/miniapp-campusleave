@@ -86,9 +86,11 @@
       <block wx:if="{{materials.length}}">
         <view class="sec"><text class="sec__t">材料（{{materials.length}}）</text></view>
         <view class="mats">
-          <view wx:for="{{materials}}" wx:key="id" class="mat">
+          <view wx:for="{{materials}}" wx:key="id" class="mat"
+                hover-class="is-press" data-i="{{index}}" bindtap="onPreviewMaterial">
             <text class="mat__n">{{item.name}}</text>
             <text class="mat__s num">{{item.sizeText}}</text>
+            <text class="mat__go">查看</text>
           </view>
         </view>
       </block>

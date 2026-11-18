@@ -150,6 +150,7 @@
         </view>
 
         <view wx:for="{{materials}}" wx:key="fileUrl" class="mat">
+          <text class="mat__t" data-i="{{index}}" bindtap="onSwitchMaterialType">{{item.typeLabel || '其他材料'}}</text>
           <text class="mat__n">{{item.fileName}}</text>
           <text class="mat__x" data-i="{{index}}" bindtap="onRemoveMaterial">移除</text>
         </view>

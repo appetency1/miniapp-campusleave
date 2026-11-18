@@ -262,8 +262,13 @@ Page({
     this.setData({ uploading: true, 'err.material': '' })
     try {
       const r = await upload(filePath, { bizType: 'MATERIAL' })
+      // 按请假类型给个默认材料类型：病假默认「诊断证明」，事假/其他默认「其他材料」。
+      // 原来一律写死 MEDICAL_PROOF，导致事假材料在详情页也显示成"诊断证明"。
+      // 上传后可以在材料行点类型标签改（onSwitchMaterialType）。
+      const defaultType = this.data.form.leaveType === 'SICK' ? 'MEDICAL_PROOF' : 'OTHER'
       const materials = this.data.materials.concat([{
-        materialType: 'MEDICAL_PROOF',
+        materialType: defaultType,
+        typeLabel: F.materialLabel(defaultType),
         fileName: r.fileName,
         fileUrl: r.fileUrl,
         fileSize: r.fileSize,
@@ -273,6 +278,26 @@ Page({
     } catch (e) {
       this.setData({ uploading: false, 'err.material': e.message || '上传失败' })
     }
+  },
+
+  /** 点材料类型标签切换：诊断证明 / 请假单 / 其他材料 */
+  onSwitchMaterialType(e) {
+    const i = Number(e.currentTarget.dataset.i)
+    const cur = this.data.materials[i]
+    if (!cur) return
+    wx.showActionSheet({
+      itemList: ['诊断证明', '请假单', '其他材料'],
+      success: (res) => {
+        const types = ['MEDICAL_PROOF', 'LEAVE_FORM', 'OTHER']
+        const t = types[res.tapIndex]
+        const materials = this.data.materials.slice()
+        materials[i] = Object.assign({}, cur, {
+          materialType: t,
+          typeLabel: F.materialLabel(t)
+        })
+        this.setData({ materials })
+      }
+    })
   },
 
   onRemoveMaterial(e) {

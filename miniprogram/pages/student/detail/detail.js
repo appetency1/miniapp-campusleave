@@ -9,6 +9,7 @@
  */
 const { get, post } = require('../../../utils/request')
 const { getToken } = require('../../../utils/auth')
+const { getFileBase } = require('../../../utils/server')
 const F = require('../../../utils/format')
 
 /** 两位补零 */
@@ -114,10 +115,16 @@ Page({
     }
 
     // ---- 材料 ----
+    // fileUrl 是后端签过名的（/files/...?exp=&sig=），拼上文件域就能直接打开。
+    // 之前这里只取了文件名和大小，学生自己上传的证明在详情页根本打不开。
     const materials = (d.materials || []).map(m => ({
       id: m.id,
+      typeLabel: F.materialLabel(m.materialType),
+      fileName: m.fileName,
       name: F.materialLabel(m.materialType) + ' · ' + m.fileName,
-      sizeText: F.fileSize(m.fileSize)
+      sizeText: F.fileSize(m.fileSize),
+      url: m.fileUrl ? getFileBase() + m.fileUrl : '',
+      kind: /\.pdf$/i.test(m.fileName || '') ? 'pdf' : 'image'
     }))
 
     // ---- 销假记录 ----
@@ -357,6 +364,49 @@ Page({
     } catch (e) {
       wx.showToast({ title: e.message || '提交失败', icon: 'none' })
     }
+  },
+
+  /**
+   * 预览材料：图片走 wx.previewImage（可左右滑），PDF 先下载再 openDocument。
+   *
+   * <p>签名 URL 有效期 10 分钟（后端 FileUrlSigner），过期后图片会 403、
+   * PDF 会下载到非 200 —— 提示"返回重进"即可，重进会重新取签名。
+   */
+  onPreviewMaterial(e) {
+    const i = Number(e.currentTarget.dataset.i)
+    const m = (this.data.materials || [])[i]
+    if (!m) return
+    if (!m.url) {
+      wx.showToast({ title: '暂无可预览的文件', icon: 'none' })
+      return
+    }
+    if (m.kind === 'pdf') {
+      wx.showLoading({ title: '正在打开…' })
+      wx.downloadFile({
+        url: m.url,
+        success: (res) => {
+          wx.hideLoading()
+          if (res.statusCode !== 200) {
+            wx.showToast({ title: '链接已过期，请返回重进', icon: 'none' })
+            return
+          }
+          wx.openDocument({
+            filePath: res.tempFilePath,
+            fileType: 'pdf',
+            fail: () => wx.showToast({ title: '无法打开该 PDF', icon: 'none' })
+          })
+        },
+        fail: () => {
+          wx.hideLoading()
+          wx.showToast({ title: '下载失败，请重试', icon: 'none' })
+        }
+      })
+      return
+    }
+    const imgs = (this.data.materials || [])
+      .filter(x => x.kind === 'image' && x.url)
+      .map(x => x.url)
+    wx.previewImage({ current: m.url, urls: imgs.length ? imgs : [m.url] })
   },
 
   onBack() {

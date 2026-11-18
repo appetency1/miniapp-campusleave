@@ -205,6 +205,16 @@
   padding: 22rpx 0;
   border-bottom: 1rpx solid var(--line);
 }
+/* 「查看」提示：不加的话学生不知道材料能点开 */
+.mat__go {
+  flex: 0 0 auto;
+  margin-left: 16rpx;
+  font-size: 24rpx;
+  color: var(--accent-600);
+}
+.is-press {
+  opacity: .6;
+}
 .mat__n {
   font-size: 32rpx;
   color: var(--ink);

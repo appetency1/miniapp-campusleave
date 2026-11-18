@@ -286,6 +286,16 @@
   padding: 18rpx 0;
   border-bottom: 1rpx solid var(--line);
 }
+.mat__t {
+  /* 材料类型标签：点击可切换（诊断证明 / 请假单 / 其他材料） */
+  flex: 0 0 auto;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  background: var(--accent-50);
+  color: var(--accent-600);
+  font-size: 24rpx;
+  line-height: 1.7;
+}
 .mat__n {
   flex: 1;
   font-size: 30rpx;
