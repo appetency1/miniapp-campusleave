@@ -1,6 +1,12 @@
 @echo off
 chcp 65001 >nul
 title CampusLeave Backend - 8080
+
+rem 启动前把本机当前局域网 IP 同步进小程序配置。
+rem 手机热点每次开关、电脑换 WiFi 都会重新分配 IP（甚至换网段），
+rem 小程序端无法自动发现电脑，只能在这里同步。
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\sync-ip.ps1"
+
 cd /d "%~dp0backend"
 
 echo ==========================================================

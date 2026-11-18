@@ -132,7 +132,10 @@ Page({
       // 只有网络层失败（request.js 里统一 code=-1）才去探测后端地址。
       // 页面渲染/数据映射抛出的 TypeError 不代表后端不可达 —— 之前就是因为
       // F.weekday 写错被当成"找不到后端"，弹出"正在查找后端…"满屏转圈，很难排查。
-      if (err && err.code === -1) this.autoFixBaseUrl()
+      // 网络层失败（code=-1）或网关类错误（502/503/504，通常是地址不对或代理）才去探测。
+      // 只认 code=-1 的话，代理返回 502 时永远不触发 —— IP 失效恰恰常表现为 502。
+      const gwErr = err && (err.statusCode === 502 || err.statusCode === 503 || err.statusCode === 504)
+      if (err && (err.code === -1 || gwErr)) this.autoFixBaseUrl()
     }
   },
 
