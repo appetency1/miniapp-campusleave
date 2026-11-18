@@ -18,6 +18,7 @@ public enum ErrorCode {
     TOKEN_EXPIRED(40102, HttpStatus.UNAUTHORIZED, "token 已过期"),
     ACCOUNT_DISABLED(40103, HttpStatus.UNAUTHORIZED, "账号已禁用"),
     BAD_CREDENTIALS(40104, HttpStatus.UNAUTHORIZED, "用户名或密码错误"),
+    TOO_MANY_LOGIN_ATTEMPTS(40105, HttpStatus.TOO_MANY_REQUESTS, "登录失败次数过多，请 5 分钟后再试"),
 
     FORBIDDEN(40301, HttpStatus.FORBIDDEN, "越权访问"),
 
