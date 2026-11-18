@@ -28,7 +28,8 @@
     var paramId = ctx.params && ctx.params.id;
 
     page.className = 'page';
-    ADMIN.shell.crumbs([]);
+    // 面包屑交给路由 onBefore 的 autoCrumbs 按菜单自动填（"审批 › 待审批"）。
+    // 这里原来调 crumbs([]) 清空，导致顶栏左边永远空着。
 
     /* ---------- 数据 ---------- */
     var leaveItems = ADMIN.store.pending();

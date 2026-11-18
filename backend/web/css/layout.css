@@ -232,14 +232,17 @@ body[data-role="app"] #login-root { display: none; }
 }
 
 .topbar {
-  flex: 0 0 64px;
-  height: 64px;
+  /* 64 → 52：原来比内容区标题还高，左边的面包屑又常年空着，看起来像多出一截额头。
+     加一条底边，让它成为"一条栏"而不是悬在空白里。 */
+  flex: 0 0 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   padding: 0 var(--d-gutter-x);
   background: transparent;
+  border-bottom: 1px solid var(--line);
 }
 
 .crumbs {
@@ -522,29 +525,40 @@ body[data-role="app"] #login-root { display: none; }
 
 /* ---------- 滚动条 ----------
    stable 只保证「有无滚动条时布局恒定」，并不消除 17px：验收值按 Win 686/622、mac 703/639 两套。
-   宽度 10px（点 17px 会抢正文），thumb 用墨的低透明度，不引入新色相。 */
-.main, .md-list, .md-detail, .page--scroll, .drawer-body {
+   现在：宽 8px + 常态几乎看不见（.10），鼠标进容器才升到 .22。
+   原来 10px/.18 一直挂着，侧栏那条尤其扎眼 —— 因为 .sidebar-nav 根本不在选择器里，
+   用的是系统默认 17px 滚动条。 */
+.main, .md-list, .md-detail, .page--scroll, .drawer-body, .sidebar-nav {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(21, 32, 46, .18) transparent;
+  scrollbar-color: rgba(21, 32, 46, .10) transparent;
 }
 .main::-webkit-scrollbar, .md-list::-webkit-scrollbar,
 .md-detail::-webkit-scrollbar, .page--scroll::-webkit-scrollbar,
-.drawer-body::-webkit-scrollbar { width: 10px; height: 10px; }
+.drawer-body::-webkit-scrollbar, .sidebar-nav::-webkit-scrollbar { width: 8px; height: 8px; }
 .main::-webkit-scrollbar-track, .md-list::-webkit-scrollbar-track,
 .md-detail::-webkit-scrollbar-track, .page--scroll::-webkit-scrollbar-track,
-.drawer-body::-webkit-scrollbar-track { background: transparent; }
+.drawer-body::-webkit-scrollbar-track, .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 .main::-webkit-scrollbar-thumb, .md-list::-webkit-scrollbar-thumb,
 .md-detail::-webkit-scrollbar-thumb, .page--scroll::-webkit-scrollbar-thumb,
-.drawer-body::-webkit-scrollbar-thumb {
-  background: rgba(21, 32, 46, .18);
+.drawer-body::-webkit-scrollbar-thumb, .sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(21, 32, 46, .10);
   border: 2px solid transparent;
   background-clip: content-box;
   border-radius: 6px;
 }
+.main:hover::-webkit-scrollbar-thumb, .md-list:hover::-webkit-scrollbar-thumb,
+.md-detail:hover::-webkit-scrollbar-thumb, .page--scroll:hover::-webkit-scrollbar-thumb,
+.drawer-body:hover::-webkit-scrollbar-thumb, .sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: rgba(21, 32, 46, .22);
+  background-clip: content-box;
+}
 .main::-webkit-scrollbar-thumb:hover, .md-list::-webkit-scrollbar-thumb:hover,
 .md-detail::-webkit-scrollbar-thumb:hover, .page--scroll::-webkit-scrollbar-thumb:hover,
-.drawer-body::-webkit-scrollbar-thumb:hover { background: rgba(21, 32, 46, .3); background-clip: content-box; }
+.drawer-body::-webkit-scrollbar-thumb:hover, .sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(21, 32, 46, .34);
+  background-clip: content-box;
+}
 
 /* ---------- 顶栏右侧：铃铛 + 用户 ---------- */
 .top-bell {
@@ -625,7 +639,8 @@ body[data-role="app"] #login-root { display: none; }
 /* 顶部横幅：像"学生取消了已批准请假"这种必须知道的变更，不自动消失，要人点掉 */
 .top-banner {
   position: fixed;
-  top: 12px;
+  /* 顶栏 52px + 8 间距：横幅要落在顶栏下方，不能压住面包屑和铃铛 */
+  top: 60px;
   left: 50%;
   transform: translate(-50%, -140%);
   display: flex;

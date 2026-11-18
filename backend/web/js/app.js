@@ -703,6 +703,26 @@
     c.classList.add('is-swap');
   }
 
+  /**
+   * 顶栏面包屑兜底：按当前路径从菜单里反查「分组 › 页面名」。
+   *
+   * <p>原来只有「申请记录 / 详情」两页会填，其余页面在 onBefore 里被 crumbs([]) 清空，
+   * 顶栏左边常年空着 —— 52~64px 的条只有一个铃铛，看着像多出一截额头。
+   * 现在先按菜单自动填，页面想要更细的层级再自己调 crumbs() 覆盖。
+   */
+  function autoCrumbs(path) {
+    var hit = null;
+    menuOf().forEach(function (g) {
+      g.items.forEach(function (it) {
+        if (it.href === '#' + path) hit = { group: g.title, label: it.label };
+      });
+    });
+    if (!hit) { crumbs([]); return; }
+    crumbs(hit.group
+      ? [{ label: hit.group }, { label: hit.label }]
+      : [{ label: hit.label }]);
+  }
+
   /* ---------------- 登录态 ---------------- */
   function enterApp() {
     state.loggedIn = true;
@@ -826,10 +846,10 @@
           if (!state.loggedIn) { router.go('/login'); return false; }
           return true;
         },
-        onBefore: function () {
+        onBefore: function (path) {
           renderNav();
           if (state.loggedIn) renderTop();
-          crumbs([]);
+          autoCrumbs(path);
         }
       });
       startPolling();

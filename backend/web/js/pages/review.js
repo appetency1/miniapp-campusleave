@@ -107,7 +107,7 @@
     var paramId = ctx.params && ctx.params.id;
 
     page.className = 'page';
-    ADMIN.shell.crumbs([]);
+    // 同 pending.js：不要清空面包屑，由 autoCrumbs 按菜单兜底
 
     var queue = ADMIN.store.reviewQueue();
     ADMIN.shell.renderNav();
