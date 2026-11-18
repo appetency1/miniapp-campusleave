@@ -427,12 +427,111 @@
     }).catch(function () { /* 忽略：下一轮再试 */ });
   }
 
+  /* ---------------- 站内通知：铃铛 + 顶部横幅 ---------------- */
+
+  function setBellCount(n) {
+    state.unread = n;
+    var bell = document.querySelector('.top-bell');
+    if (!bell) return;
+    var c = bell.querySelector('.top-bell-count');
+    if (n > 0) {
+      if (!c) {
+        c = el('span', { class: 'top-bell-count' });
+        bell.appendChild(c);
+      }
+      c.textContent = String(n > 99 ? 99 : n);
+      bell.classList.add('is-alert');
+      bell.title = n + ' 条未读通知';
+    } else {
+      if (c && c.parentNode) c.parentNode.removeChild(c);
+      bell.classList.remove('is-alert');
+      bell.title = '暂无通知';
+    }
+  }
+
+  var bannerEl = null;
+  /** 顶部横幅：学生取消这类"必须知道"的变更，常驻到用户点掉，不用一闪而过的 toast */
+  function showBanner(text) {
+    if (!bannerEl) {
+      bannerEl = el('div', { class: 'top-banner' }, []);
+      document.body.appendChild(bannerEl);
+    }
+    bannerEl.innerHTML = '';
+    bannerEl.appendChild(el('span', { text: text, style: { flex: '1 1 auto' } }));
+    var go = el('button', { class: 'top-banner-btn', attrs: { type: 'button' }, text: '查看' });
+    go.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var bell = document.querySelector('.top-bell');
+      if (bell) openNotif(bell);
+    });
+    var x = el('button', {
+      class: 'top-banner-x', attrs: { type: 'button', 'aria-label': '关闭' }, text: '×'
+    });
+    x.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (bannerEl) bannerEl.classList.remove('is-on');
+    });
+    bannerEl.appendChild(go);
+    bannerEl.appendChild(x);
+    void bannerEl.offsetHeight;      // 强制回流，保证从上方滑下来而不是直接出现
+    bannerEl.classList.add('is-on');
+  }
+
+  var notifPanel = null;
+  function closeNotif() {
+    if (notifPanel && notifPanel.parentNode) notifPanel.parentNode.removeChild(notifPanel);
+    notifPanel = null;
+  }
+
+  function openNotif(anchor) {
+    closeNotif();
+    ADMIN.api.get('/teacher/notifications').then(function (list) {
+      var panel = el('div', { class: 'notif-panel' });
+      panel.appendChild(el('div', { class: 'notif-head', text: '通知' }));
+      if (!list || !list.length) {
+        panel.appendChild(el('div', { class: 'notif-empty', text: '暂无通知' }));
+      } else {
+        list.forEach(function (n) {
+          var row = el('div', { class: 'notif-item' + (n.isRead ? '' : ' is-unread') }, [
+            el('div', { class: 'notif-title', text: n.title }),
+            el('div', { class: 'notif-body', text: n.content }),
+            el('div', { class: 'notif-time', text: n.createdAt })
+          ]);
+          row.addEventListener('click', function (e) {
+            e.stopPropagation();
+            ADMIN.api.post('/teacher/notifications/' + n.id + '/read').catch(function () {});
+            closeNotif();
+            setBellCount(Math.max(0, (state.unread || 0) - 1));
+            router.go('/records');
+          });
+          panel.appendChild(row);
+        });
+      }
+      var r = anchor.getBoundingClientRect();
+      panel.style.position = 'fixed';
+      panel.style.top = (r.bottom + 8) + 'px';
+      panel.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
+      document.body.appendChild(panel);
+      notifPanel = panel;
+    }).catch(function () { ui.toast('通知加载失败'); });
+  }
+
+  document.addEventListener('click', function () { closeNotif(); });
+
+  function softRefreshSilent() {
+    if (document.querySelector('.drawer.is-open, .dd.is-open')) return;
+    ADMIN.api.refresh().then(function () { router.refresh(); }).catch(function () {});
+  }
+
   /**
-   * 教师端每 20 秒拉一次角标计数。
+   * 教师端每 5 秒拉一次角标计数。
    *
    * <p>为什么需要：学生提交、撤回、以及「老师批了假之后学生又取消」都发生在别处。
    * 后台不轮询就会一直停在打开页面那一刻的数据 —— 老师按过期名单点名、查寝。
-   * 只拉 3 个 count（不走 /workbench），20 秒一次对单机没有压力。
+   * 只拉几个 count（不走 /workbench），5 秒一次对单机没有压力。
+   *
+   * <p>变了就分两种反应：**未读通知**（学生取消）弹常驻横幅 —— 这是"必须知道"的；
+   * 其他变化才走静默刷新 + toast。
    */
   function startPolling() {
     if (pollTimer) return;
@@ -444,18 +543,36 @@
         lastBadge = b;
         setBadge('#/pending', b.pending || 0);
         setBadge('#/review', b.review || 0);
-        if (!prev) return;
+        setBellCount(b.unread || 0);
+        if (!prev) {
+          // 首轮：如果进来时已经有未读，也要提示一次。
+          // 之前这里直接 return —— 用户在"页面打开后的 5 秒内"被学生取消，变化就永远被吞掉了。
+          if ((b.unread || 0) > 0) {
+            showBanner('有 ' + b.unread + ' 条未读通知：学生取消了已批准的请假');
+          }
+          return;
+        }
+
+        // 未读通知优先级最高（学生取消/撤回）：弹常驻横幅，不自动消失
+        if ((b.unread || 0) > (prev.unread || 0)) {
+          showBanner('有 ' + (b.unread - prev.unread) + ' 条新的变更通知：学生取消了已批准的请假');
+          softRefreshSilent();
+          return;
+        }
+        if ((b.cancelled7d || 0) > (prev.cancelled7d || 0)) {
+          showBanner('有学生取消了已批准的申请，点名与查寝请核对');
+          softRefreshSilent();
+          return;
+        }
         if ((b.pending || 0) > (prev.pending || 0)) {
           softRefresh('有 ' + (b.pending - prev.pending) + ' 条新的待审批');
         } else if ((b.review || 0) > (prev.review || 0)) {
           softRefresh('有 ' + (b.review - prev.review) + ' 条新的待核验');
-        } else if ((b.cancelled7d || 0) > (prev.cancelled7d || 0)) {
-          softRefresh('有学生取消了已批准的申请');
         } else if ((b.pending || 0) < (prev.pending || 0) || (b.review || 0) < (prev.review || 0)) {
           softRefresh('列表有更新');
         }
       }).catch(function () { /* 网络抖动忽略 */ });
-    }, 20000);
+    }, 5000);
   }
 
   /* ---------------- 顶栏 ---------------- */
@@ -517,23 +634,22 @@
        点击只回概览页，等于一个永远不亮的装饰按钮。 */
     var adminTodo = (STORE.admin && STORE.admin.overview && STORE.admin.overview.todo) || {};
     var adminTodoCount = (adminTodo.pending || 0) + (adminTodo.pendingReview || 0) + (adminTodo.pendingExtension || 0);
-    var hasTodo = isAdmin ? adminTodoCount > 0 : pendingQueue().length > 0;
+    var unread = state.unread || 0;
     var bell = el('button', {
-      class: 'top-bell',
+      class: 'top-bell' + (unread > 0 ? ' is-alert' : ''),
       attrs: {
         type: 'button',
-        'aria-label': '待办通知',
-        title: hasTodo ? '有 ' + (isAdmin ? adminTodoCount : pendingQueue().length) + ' 项待处理' : '暂无待办'
+        'aria-label': '通知',
+        title: unread > 0 ? unread + ' 条未读通知' : '暂无通知'
       }
     }, [
       ui.pngIcon('bell', 19),
-      hasTodo ? el('i', { class: 'top-bell-dot' }) : null
+      unread > 0 ? el('span', { class: 'top-bell-count', text: String(unread > 99 ? 99 : unread) }) : null
     ]);
     bell.addEventListener('click', function (e) {
       e.stopPropagation();
-      // 没待办也照样跳过去：落在空列表上比"点了什么都不发生"更容易理解
-      if (!hasTodo) ui.toast('当前没有待办');
-      router.go(isAdmin ? '/admin/apps' : '/pending');
+      if (isAdmin) { router.go('/admin/apps'); return; }
+      openNotif(bell);
     });
     top.appendChild(bell);
 

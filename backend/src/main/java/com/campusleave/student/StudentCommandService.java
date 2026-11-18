@@ -3,6 +3,7 @@ package com.campusleave.student;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.campusleave.common.BizException;
 import com.campusleave.common.ErrorCode;
+import com.campusleave.common.NotificationService;
 import com.campusleave.domain.entity.*;
 import com.campusleave.domain.mapper.*;
 import com.campusleave.security.CurrentUser;
@@ -53,6 +54,9 @@ public class StudentCommandService {
     private final ClassInfoMapper classMapper;
     private final TeacherClassMapper teacherClassMapper;
     private final StudentProfileMapper studentMapper;
+    private final TeacherProfileMapper teacherProfileMapper;
+    private final UserMapper userMapper;
+    private final NotificationService notificationService;
     private final LeaveApplicationMapper applicationMapper;
     private final LeaveExtensionMapper extensionMapper;
     private final LeaveMaterialMapper materialMapper;
@@ -278,6 +282,37 @@ public class StudentCommandService {
         autoWithdrawPendingExtension(applicationId, "CANCELLED", "原申请已取消，续假自动撤回");
         writeLog(applicationId, null, "CANCEL", "APPROVED", "CANCELLED",
                 reason == null || reason.isBlank() ? "本人取消" : reason);
+        // 必须告诉辅导员：他已经批过假，学生又取消了。不通知的话老师会按"该生在外"
+        // 去点名/查寝，这是实打实的业务事故。
+        notifyCounselorCancelled(app);
+    }
+
+    /**
+     * 学生取消已批准申请后，通知其班级辅导员（站内消息）。
+     *
+     * <p>链路：student → student_profile.class_id → teacher_class → teacher_profile → user.id。
+     * 任何一环缺失都直接返回 —— 取消本身已经成功，通知失败不能回滚主流程。
+     */
+    private void notifyCounselorCancelled(LeaveApplication app) {
+        try {
+            StudentProfile sp = studentMapper.selectById(app.getStudentId());
+            if (sp == null) return;
+            TeacherClass tc = teacherClassMapper.selectOne(
+                    Wrappers.<TeacherClass>lambdaQuery().eq(TeacherClass::getClassId, sp.getClassId()));
+            if (tc == null) return;
+            TeacherProfile tp = teacherProfileMapper.selectById(tc.getTeacherId());
+            if (tp == null || tp.getUserId() == null) return;
+
+            User stu = userMapper.selectById(sp.getUserId());
+            String who = stu == null ? "学生" : stu.getRealName();
+            String when = app.getStartTime().toString().replace('T', ' ');
+            notificationService.notifyUser(tp.getUserId(), "APPLICATION_CANCELLED",
+                    "学生取消了已批准的请假",
+                    who + " 取消了 " + when + " 的请假（已通过审批），点名与查寝请留意。",
+                    app.getId());
+        } catch (Exception e) {
+            log.warn("notify counselor failed: appId={} err={}", app.getId(), e.getMessage());
+        }
     }
 
     // ==================== 5.7 校内确认结束 ====================

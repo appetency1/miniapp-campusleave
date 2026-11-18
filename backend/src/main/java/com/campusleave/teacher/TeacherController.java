@@ -82,6 +82,29 @@ public class TeacherController {
         return Result.ok(query.workbench());
     }
 
+    // ---------------- 站内通知（顶栏铃铛） ----------------
+
+    /** 教师自己的通知，供顶栏铃铛下拉；最多 30 条，不分页 */
+    @GetMapping("/notifications")
+    public Result<List<Map<String, Object>>> notifications(
+            @RequestParam(defaultValue = "false") boolean unreadOnly) {
+        CurrentUser.requireRole("TEACHER");
+        return Result.ok(query.notifications(unreadOnly));
+    }
+
+    @GetMapping("/notifications/unread-count")
+    public Result<Map<String, Object>> notificationUnread() {
+        CurrentUser.requireRole("TEACHER");
+        return Result.ok(Map.of("unread", query.notificationUnread()));
+    }
+
+    @PostMapping("/notifications/{id}/read")
+    public Result<Void> markNotificationRead(@PathVariable Long id) {
+        CurrentUser.requireRole("TEACHER");
+        query.markNotificationRead(id);
+        return Result.ok();
+    }
+
     // ---------------- 6.2 申请列表 ----------------
 
     @GetMapping("/applications")

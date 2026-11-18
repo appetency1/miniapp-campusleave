@@ -45,6 +45,7 @@ public class TeacherQueryService {
     private final LeaveMaterialMapper materialMapper;
     private final LeaveCheckinLogMapper checkinLogMapper;
     private final LeaveApprovalLogMapper approvalLogMapper;
+    private final NotificationMapper notificationMapper;
     /** 材料 URL 签名（P0-3：/files/** 不再匿名可读，出 URL 时补 exp+sig） */
     private final FileUrlSigner fileUrlSigner;
 
@@ -179,6 +180,7 @@ public class TeacherQueryService {
             r.put("pending", 0);
             r.put("review", 0);
             r.put("cancelled7d", 0);
+            r.put("unread", notificationUnread());
             return r;
         }
 
@@ -206,7 +208,55 @@ public class TeacherQueryService {
         r.put("pending", pending == null ? 0 : pending);
         r.put("review", review == null ? 0 : review);
         r.put("cancelled7d", cancelled == null ? 0 : cancelled);
+        r.put("unread", notificationUnread());
         return r;
+    }
+
+    // ==================== 教师站内通知 ====================
+
+    /**
+     * 教师自己的通知（目前只有「学生取消了已批准请假」这一类）。
+     *
+     * <p>D-04 决定教师不建独立消息中心，但"学生取消"必须通知到人 ——
+     * 这里给一个最多 30 条的轻列表，供顶栏铃铛下拉用，不做分页。
+     */
+    public List<Map<String, Object>> notifications(boolean unreadOnly) {
+        Long uid = CurrentUser.requireUserId();
+        List<Notification> list = notificationMapper.selectList(
+                Wrappers.<Notification>lambdaQuery()
+                        .eq(Notification::getReceiverId, uid)
+                        .eq(unreadOnly, Notification::getIsRead, 0)
+                        .orderByDesc(Notification::getCreatedAt)
+                        .orderByDesc(Notification::getId)
+                        .last("LIMIT 30"));
+        return list.stream().map(n -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", n.getId());
+            m.put("type", n.getType());
+            m.put("title", n.getTitle());
+            m.put("content", n.getContent());
+            m.put("businessId", n.getBusinessId());
+            m.put("isRead", n.getIsRead() != null && n.getIsRead() == 1);
+            m.put("createdAt", n.getCreatedAt() == null ? "" : n.getCreatedAt().format(DT));
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    public long notificationUnread() {
+        Long c = notificationMapper.selectCount(
+                Wrappers.<Notification>lambdaQuery()
+                        .eq(Notification::getReceiverId, CurrentUser.requireUserId())
+                        .eq(Notification::getIsRead, 0));
+        return c == null ? 0 : c;
+    }
+
+    /** 标记已读（只能改自己的，靠 receiver_id 条件兜住越权） */
+    public void markNotificationRead(Long id) {
+        Long uid = CurrentUser.requireUserId();
+        notificationMapper.update(null, Wrappers.<Notification>lambdaUpdate()
+                .set(Notification::getIsRead, 1)
+                .eq(Notification::getId, id)
+                .eq(Notification::getReceiverId, uid));
     }
 
     private Map<String, Object> todo(LeaveApplication a, String type,
