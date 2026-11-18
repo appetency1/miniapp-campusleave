@@ -134,6 +134,10 @@ body[data-role="app"] #login-root { display: none; }
   height: 0;
   background: var(--ink);
   pointer-events: none;
+  /* 必须压在导航项之上：rail 被刻意放在 .sidebar-nav 的第一个子节点（绝对定位基准），
+     而 .nav-item 是 position:relative 且带选中背景 —— 同层级下后出现的元素在上，
+     不加 z-index 的话墨线滑动时会被按钮底色盖住，看起来像"卡住不动"或"被挡住"。 */
+  z-index: 1;
 }
 .nav-rail.is-set {
   /* 曲线必须是**对称**的 --ease-tog，不能用 --ease。

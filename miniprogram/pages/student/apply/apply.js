@@ -49,7 +49,8 @@ Page({
     /** 时间选择器：二维 range = [日期列, 时间列] */
     range: [[], []],
     dateCols: [],
-    timeCols: [],
+    hourCols: [],
+    minuteCols: [],
     startIdx: [0, 0],
     endIdx: [0, 0],
     startText: '',
@@ -98,7 +99,7 @@ Page({
     this.initDefaultTime()
   },
 
-  /** 生成未来 30 天 + 30 分钟粒度的时间列 */
+  /** 生成未来 30 天 + 24 小时 + 60 分钟（三列滚轮，精确到分钟） */
   buildTimeColumns() {
     const dateCols = []
     const now = new Date()
@@ -106,36 +107,53 @@ Page({
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
       dateCols.push((d.getMonth() + 1) + '月' + d.getDate() + '日 ' + F.week(d))
     }
-    const timeCols = []
-    for (let h = 0; h < 24; h++) {
-      timeCols.push(pad(h) + ':00')
-      timeCols.push(pad(h) + ':30')
-    }
-    this.setData({ dateCols, timeCols, range: [dateCols, timeCols] })
+    // 带单位，让弹窗里一眼能分清"时"和"分"
+    const hourCols = []
+    for (let h = 0; h < 24; h++) hourCols.push(pad(h) + ' 时')
+    const minuteCols = []
+    for (let m = 0; m < 60; m++) minuteCols.push(pad(m) + ' 分')
+    this.setData({
+      dateCols,
+      hourCols,
+      minuteCols,
+      range: [dateCols, hourCols, minuteCols]
+    })
   },
 
   /**
-   * 默认时间：开始取「现在向上取整到下一个半点」，结束取开始 + 4 小时。
-   * 避免"一打开就提示开始时间早于当前时间"。
+   * 默认时间：开始取「现在 +10 分钟，向上取整到 5 分钟」，结束取开始 + 4 小时。
+   *
+   * <p>比原来的「向上取整到半点」更贴近真实使用：学生通常是"一会儿就要走"，
+   * 半点粒度会让他要么等半小时、要么填一个已经过去的时间。
+   * 结束时间允许跨天（日期列独立，不再被夹在当天 23:30）。
    */
   initDefaultTime() {
     const now = new Date()
-    const totalHalf = now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0) + 1
-    const startHalf = Math.min(totalHalf, 47)
-    const endHalf = Math.min(totalHalf + 8, 47)   // +4 小时
+    const start = new Date(now.getTime() + 10 * 60000)
+    start.setSeconds(0, 0)
+    start.setMinutes(Math.ceil(start.getMinutes() / 5) * 5)   // 进位到 60 时 Date 会自动加一小时
+    const end = new Date(start.getTime() + 4 * 3600 * 1000)
 
-    this.applyTime('start', [0, startHalf])
-    this.applyTime('end', [0, endHalf])
+    this.applyTime('start', [this.indexOfDate(start), start.getHours(), start.getMinutes()])
+    this.applyTime('end', [this.indexOfDate(end), end.getHours(), end.getMinutes()])
   },
 
-  /** 把 [日期索引, 时间索引] 写成可读文案 */
+  /** 某个日期相对今天的天数偏移（0 = 今天） */
+  indexOfDate(date) {
+    const now = new Date()
+    const a = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const b = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return Math.round((b.getTime() - a.getTime()) / 86400000)
+  },
+
+  /** 把 [日期索引, 时, 分] 写成可读文案 */
   applyTime(which, idx) {
-    const d = this.data.dateCols[idx[0]]
-    const t = this.data.timeCols[idx[1]]
+    const day = this.data.dateCols[idx[0]]
+    const text = day + ' ' + pad(idx[1]) + ':' + pad(idx[2])
     if (which === 'start') {
-      this.setData({ startIdx: idx, startText: d + ' ' + t })
+      this.setData({ startIdx: idx, startText: text })
     } else {
-      this.setData({ endIdx: idx, endText: d + ' ' + t })
+      this.setData({ endIdx: idx, endText: text })
     }
   },
 
@@ -149,11 +167,11 @@ Page({
     this.setData({ 'err.time': '' })
   },
 
-  /** 快捷项只挪日期，时间不动 */
+  /** 快捷项只挪日期，时分不动 */
   onQuickDay(e) {
     const i = Number(e.currentTarget.dataset.i)
-    this.applyTime('start', [i, this.data.startIdx[1]])
-    this.applyTime('end', [i, this.data.endIdx[1]])
+    this.applyTime('start', [i, this.data.startIdx[1], this.data.startIdx[2]])
+    this.applyTime('end', [i, this.data.endIdx[1], this.data.endIdx[2]])
     this.setData({ dayOffset: i, 'err.time': '' })
   },
 
@@ -266,16 +284,13 @@ Page({
 
   // ==================== 提交 ====================
 
-  /** 把 [日期索引, 时间索引] 拼成后端要的 "yyyy-MM-dd HH:mm:ss" */
+  /** 把 [日期索引, 时, 分] 拼成后端要的 "yyyy-MM-dd HH:mm:ss" */
   toBackendTime(idx) {
-    const d = this.data.dateCols[idx[0]]      // "10月22日 周四"
-    const t = this.data.timeCols[idx[1]]      // "08:00"
-    const m = /^(\d+)月(\d+)日/.exec(d)
     const now = new Date()
-    let year = now.getFullYear()
-    // 跨年：现在是 12 月、选的是 1 月
-    if (now.getMonth() === 11 && Number(m[1]) === 1) year += 1
-    return year + '-' + pad(Number(m[1])) + '-' + pad(Number(m[2])) + ' ' + t + ':00'
+    // 用索引直接算日期，跨年/跨月由 Date 处理，不再靠正则解析中文文案
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + idx[0])
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+      + ' ' + pad(idx[1]) + ':' + pad(idx[2]) + ':00'
   },
 
   validate() {

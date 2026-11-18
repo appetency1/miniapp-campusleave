@@ -62,7 +62,7 @@
       <view class="field">
         <view class="field__lb">
           请假时间
-          <text class="field__hint">点整行修改日期与时间</text>
+          <text class="field__hint">点整行选择日期与时分（精确到分钟）</text>
         </view>
 
         <!-- 快捷项：只挪日期 -->
