@@ -545,6 +545,7 @@ public class StudentQueryService {
         m.put("status", a.getStatus());
         m.put("effectiveStatus", es.name());
         m.put("statusLabel", statusLabel(es));
+        m.put("overdue", es == EffectiveStatus.OVERDUE);
         m.put("actualEndTime", a.getActualEndTime() == null ? null : a.getActualEndTime().format(DT));
         m.put("cancelReason", a.getCancelReason());
         m.put("approvedAt", a.getApprovedAt() == null ? null : a.getApprovedAt().format(DT));
@@ -601,7 +602,13 @@ public class StudentQueryService {
         }
 
         // 可用动作（前端据此显示按钮；后端各接口仍会二次校验）
-        m.put("actions", actions(es, a));
+        // 「申请人工核验」不是看状态给的，而是看有没有未处理的定位失败记录：
+        // 01 §13 适用于 IN_PROGRESS，01 §18.1 适用于 OVERDUE，两处都可能失败。
+        boolean hasGpsFailure = logs.stream()
+                .anyMatch(x -> "GPS".equals(x.getCheckType()) && "FAILED".equals(x.getCheckResult()));
+        boolean hasPendingReview = logs.stream()
+                .anyMatch(x -> "PENDING_REVIEW".equals(x.getReviewStatus()));
+        m.put("actions", actions(es, hasGpsFailure && !hasPendingReview));
 
         return m;
     }
@@ -609,8 +616,11 @@ public class StudentQueryService {
     /**
      * 计算当前状态下学生能做什么（03 §5.4）。
      * 前端只负责显示，真正的状态守卫在后端每个接口里。
+     *
+     * @param canManualReview 是否存在「GPS 失败且无待审核验」的记录；为 false 时不给 MANUAL_REVIEW 按钮，
+     *                        避免学生点了才被告知 42203
      */
-    private List<String> actions(EffectiveStatus es, LeaveApplication a) {
+    private List<String> actions(EffectiveStatus es, boolean canManualReview) {
         List<String> acts = new ArrayList<>();
         switch (es) {
             case PENDING:
@@ -621,14 +631,18 @@ public class StudentQueryService {
                 break;
             case IN_PROGRESS:
                 acts.add("CHECKIN");       // 请假中可销假
-                acts.add("EXTENSION");     // 也可申请续假
+                acts.add("EXTENSION");     // 可申请续假
                 break;
             case OVERDUE:
                 acts.add("CHECKIN");       // 逾期可补销假
-                acts.add("MANUAL_REVIEW"); // 定位失败可申请人工核验
+                acts.add("EXTENSION");     // 01 §21：逾期同样可以续假（之前漏了，导致逾期后无入口）
                 break;
             default:
                 break;
+        }
+        // 人工核验只取决于「有没有失败记录」，与状态无关（01 §13 / §18.1）
+        if (canManualReview && (es == EffectiveStatus.IN_PROGRESS || es == EffectiveStatus.OVERDUE)) {
+            acts.add("MANUAL_REVIEW");
         }
         return acts;
     }

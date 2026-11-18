@@ -14,11 +14,15 @@ import java.time.LocalDateTime;
  * <pre>
  *   status = APPROVED 且 actual_end_time 为空 时，看当前时间落在哪：
  *     now &lt;  start_time              → WAITING_START（待开始）
- *     start_time &lt;= now &lt;= end_time  → IN_PROGRESS（请假中）
- *     now &gt;  end_time                → OVERDUE（逾期未销假）
+ *     start_time &lt;= now &lt; end_time   → IN_PROGRESS（请假中）
+ *     now &gt;= end_time                → OVERDUE（逾期未销假）
  *
  *   status 为其他 5 个值时，原样返回。
  * </pre>
+ *
+ * <p><b>边界必须是 `>=`</b>（01_业务规则 §4.1）：到达批准结束时间的那一瞬间就算逾期。
+ * V1.1 里 §4.1 与 §5.2 曾分别用 `>=` 和 `>`，V1.2 明确统一为 `>=` 且不允许两种写法并存；
+ * 前端 `backend/web/js/ui.js` 与 `app.js` 的状态判定也必须是同一个口径。
  *
  * <p><b>为什么不用定时任务把状态刷进数据库</b>：
  * 时间是连续流动的，定时任务（比如每 5 分钟跑一次）必然存在最多 5 分钟的窗口期错误；
@@ -72,7 +76,8 @@ public enum EffectiveStatus {
         if (now.isBefore(app.getStartTime())) {
             return WAITING_START;
         }
-        if (now.isAfter(app.getEndTime())) {
+        // 01 §4.1：now >= end_time 即逾期（>= 不是 >）
+        if (!now.isBefore(app.getEndTime())) {
             return OVERDUE;
         }
         return IN_PROGRESS;

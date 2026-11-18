@@ -25,3 +25,7 @@ node_modules/
 dsh-experts/state.json*
 dsh-experts/*.bak-*
 dsh-experts/.tmp/
+
+# 回收站：与本项目无关 / 临时产物，等确认后删除
+_trash/
+.tmp_probe/

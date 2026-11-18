@@ -196,9 +196,11 @@ public class TeacherQueryService {
         } else {
             if (status != null && !status.isBlank()) {
                 if ("ACTIVE".equals(status)) {
-                    // 计算态没有持久列，交给内存过滤（数据量在学院量级，可接受）
+                    // 「进行中」= 请假中 + 逾期 = APPROVED 且未销假 且已到开始时间。
+                    // 必须带 start_time <= now：否则「待开始」也会被算进来（还没开始的假不该算在校）。
                     q.eq(LeaveApplication::getStatus, "APPROVED")
-                            .isNull(LeaveApplication::getActualEndTime);
+                            .isNull(LeaveApplication::getActualEndTime)
+                            .le(LeaveApplication::getStartTime, LocalDateTime.now());
                 } else {
                     q.eq(LeaveApplication::getStatus, status);
                 }

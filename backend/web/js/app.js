@@ -29,7 +29,7 @@
     if (a.status !== 'APPROVED') return null;
     if (a.effective === 'COMPLETED' || a.effective === 'WAITING_START') return null;
     var end = ui.parse(a.end);
-    var ended = end && Date.now() > end.getTime();
+    var ended = end && Date.now() >= end.getTime();
     if (a.effective === 'OVERDUE' || (a.effective === 'IN_PROGRESS' && ended)) return 'OVERDUE';
     if (a.effective === 'IN_PROGRESS') return 'IN_PROGRESS';
     return null;

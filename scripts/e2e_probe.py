@@ -61,7 +61,7 @@ app_id = b.get("data", {}).get("id")
 check("提交申请", b.get("code") == 0 and app_id, "id=%s HTTP=%s" % (app_id, st))
 
 # ---------- 3. 教师端能否看到这条申请 ----------
-st, b = call("GET", "/teacher/applications?status=PENDING&page=1&pageSize=50", None, tea_token)
+st, b = call("GET", "/teacher/applications?status=PENDING&page=1&size=50", None, tea_token)
 rows = (b.get("data") or {}).get("records") or (b.get("data") or {}).get("list") or []
 found = [r for r in rows if r.get("applicationId") == app_id or r.get("id") == app_id]
 check("教师待审批列表包含该申请", len(found) > 0, "列表%d条，命中%d条" % (len(rows), len(found)))

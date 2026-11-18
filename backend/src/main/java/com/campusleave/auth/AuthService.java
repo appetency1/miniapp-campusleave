@@ -3,7 +3,15 @@ package com.campusleave.auth;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.campusleave.common.BizException;
 import com.campusleave.common.ErrorCode;
+import com.campusleave.domain.entity.ClassInfo;
+import com.campusleave.domain.entity.StudentProfile;
+import com.campusleave.domain.entity.TeacherClass;
+import com.campusleave.domain.entity.TeacherProfile;
 import com.campusleave.domain.entity.User;
+import com.campusleave.domain.mapper.ClassInfoMapper;
+import com.campusleave.domain.mapper.StudentProfileMapper;
+import com.campusleave.domain.mapper.TeacherClassMapper;
+import com.campusleave.domain.mapper.TeacherProfileMapper;
 import com.campusleave.domain.mapper.UserMapper;
 import com.campusleave.security.JwtUtil;
 import com.campusleave.security.LoginUser;
@@ -11,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +42,11 @@ public class AuthService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;  // BCrypt 密码编码器（见 SecurityBeanConfig）
     private final JwtUtil jwtUtil;
+    // 下面四个只服务于 /auth/me 的 studentProfile（03 §3.2 要求返回学号/班级/辅导员）
+    private final StudentProfileMapper studentMapper;
+    private final ClassInfoMapper classMapper;
+    private final TeacherClassMapper teacherClassMapper;
+    private final TeacherProfileMapper teacherProfileMapper;
 
     /**
      * 登录。
@@ -92,6 +106,70 @@ public class AuthService {
         data.put("realName", user.getRealName());
         data.put("phone", user.getPhone());
         data.put("avatar", user.getAvatar());
+
+        // 03 §3.2 要求：学生额外带 studentProfile，省掉前端再发 3 个请求
+        if ("STUDENT".equals(user.getRole())) {
+            data.put("studentProfile", studentProfileOf(user.getId()));
+        }
         return data;
+    }
+
+    /**
+     * 修改自己的密码（03 §3.3）。
+     *
+     * <p>必须校验原密码：只凭 token 就能改密码，等于 token 泄露即可永久接管账号。
+     * 新密码规则与管理员重置保持一致（≥8 位），避免"自己能设 8 位、管理员只能设 6 位"的怪事。
+     */
+    public void changePassword(LoginUser current, String oldPassword, String newPassword) {
+        User user = userMapper.selectById(current.getUserId());
+        if (user == null) {
+            throw new BizException(ErrorCode.NOT_FOUND);
+        }
+        if (oldPassword == null || !passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new BizException(ErrorCode.BAD_CREDENTIALS, "原密码不正确");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BizException(ErrorCode.BAD_PARAM, "新密码至少 6 位");
+        }
+        if (newPassword.equals(oldPassword)) {
+            throw new BizException(ErrorCode.BAD_PARAM, "新密码不能与原密码相同");
+        }
+        userMapper.update(null, Wrappers.<User>lambdaUpdate()
+                .set(User::getPasswordHash, passwordEncoder.encode(newPassword))
+                .set(User::getUpdatedAt, LocalDateTime.now())
+                .eq(User::getId, user.getId()));
+    }
+
+    /**
+     * 学生档案摘要（学号 / 班级 / 辅导员姓名）。
+     *
+     * <p>链路：user.id → student_profile → class_info → teacher_class → teacher_profile → user.real_name。
+     * 任何一环缺失都返回能拿到的那部分，不抛异常 —— 「我的」页不能因为没配辅导员就整页报错。
+     */
+    private Map<String, Object> studentProfileOf(Long userId) {
+        StudentProfile sp = studentMapper.selectOne(
+                Wrappers.<StudentProfile>lambdaQuery().eq(StudentProfile::getUserId, userId));
+        if (sp == null) {
+            return null;
+        }
+        ClassInfo cls = classMapper.selectById(sp.getClassId());
+        String counselorName = null;
+        if (cls != null) {
+            TeacherClass tc = teacherClassMapper.selectOne(
+                    Wrappers.<TeacherClass>lambdaQuery().eq(TeacherClass::getClassId, cls.getId()));
+            if (tc != null) {
+                TeacherProfile tp = teacherProfileMapper.selectById(tc.getTeacherId());
+                if (tp != null) {
+                    User tu = userMapper.selectById(tp.getUserId());
+                    counselorName = tu == null ? null : tu.getRealName();
+                }
+            }
+        }
+        Map<String, Object> p = new HashMap<>();
+        p.put("studentNo", sp.getStudentNo());
+        p.put("classId", sp.getClassId());
+        p.put("className", cls == null ? null : cls.getClassName());
+        p.put("counselorName", counselorName);
+        return p;
     }
 }

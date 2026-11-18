@@ -14,7 +14,10 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
     ('CAMPUS_CENTER_LAT',              '30.000000', 'STRING', '学校中心纬度（示例值，部署时替换）'),
     ('CAMPUS_CENTER_LNG',              '120.000000','STRING', '学校中心经度（示例值，部署时替换）'),
     ('OFF_CAMPUS_CHECK_RADIUS_M',      '100',       'INT',    '离校返校定位允许最大距离（米）'),
-    ('START_REMINDER_WINDOW_MINUTES',  '30',        'INT',    '请假开始提醒提前量（分钟）')
+    ('START_REMINDER_WINDOW_MINUTES',  '30',        'INT',    '请假开始提醒提前量（分钟）'),
+    -- 演示用模拟定位开关：默认关。演示"销假超距/通过"时改成 'true'（或在管理端「请假规则」页改），
+    -- 小程序的销假页才会出现「模拟位置」下拉。这一行必须存在 —— 改配置接口对不存在的 key 返回 404。
+    ('MOCK_LOCATION',                  'false',     'BOOLEAN','演示模拟定位开关（仅本地演示开启）')
 ON DUPLICATE KEY UPDATE `config_key` = `config_key`;
 
 -- -------------------------------------------------------------

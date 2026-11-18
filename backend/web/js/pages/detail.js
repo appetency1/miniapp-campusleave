@@ -103,13 +103,10 @@
           el('span', { style: { fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--ink-4)' }, text: m.size }),
           open
         ]);
-        open.addEventListener('click', function (e) {
-          e.preventDefault();
-          var t = e.currentTarget;
-          t.textContent = '演示环境无附件';
-          t.style.pointerEvents = 'none';
-          t.style.borderBottom = '0';
-        });
+        // 后台相比小程序的价值就在这里：图片直接看、PDF/文档新标签打开（04 §3.3）。
+        // 之前这里 preventDefault 把非图片材料一律拦成「演示环境无附件」，
+        // 等于把唯一的差异化能力关掉了。现在放行 —— 链接带签名（exp+sig），
+        // 过期后刷新页面会重新取详情接口拿到新链接。
         body.push(row);
       }
     });

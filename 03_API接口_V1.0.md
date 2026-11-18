@@ -6,6 +6,16 @@
 
 ---
 
+## 0. 修订记录
+
+| 日期 | 版本 | 改了什么 | 为什么 |
+|---|---|---|---|
+| 2026-11-18 | V1.0.1 | §1.5 分页默认值与上限改为 20/100；§4 上传响应去掉 `fileId`、说明 bizType 仅回显；§5.2 校验第 6 条改为 destination 必填；§5.4 详情主键改为 `applicationId`；§5.12 消息列表去掉分页参数；§6.1 工作台补充实际返回字段；§6.3 说明教师端字段名与学生端不同；§7 补 `/admin/overview`、`/admin/applications` | 契约与实现对齐。原稿的这些条目是设计阶段的假设，实现时按工程实际做了取舍（详见 `reviews/doc-vs-code-audit-2026-11-18.md`），此处回写，避免"文档说有、系统没有" |
+
+> 本次只回写**已实现且更合理**的部分。仍存在差异、需要改代码的条目（40002 错误码使用、40102 过期区分、幂等键、消息分页等）在 `reviews/doc-vs-code-audit-2026-11-18.md` 的 B 类里逐条列出。
+
+---
+
 ## 1. 总体约定
 
 ### 1.1 基础信息
@@ -78,9 +88,13 @@ Token 有效期：7 天（毕设简化，不做 refresh token）
 ### 1.5 分页与排序
 
 ```text
-请求：page（默认 1）、size（默认 10，最大 50）、sort（默认 created_at,desc）
-响应：{ "list": [], "total": 0, "page": 1, "size": 10 }
+请求：page（默认 1）、size（默认 20，最大 100）
+响应：{ "list": [], "total": 0, "page": 1, "size": 20 }
 ```
+
+> **与服务端入口的关系**：Controller 上统一走 `PageQuery.clampPage/clampSize` 夹取 —— `page < 1` 按 1 处理，`size` 超界按 100 处理，**越界不报错**，避免前端因参数问题突然 400。
+> **未实现 `sort`**：排序在各接口内部固定（待审批按提交时间升序、记录按提交时间降序），不开放前端传排序字段。原稿的 `sort=created_at,desc` 属于预留，实现时未做。
+> **上限取 100 的理由**：最大的列表是全校申请记录，演示与造数量级在百条；100 条够翻页展示，又不至于被当成导出接口。
 
 ### 1.6 幂等与并发
 
@@ -219,9 +233,15 @@ GET /api/v1/auth/me
 
 ```text
 PUT /api/v1/auth/password
-请求：{ "oldPassword": "...", "newPassword": "..." }（新密码 ≥ 8 位）
+权限：已登录（学生 / 教师 / 管理员均可改自己的）
+请求：{ "oldPassword": "...", "newPassword": "..." }
 响应：code=0
+错误：40104 原密码不正确；40001 新密码不合法（< 6 位 / 与原密码相同）
 ```
+
+- 必须校验原密码 —— 只凭 token 就能改密，等于 token 泄露即可永久接管账号。
+- **长度下限 6 位**，与演示基线 `123456`、管理员重置口径保持一致。生产环境应收紧到 8 位以上并配合登录限流（见 `AGENTS §11`）。
+- 管理员重置他人密码走 `PUT /admin/users/{id}/password`，**不需要原密码**，`newPassword` 同样 ≥6 位。
 
 ### 3.4 字典
 
@@ -293,17 +313,20 @@ GET /api/v1/common/dictionaries
 POST /api/v1/files
 权限：已登录
 Content-Type: multipart/form-data
-字段：file（必填）、bizType（MATERIAL / AVATAR）
-限制：单文件 ≤ 10MB；MATERIAL 允许 jpg/jpeg/png/pdf
+字段：file（必填）、bizType（MATERIAL / AVATAR，仅回显，服务端不做分支处理）
+限制：单文件 ≤ 10MB；允许 jpg / jpeg / png / pdf
 ```
 
 响应：
 
 ```json
-{ "code": 0, "data": { "fileId": 101, "fileName": "诊断证明.jpg", "fileUrl": "/files/2026/10/xxx.jpg", "fileSize": 82311, "mimeType": "image/jpeg" } }
+{ "code": 0, "data": { "fileName": "诊断证明.jpg", "fileUrl": "/files/2026/10/xxx.jpg", "fileSize": 82311, "mimeType": "image/jpeg", "bizType": "MATERIAL" } }
 ```
 
-> 上传成功只返回文件信息；提交申请时把 `fileId/fileUrl/fileName` 放入 `materials` 数组。
+> **不返回 `fileId`**：材料归属在「提交申请」时随 `materials[]` 一起写 `leave_material`，上传阶段还没有 `application_id`，给一个孤立 id 没有使用方。原稿的 `fileId` 是早期"先建档再挂材料"设计的残留。
+> **`bizType` 仅回显**：头像上传（AVATAR）当前没有前端入口，服务端只需原样带回，不做分支。以后真要支持，在这里加头像裁剪/尺寸校验。
+> **上传成功返回的是未签名的永久路径**；读取时由详情接口补 `?exp=&sig=` 签名（见 §1.8）。所以前端**不要**把上传返回的 URL 直接放进 `<img>`，要用详情接口给的那个。
+> **10MB 生效前提**：`application.yml` 必须配置 `spring.servlet.multipart.max-file-size=10MB` 与 `max-request-size=10MB`，否则会先被 Spring 默认的 1MB 拦成 500。
 
 ---
 
@@ -387,13 +410,16 @@ POST /api/v1/student/applications
 ```text
 1. 账号、角色、学生资料完整
 2. 班级已配置辅导员（否则 42204）
-3. startTime < endTime（40002）
-4. startTime 不早于当前时间（40002，Service 层）
-5. 与本人有效申请（PENDING / APPROVED）无重叠（40903）
-6. 必填字段完整；OFF_CAMPUS 时 destination 建议填写（非强制）
-7. 材料规则校验（首版：全部选填；如启用必传，返回 40001）
-8. 幂等键 / 业务查重（40904）
+3. 枚举合法：leaveScene ∈ {OFF_CAMPUS, ON_CAMPUS}，leaveType ∈ {SICK, PERSONAL, OTHER}（否则 40001）
+4. startTime < endTime（40002）
+5. startTime 不早于当前时间（40002，Service 层）
+6. OFF_CAMPUS 时 destination 必填且至少 2 个字符（40001）；ON_CAMPUS 可空
+7. contactPhone 必填且匹配 ^1[3-9]\d{9}$（40001，前后端同校验）
+8. 与本人有效申请（PENDING / APPROVED）无重叠（40903）
+9. 材料规则校验（首版：全部选填）
 ```
+
+> `destination` 与 `contactPhone` 都是**硬性必填**。原稿写"建议填写（非强制）"，实现时按"辅导员要知道人去哪、出事能联系上"改成强制；数据库层没有加对应 CHECK（MySQL CHECK 无法表达"仅离校时必填"），由 Service 统一把守。
 
 响应：
 
@@ -425,7 +451,7 @@ GET /api/v1/student/applications/{id}
 
 ```json
 {
-  "id": 12, "applicationNo": "LA202610170001",
+  "applicationId": 12, "applicationNo": "LA202610170001",
   "leaveScene": "OFF_CAMPUS", "leaveType": "SICK",
   "startTime": "2026-10-17 08:00:00", "endTime": "2026-10-17 18:00:00",
   "actualEndTime": null, "reason": "发烧就医", "destination": "市第一医院", "contactPhone": "13900000001",
@@ -437,6 +463,8 @@ GET /api/v1/student/applications/{id}
   "actions": ["CHECKIN", "EXTENSION"]
 }
 ```
+
+> **主键字段名统一为 `applicationId`**（原稿此处写 `id`，与 §5.3 列表不一致）。学生端所有申请对象的标识字段都用 `applicationId`；**教师端例外**，用 `id`（见 §6.3）。
 
 > `actions` 为后端按 `status + effective_status + leave_scene + 续假状态` 计算的可用动作集合，前端据此显示按钮。
 > `approvedBy` / `approvalComment` 来源：`approved_by_user_id → user.real_name`，`approvalComment` 取该申请最新一条 `action ∈ {APPROVE, REJECT}` 的 `leave_approval_log.comment`（主表无此字段）。
@@ -584,7 +612,7 @@ POST /api/v1/student/extensions/{id}/withdraw
 ### 5.12 消息
 
 ```text
-GET  /api/v1/student/messages?isRead=&page=1&size=20
+GET  /api/v1/student/messages?isRead=
 GET  /api/v1/student/messages/unread-count
 POST /api/v1/student/messages/{id}/read
 POST /api/v1/student/messages/read-all
@@ -592,6 +620,9 @@ POST /api/v1/student/messages/read-all
 
 列表项：id、type、title、content、businessType、businessId、isRead、createdAt。
 未读数响应：`{ "unread": 3 }`。
+
+> **不分页**：`isRead` 传 `false` 表示"只看未读"，不传或传 true 表示全部。消息量在本系统量级（一人几十条）下一次拉完更快，加 `page/size` 反而多一次点击。列表按「未读优先 + 时间倒序 + id 倒序」排序，同秒插入也稳定。
+> 若日后单用户消息过百，再按 §1.5 补 `page/size`，响应改 `PageResult`，属于向后兼容的增量。
 
 ### 5.13 个人统计
 
@@ -626,9 +657,17 @@ GET /api/v1/teacher/workbench
   "pendingCount": 3,
   "inProgressCount": 8,
   "abnormalCount": 2,
-  "todos": [ { "type": "APPLICATION", "id": 12, "studentName": "李同学", "summary": "离校 · 病假", "timeRange": "今天 10:00-20:00" } ]
+  "overdueCount": 1,
+  "pendingExtensionCount": 1,
+  "todos": [ { "type": "APPLICATION", "id": 12, "studentName": "李同学", "summary": "离校 · 病假", "timeRange": "今天 10:00-20:00" } ],
+  "recentProcessed": [ /* 最近 5 条已终结申请，字段同列表行 */ ],
+  "todayStats": { "processed": 6, "approved": 5, "rejected": 1, "cancelled": 0 }
 }
 ```
+
+> `abnormalCount` = **待核验销假数**（`review_status=PENDING_REVIEW`），不含逾期；逾期单独给 `overdueCount`。
+> `todos` 里 `type` 有两种：`APPLICATION`（待审批，带 `id`）、`CHECKIN`（待核验，带 `checkinId` 与 `distanceM`）。前端据此决定点进去开哪个抽屉。
+> `recentProcessed` / `todayStats` 是 M5 后台工作台右侧栏需要的数据，原稿没有，实现时补上。
 
 ### 6.2 申请列表（待审批 / 记录）
 
@@ -648,7 +687,20 @@ GET /api/v1/teacher/applications/{id}
 权限：负责班级
 ```
 
-字段同学生详情，另含：学生信息（姓名/学号/班级/电话/紧急联系人）、审批记录、材料、销假记录、续假记录。
+**字段与学生详情"内容等价、命名不同"** —— 教师端为后台表格服务，字段名更短：
+
+| 含义 | 学生端 | 教师端 |
+|---|---|---|
+| 申请主键 | `applicationId` | `id` |
+| 展示态 | `effectiveStatus` | `effective` |
+| 单号 | `applicationNo` | `no` |
+| 场景 / 类型 | `leaveScene` / `leaveType`（枚举） | `scene` / `type`（**直接给中文**，如「离校 · 病假」） |
+| 材料 | `materials[].fileName` / `fileUrl` | `materials[].name` / `url` |
+| 销假记录 | `checkinLogs[]` | `checkins[]` |
+
+另含：学生信息（姓名/学号/班级/电话/紧急联系人）、审批记录、材料、销假记录、续假记录。
+
+> 原稿写「字段同学生详情」，实现时没有照做：后台表格是服务端直接给中文标签，省掉前端一层映射；小程序是客户端有字典、自己映射。两种都合理，**但不要试图统一** —— 统一意味着后台要多引一份字典。回写此表是为了让写客户端的人知道该取哪个键。
 
 ### 6.4 批准
 
@@ -837,8 +889,45 @@ GET /api/v1/admin/stats?startDate=&endDate=
 ```
 
 ```json
-{ "totalApplications": 320, "approved": 280, "completed": 250, "currentOverdue": 6 }
+{ "totalApplications": 320, "approved": 280, "completed": 250, "currentOverdue": 6, "pending": 12 }
 ```
+
+> 时间范围按 `created_at`（提交时间）过滤，左闭右开：`startDate 00:00` ≤ t < `endDate+1 00:00`。
+
+### 7.6 管理端概览
+
+```text
+GET /api/v1/admin/overview
+权限：ADMIN
+```
+
+```json
+{
+  "stats": { "studentTotal": 31, "todayApplications": 4, "inProgress": 6, "pending": 3 },
+  "deltas": { "todayApplications": 1, "studentTotal": 2 },
+  "trend":  [ { "date": "11-12", "total": 8, "approved": 6 } ],
+  "types":  [ { "type": "SICK", "count": 12 } ],
+  "typeTotal": 128,
+  "recent": [ /* 最近动态，字段同列表行 */ ],
+  "alerts": [ /* 需要管理员关注的事项 */ ]
+}
+```
+
+> 概览页专用：4 个统计卡 + 7 日双线折线 + 类型环形 + 最近动态。`deltas` 是「今日 vs 昨日」的近似环比，不追求精确。
+
+### 7.7 全校申请列表
+
+```text
+GET /api/v1/admin/applications?scope=pending|done|all&review=PENDING_REVIEW&keyword=&page=&size=
+权限：ADMIN
+```
+
+- `scope=pending` 只给待审批；`scope=done` 给已处理；不传为全部。
+- `review=PENDING_REVIEW` 只给"有人工核验待处理"的申请（管理端异常核验页用）。
+- `keyword` 匹配学生姓名 / 学号 / 班级。
+- 列表行比教师端多带 `needReview`、`approvedByName`、`cancelReason`。
+
+> 7.6 / 7.7 是后台概览页与全校列表页的支撑接口，原稿没有规划。管理端只读，**不提供审批/核验动作**（审批归辅导员，见 §6）。
 
 ---
 

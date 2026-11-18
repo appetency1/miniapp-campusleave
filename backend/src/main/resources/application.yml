@@ -3,6 +3,12 @@ spring:
     name: campus-leave
   profiles:
     active: dev
+  # 上传上限：不配这两项，Spring 默认 1MB，超过就直接 500，
+  # 业务层 FileStorageService 里的 10MB 判断永远走不到（03_API §4 要求 10MB）
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: 8080

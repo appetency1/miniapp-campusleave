@@ -1,5 +1,6 @@
 package com.campusleave.common;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.campusleave.domain.entity.Notification;
 import com.campusleave.domain.entity.StudentProfile;
 import com.campusleave.domain.mapper.NotificationMapper;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
  * 站内消息落库的唯一入口。
@@ -50,6 +52,12 @@ public class NotificationService {
         doNotify(userId, type, title, content, applicationId);
     }
 
+    /**
+     * 周期性提醒类型：dedupKey 带自然日，隔天可以再发一次。
+     * 其余类型视为一次性事件，dedupKey 不带日期 —— 同一件事一生只发一条。
+     */
+    private static final Set<String> DAILY_TYPES = Set.of("START_REMINDER", "OVERDUE_REMINDER");
+
     private void doNotify(Long userId, String type, String title, String content, Long applicationId) {
         Notification n = new Notification();
         n.setReceiverId(userId);
@@ -58,15 +66,26 @@ public class NotificationService {
         n.setContent(content);
         n.setBusinessId(applicationId);
         n.setBusinessType(applicationId == null ? null : "APPLICATION");
-        n.setDedupKey(applicationId == null
-                ? null
-                : "APP_" + applicationId + "_" + type + "_" + LocalDate.now());
+        // 01 §36：一次性事件用稳定键，周期性提醒用自然日桶
+        String base = applicationId == null ? null : "APP_" + applicationId + "_" + type;
+        if (base != null && DAILY_TYPES.contains(type)) {
+            base = base + "_" + LocalDate.now();
+        }
+        n.setDedupKey(base);
         n.setIsRead(0);
         n.setCreatedAt(LocalDateTime.now());
         try {
             notificationMapper.insert(n);
         } catch (DuplicateKeyException e) {
-            // 同日同类型已发过：正常情况，静默忽略
+            // 同键已存在：刷新文案（逾期提醒里的"已逾期 X 小时"必须是最新的），仍只保留一条
+            if (n.getDedupKey() != null) {
+                notificationMapper.update(null,
+                        Wrappers.<Notification>lambdaUpdate()
+                                .set(Notification::getTitle, title)
+                                .set(Notification::getContent, content)
+                                .eq(Notification::getReceiverId, userId)
+                                .eq(Notification::getDedupKey, n.getDedupKey()));
+            }
         } catch (Exception e) {
             // 通知失败不能影响主业务（审批/销假已经成功了）
             log.warn("notify failed: userId={} type={} err={}", userId, type, e.getMessage());

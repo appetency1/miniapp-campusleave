@@ -11,7 +11,7 @@
 | 业务规则 / 数据库 / 接口契约 | **已冻结**（01 / 02 / 03） |
 | 学生端 UI 定稿 | **已完成**（`formal-v2/`，7 屏 + 首页五态，可点击） |
 | 学生端小程序 | **M2 + M3 完成**（`miniprogram/`，申请 → 审批 → 销假闭环） |
-| 后端 | **M1 / M3 / M4 / M5-1 完成**（学生 20 + 教师 16 + 管理 14 个接口） |
+| 后端 | **M1 / M3 / M4 / M5 完成**（学生 16 + 教师 17 + 管理 16 个端点） |
 | 教师端（Web 后台） | **M4 完成**（`backend/web/`） |
 | 管理端（Web 后台） | **M5 完成**（前端 10 页：概览 / 请假申请 / 请假记录 / 异常核验 / 学生 / 教师 / 班级 / 账号 / 请假规则 / 系统设置，`backend/web/js/pages/admin.js`） |
 
@@ -23,7 +23,20 @@
 
 ### 1. 后端（必须先起）
 
-**双击项目根目录的 `start-backend.cmd`。** 控制台出现 `Started CampusLeaveApplication`
+**首次启动要做两件事**：① 复制配置模板并填数据库密码；② 设置 JWT 密钥环境变量。
+**漏掉密钥会直接启动失败**（`JwtUtil` 对空/占位/过短三种情况一律抛异常中止），报错信息里会写清楚原因。
+
+```bat
+copy backend\src\main\resources\application-dev.yml.example backend\src\main\resources\application-dev.yml
+:: 用记事本打开，把 password 改成你的 MySQL 密码
+
+set CAMPUS_JWT_SECRET=至少32字节的随机字符串_请自己换成别的_xxxxxxxx
+```
+
+> 密钥不要写进任何入库文件，也不要复用示例值。换机器/重启新终端后要重新 `set`
+> （或者用「系统属性 → 环境变量」永久设置）。长度不足 32 字节、或仍是仓库里的旧占位串，都会启动失败。
+
+**然后双击项目根目录的 `start-backend.cmd`。** 控制台出现 `Started CampusLeaveApplication`
 就是好了，然后打开 <http://localhost:8080/admin/>。
 
 那个黑窗口就是服务本体——**关掉窗口 = 停止服务**，别以为它可以最小化后随手关。
@@ -46,17 +59,30 @@
 演示账号：教师 `T2023001` / `123456`，管理员 `admin` / `123456`。
 
 > 改了 `backend/web/` 下的前端文件后要重新跑一次 `mvn compile`
-> （或 `cp -r backend/web backend/target/classes/static/admin`），
+> （或 `cp -r backend/web/. backend/target/classes/static/admin/`——注意结尾的 `/.`，
+> 少了它会复制成 `static/admin/web/...`，页面直接 404），
 > 否则浏览器拿到的还是上一次的副本。
 
 ### 3. 小程序
 
 微信开发者工具打开项目根目录；把 `miniprogram/utils/config.js` 里的 IP
 改成电脑当前局域网地址，用「真机调试」模式。
+也可以不改代码：登录页长按底部「演示账号」那一行，直接输入 `IP:端口`，立即生效。
 
 ### 4. 数据库
 
-MySQL 8+，依次执行 `sql/V1.0__schema.sql`、`V1.0__seed.sql`、`V1.1__seed_demo.sql`。
+MySQL 8.0.16+，按这个顺序执行（反了会报外键错）：
+
+```text
+sql/V1.0__schema.sql        建表
+sql/V1.0__seed.sql          系统配置（5 项，含 MOCK_LOCATION）
+sql/V1.1__seed_demo.sql     演示账号（1 管理员 / 2 教师 / 3 学生）+ 班级 + 绑定
+sql/V1.2__reseed_demo.sql   把演示学生的申请重置为固定状态（跑完探针后用）
+```
+
+想造"看起来有数据量"的背景数据，再跑 `python scripts/seed_bulk.py`
+（25 个学生 / 4 个班 / 120 条申请，只碰学号 `2024` 段；**答辩演示前建议不跑**，会拉偏统计）。
+
 `backend/src/main/resources/application-dev.yml` 里的连接信息改成你本机的
 （该文件含密码，已在 `.gitignore` 里，不进库）。
 
@@ -85,8 +111,8 @@ CampusLeave/
 │  ├─ src/main/java/com/campusleave/
 │  │  ├─ auth/                    登录 + JWT
 │  │  ├─ student/                 学生端（查询 + 写操作 + 有效状态计算）
-│  │  ├─ teacher/                 教师端（M4，16 个端点）
-│  │  ├─ admin/                   管理端（M5，14 个端点）
+│  │  ├─ teacher/                 教师端（17 个端点，含 /profile）
+│  │  ├─ admin/                   管理端（16 个端点，含 /overview、/applications）
 │  │  ├─ domain/                  实体 / Mapper / 枚举
 │  │  ├─ security/                UserContext / JWT 过滤器
 │  │  ├─ storage/                 本地上传
@@ -100,7 +126,7 @@ CampusLeave/
 │  ├─ custom-tab-bar/             自定义 tabBar（内联 SVG 图标）
 │  ├─ components/ruler/           刻度尺组件（请假区间可视化）
 │  ├─ pages/                      登录 / 首页 / 记录 / 消息 / 我的 / 申请 / 详情 / 销假
-│  └─ utils/                      request / api / auth / format / server / config
+│  └─ utils/                      request / auth / format / config / server
 │
 ├─ sql/
 │  ├─ V1.0__schema.sql            建表脚本
@@ -138,7 +164,7 @@ CampusLeave/
 | ORM | **MyBatis-Plus 3.5.7**（`mybatis-plus-spring-boot3-starter`），Mapper 接口 + 少量 XML；**不做全局逻辑删除**（学生不能删历史，`deleted` 字段一期去掉） | 2026-10-20 决定 |
 | 运行环境 | **JDK 17**（Spring Boot 3 最低要求，LTS） | 2026-10-20 决定 |
 | 构建 | **Maven** | 2026-10-20 决定 |
-| 文件存储 | 本地 `uploads/` 目录 + 静态资源映射；DB 只存相对 URL（`leave_material.file_url`）；单文件 ≤ 10MB，限 jpg/png/pdf；**不引 OSS** | 03_API §4 |
+| 文件存储 | 本地 `uploads/` 目录 + 静态资源映射；DB 只存相对 URL（`leave_material.file_url`）；单文件 ≤ 10MB（需 `spring.servlet.multipart.max-file-size` 生效），限 jpg/jpeg/png/pdf；读取走签名 URL；**不引 OSS** | 03_API §4 |
 | 明确不引入 | Redis、消息队列、工作流引擎、微服务 | 总纲 |
 
 ---

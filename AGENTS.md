@@ -36,15 +36,18 @@
 
 ```text
 backend/src/main/java/com/campusleave/
-  common/    Result / PageResult / ErrorCode / BizException / GlobalExceptionHandler / TraceIdFilter
-  config/    WebMvcConfig（静态映射 + CORS）/ MybatisPlusConfig / JacksonConfig
-  security/  JwtUtil / JwtAuthFilter / LoginUser / CurrentUser / @RequireRole
+  common/    Result / PageResult / PageQuery / ErrorCode / BizException / GlobalExceptionHandler
+             TraceIdFilter / NotificationService（通知落库唯一入口）
+  config/    WebConfig（三个过滤器注册）/ StaticResourceConfig（/files/** 静态映射）
+             WebMvcRoutingConfig（/admin/ 转发）/ MybatisPlusConfig / SecurityBeanConfig
+             DataConsistencyChecker（启动时跨表自检）
+  security/  JwtUtil / JwtAuthFilter / LoginUser / UserContext / CurrentUser（内含 requireRole）
   auth/ student/ teacher/ admin/     按端分包的 Controller + Service
-  domain/    entity(12) / enums(UserRole) / mapper
+  domain/    entity(12) / enums(UserRole) / mapper(12)
              业务状态用 String 常量（无 Status 枚举类）
   service/   CommonController（字典接口）· DictService
-             NotificationService 在 common/，其余业务服务在各自按端包内
-  storage/   FileController · FileStorageService（本地 uploads/，路径 /yyyy/MM/uuid.ext）
+  storage/   FileController · FileStorageService · FileUrlSigner · FileAccessFilter
+             （本地 uploads/，路径 /yyyy/MM/uuid.ext；读取时签名 URL）
 backend/web/        教师 + 管理端静态资源（css/js/pages），构建时复制到 static/admin/
 miniprogram/        小程序源码（pages/ components/ utils/ custom-tab-bar/）
 sql/                V1.0__schema.sql · V1.0__seed.sql · V1.1__seed_demo.sql …

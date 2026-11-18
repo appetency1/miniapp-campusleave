@@ -193,7 +193,8 @@
     var end = parse(app.end);
     if (st === 'PENDING') return { tone: 'amber', solid: true, label: '待审批' };
     if (st === 'APPROVED') {
-      if (end && Date.now() > end.getTime() && eff !== 'COMPLETED') return { tone: 'red', solid: true, label: '逾期' };
+      // 01 §4.1：now >= end_time 即逾期（与后端 EffectiveStatus 同口径）
+      if (end && Date.now() >= end.getTime() && eff !== 'COMPLETED') return { tone: 'red', solid: true, label: '逾期' };
       if (eff === 'WAITING_START') return { tone: 'blue', solid: false, label: '待开始' };
       if (eff === 'OVERDUE') return { tone: 'red', solid: true, label: '逾期' };
       if (eff === 'COMPLETED') return { tone: 'ink', solid: false, label: '已完成' };

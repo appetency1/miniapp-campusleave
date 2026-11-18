@@ -52,6 +52,7 @@ public class StudentCommandService {
 
     private final ClassInfoMapper classMapper;
     private final TeacherClassMapper teacherClassMapper;
+    private final StudentProfileMapper studentMapper;
     private final LeaveApplicationMapper applicationMapper;
     private final LeaveExtensionMapper extensionMapper;
     private final LeaveMaterialMapper materialMapper;
@@ -114,6 +115,14 @@ public class StudentCommandService {
 
         // ④ 与本人有效申请（PENDING / APPROVED）不得重叠
         //    重叠判定：start < 已有.end && end > 已有.start
+        //
+        //    先锁学生行再查（02 §18.1）：只做 selectCount 的话，两个并发提交会同时查到 0 条、
+        //    然后各自插入成功 —— application_no 不同，唯一键拦不住，结果就是两条重叠的申请。
+        //    FOR UPDATE 让同一学生的提交串行化，第二个请求会等第一个提交完再检查，从而看到新数据。
+        studentMapper.selectOne(Wrappers.<StudentProfile>lambdaQuery()
+                .eq(StudentProfile::getId, sp.getId())
+                .last("FOR UPDATE"));
+
         Long overlap = applicationMapper.selectCount(
                 Wrappers.<LeaveApplication>lambdaQuery()
                         .eq(LeaveApplication::getStudentId, sp.getId())

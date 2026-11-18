@@ -272,11 +272,14 @@ public class TeacherCommandService {
                         .set(LeaveCheckinLog::getDelayMinutes, delayMinutes)
                         .eq(LeaveCheckinLog::getId, checkinId));
 
-        // 同一申请下其他待核验记录一并作废
+        // 同一申请下其他待核验记录一并作废。
+        // close_reason 必须用 02 §12.4 的白名单值（schema 的 ck_checkin_close_reason 会校验）：
+        // 这里语义是「人工核验流程已正常结束，其余待审记录随之关闭」→ MANUAL_REVIEW_COMPLETED。
+        // 之前写成 SUPERSEDED_BY_MANUAL_REVIEW，不在白名单内，一旦命中就是 SQL 约束违反 500。
         checkinLogMapper.update(null,
                 Wrappers.<LeaveCheckinLog>lambdaUpdate()
                         .set(LeaveCheckinLog::getReviewStatus, "VOID")
-                        .set(LeaveCheckinLog::getCloseReason, "SUPERSEDED_BY_MANUAL_REVIEW")
+                        .set(LeaveCheckinLog::getCloseReason, "MANUAL_REVIEW_COMPLETED")
                         .set(LeaveCheckinLog::getClosedAt, now)
                         .eq(LeaveCheckinLog::getApplicationId, app.getId())
                         .eq(LeaveCheckinLog::getReviewStatus, "PENDING_REVIEW")

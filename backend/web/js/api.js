@@ -10,7 +10,7 @@
    学院量级的数据（几个班、几百条申请）一次拉完没有压力；
    真要到几千条再改成分页懒加载。
 
-   注意：这里 deliberately 用 GET /teacher/applications?tab=records&size=200
+   注意：这里 deliberately 用 GET /teacher/applications?tab=records&size=100
    拉全量而不是分页，因为前端列表的筛选/排序都在内存里做。
    ============================================================ */
 (function () {
@@ -119,9 +119,9 @@
     return Promise.all([
       get('/teacher/profile'),
       get('/teacher/workbench'),
-      get('/teacher/applications?tab=records&size=200'),
-      get('/teacher/extensions?size=200'),
-      get('/teacher/students?size=200'),
+      get('/teacher/applications?tab=records&size=100'),
+      get('/teacher/extensions?size=100'),
+      get('/teacher/students?size=100'),
       get('/teacher/stats')
     ]).then(function (r) {
       setStore({
@@ -142,8 +142,8 @@
   function loadAdminStore() {
     return Promise.all([
       get('/auth/me'),
-      get('/admin/users?size=200'),
-      get('/admin/classes?size=200'),
+      get('/admin/users?size=100'),
+      get('/admin/classes?size=100'),
       get('/admin/teacher-classes'),
       get('/admin/configs'),
       get('/admin/stats'),

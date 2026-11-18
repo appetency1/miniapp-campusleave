@@ -117,7 +117,7 @@ if a_id:
     log_id = b.get("data", {}).get("checkinLogId")
 
     # 教师端能否看到待核验
-    st, b = call("GET", "/teacher/checkin-logs?reviewStatus=PENDING_REVIEW&page=1&pageSize=50", None, tea)
+    st, b = call("GET", "/teacher/checkin-logs?reviewStatus=PENDING_REVIEW&page=1&size=50", None, tea)
     page = b.get("data") or {}
     rows = page.get("list") or page.get("records") or []
     mine = [r for r in rows if r.get("id") == log_id]
@@ -178,7 +178,7 @@ if c_id:
           "hasPendingExtension=%s" % cur.get("hasPendingExtension"))
 
     # 教师续假列表能看到
-    st, b = call("GET", "/teacher/extensions?status=PENDING&page=1&pageSize=50", None, tea)
+    st, b = call("GET", "/teacher/extensions?status=PENDING&page=1&size=50", None, tea)
     page = b.get("data") or {}
     rows = page.get("list") or page.get("records") or []
     mine = [r for r in rows if r.get("id") == ext_id]
@@ -199,24 +199,24 @@ if c_id:
 print("\n--- 场景 D：工作台计数一致性 ---")
 st, wb = call("GET", "/teacher/workbench", None, tea)
 w = wb.get("data") or {}
-st, b = call("GET", "/teacher/applications?tab=pending&page=1&pageSize=200", None, tea)
+st, b = call("GET", "/teacher/applications?tab=pending&page=1&size=200", None, tea)
 page = b.get("data") or {}
 pending_total = page.get("total")
 check("D 待审批数一致", w.get("pendingCount") == pending_total,
       "工作台=%s 列表=%s" % (w.get("pendingCount"), pending_total))
-st, b = call("GET", "/teacher/checkin-logs?reviewStatus=PENDING_REVIEW&page=1&pageSize=200", None, tea)
+st, b = call("GET", "/teacher/checkin-logs?reviewStatus=PENDING_REVIEW&page=1&size=200", None, tea)
 page = b.get("data") or {}
 check("D 待核验数一致", w.get("abnormalCount") == page.get("total"),
       "工作台=%s 列表=%s" % (w.get("abnormalCount"), page.get("total")))
 
-st, b = call("GET", "/teacher/applications/overdue?page=1&pageSize=200", None, tea)
+st, b = call("GET", "/teacher/applications/overdue?page=1&size=200", None, tea)
 page = b.get("data") or {}
 check("D 逾期数一致", w.get("overdueCount") == page.get("total"),
       "工作台=%s 列表=%s" % (w.get("overdueCount"), page.get("total")))
 
 st, b = call("GET", "/teacher/stats", None, tea)
 tstat = b.get("data") or {}
-st, b = call("GET", "/teacher/applications?tab=records&page=1&pageSize=500", None, tea)
+st, b = call("GET", "/teacher/applications?tab=records&page=1&size=500", None, tea)
 page = b.get("data") or {}
 all_apps = page.get("list") or page.get("records") or []
 all_total = page.get("total")

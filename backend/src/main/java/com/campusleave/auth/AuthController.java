@@ -30,4 +30,11 @@ public class AuthController {
         // JWT 无状态，退出由前端清 token；此处仅保留接口位
         return Result.ok();
     }
+
+    /** 修改自己的密码（03 §3.3） */
+    @PutMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest req) {
+        authService.changePassword(CurrentUser.require(), req.getOldPassword(), req.getNewPassword());
+        return Result.ok();
+    }
 }
