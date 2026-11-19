@@ -911,7 +911,11 @@
     /* 演示深链：?demo=1 用教师账号，?demo=admin 用管理员账号，自动登录。
        截图验证与答辩都用它，省一次输入；不带参数时行为不变。 */
     var demoMatch = location.search.match(/[?&]demo=([^&]+)/);
-    if (demoMatch && !ADMIN.api.token()) {
+    /* 只在本机开放：?demo=admin 会直接以管理员身份登录，等于一个免密后门。
+       演示都在本机跑（localhost / 127.0.0.1），所以加 hostname 判断即可
+       —— 部署到公网域名后这两个参数自动失效，不用记得去删代码。 */
+    var isLocalHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (demoMatch && isLocalHost && !ADMIN.api.token()) {
       var demoUser = demoMatch[1] === 'admin' ? 'admin' : 'T2023001';
       watchLoad();
       ADMIN.api.login(demoUser, '123456')
