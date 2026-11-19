@@ -53,7 +53,14 @@
     var all = STORE.apps || [];
     var searchTimer = 0;
 
-    var head = ui.pageHead({ title: '申请记录', meta: '仅含你负责的班级' });
+    var totalAll = STORE.appsTotal || all.length;
+    var truncated = !!STORE.appsTruncated;
+    var head = ui.pageHead({
+      title: '申请记录',
+      meta: truncated
+        ? '仅含你负责的班级 · 共 ' + totalAll + ' 条，当前显示最近 ' + all.length + ' 条（可用搜索或筛选缩小范围）'
+        : '仅含你负责的班级'
+    });
     page.appendChild(head);
 
     // 和管理端一样：页头 → 统计条 → 工具栏 → 表格

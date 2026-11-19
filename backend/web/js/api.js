@@ -130,6 +130,10 @@
         teacher: r[0],
         workbench: r[1],
         apps: r[2].list || [],
+        /* 后端 size 上限 100，超出会截断。带上 total 才能告诉用户"还有多少没显示"，
+           否则列表看起来只有 100 条，用户以为数据丢了。 */
+        appsTotal: r[2].total || 0,
+        appsTruncated: (r[2].total || 0) > (r[2].list || []).length,
         extensions: r[3].list || [],
         students: r[4].list || [],
         stats: r[5]
