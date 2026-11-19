@@ -1,6 +1,7 @@
 package com.campusleave.config;
 
 import com.campusleave.common.TraceIdFilter;
+import com.campusleave.domain.mapper.UserMapper;
 import com.campusleave.security.JwtAuthFilter;
 import com.campusleave.security.JwtUtil;
 import com.campusleave.storage.FileAccessFilter;
@@ -36,10 +37,16 @@ public class WebConfig {
         return bean;
     }
 
+    /**
+     * JWT 鉴权（order=2）。
+     *
+     * <p>传入 UserMapper 是为了「停用账号立刻失效」：过滤器验签后要查一次库确认
+     * status=ACTIVE，否则被停用的人拿旧 token 还能继续用 7 天。
+     */
     @Bean
-    public FilterRegistrationBean<JwtAuthFilter> jwtAuthFilter(JwtUtil jwtUtil) {
+    public FilterRegistrationBean<JwtAuthFilter> jwtAuthFilter(JwtUtil jwtUtil, UserMapper userMapper) {
         FilterRegistrationBean<JwtAuthFilter> bean = new FilterRegistrationBean<>();
-        bean.setFilter(new JwtAuthFilter(jwtUtil));
+        bean.setFilter(new JwtAuthFilter(jwtUtil, userMapper));
         bean.addUrlPatterns("/api/*");
         bean.setOrder(2);
         return bean;
