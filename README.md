@@ -11,7 +11,7 @@
 | 业务规则 / 数据库 / 接口契约 | **已冻结**（01 / 02 / 03） |
 | 学生端 UI 定稿 | **已完成**（`formal-v2/`，7 屏 + 首页五态，可点击） |
 | 学生端小程序 | **M2 + M3 完成**（`miniprogram/`，申请 → 审批 → 销假闭环） |
-| 后端 | **M1 / M3 / M4 / M5 完成**（学生 16 + 教师 17 + 管理 16 个端点） |
+| 后端 | **M1 / M3 / M4 / M5 完成**（学生 17 + 教师 21 + 管理 16 + 认证/公共/文件 6，共 60 个端点） |
 | 教师端（Web 后台） | **M4 完成**（`backend/web/`） |
 | 管理端（Web 后台） | **M5 完成**（前端 10 页：概览 / 请假申请 / 请假记录 / 异常核验 / 学生 / 教师 / 班级 / 账号 / 请假规则 / 系统设置，`backend/web/js/pages/admin.js`） |
 
@@ -110,8 +110,8 @@ CampusLeave/
 │  │  └─ js/                      api / router / ui / app + pages/*
 │  ├─ src/main/java/com/campusleave/
 │  │  ├─ auth/                    登录 + JWT
-│  │  ├─ student/                 学生端（查询 + 写操作 + 有效状态计算）
-│  │  ├─ teacher/                 教师端（17 个端点，含 /profile）
+│  │  ├─ student/                 学生端（17 个端点：查询 + 写操作 + 有效状态计算）
+│  │  ├─ teacher/                 教师端（21 个端点，含 /profile、/badges、/notifications）
 │  │  ├─ admin/                   管理端（16 个端点，含 /overview、/applications）
 │  │  ├─ domain/                  实体 / Mapper / 枚举
 │  │  ├─ security/                UserContext / JWT 过滤器

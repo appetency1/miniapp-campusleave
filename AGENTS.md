@@ -41,7 +41,8 @@ backend/src/main/java/com/campusleave/
   config/    WebConfig（三个过滤器注册）/ StaticResourceConfig（/files/** 静态映射）
              WebMvcRoutingConfig（/admin/ 转发）/ MybatisPlusConfig / SecurityBeanConfig
              DataConsistencyChecker（启动时跨表自检）
-  security/  JwtUtil / JwtAuthFilter / LoginUser / UserContext / CurrentUser（内含 requireRole）
+  security/  JwtUtil / JwtAuthFilter（验签 + 查库确认 status）/ LoginAttemptService（登录限流）
+             LoginUser / UserContext / CurrentUser（内含 requireRole）
   auth/ student/ teacher/ admin/     按端分包的 Controller + Service
   domain/    entity(12) / enums(UserRole) / mapper(12)
              业务状态用 String 常量（无 Status 枚举类）
@@ -122,16 +123,18 @@ design/ docs/ outputs/ reviews/ archive/
 - 探针 FAIL 先确认断言（字段名/路径）是否过时，再判代码。已知断言坑：教师详情用 `id`/`effective`，逾期接口 `/teacher/applications/overdue`。
 - 交付前自查：`mvn -q -DskipTests package` 通过 + 探针全绿 + 后端日志无异常堆栈。
 
-## 11. 已知待修（先看这里再动手）
+## 11. 已知问题与修复记录（先看这里再动手）
 
 | 级别 | 问题 | 位置 |
 |---|---|---|
 | **已修复** | ~~JWT 密钥是仓库公开占位串，可自签 `role=ADMIN` 令牌~~ → 密钥改为环境变量 `CAMPUS_JWT_SECRET` 注入（≥32 字节），空/旧占位串/过短三种情况启动即失败（`JwtUtil.validateSecret`）。2026-11-11 | `application-dev.yml.example:14` |
 | **已修复** | ~~`/files/**` 匿名可读~~ → 出 URL 时带 `exp`+`sig`（HMAC-SHA256，10 分钟有效），`FileAccessFilter` 拦 `/files/*` 无签名/过期/篡改一律 403 JSON。2026-11-11 | `storage/FileUrlSigner.java` / `storage/FileAccessFilter.java` |
-| P1 | `JwtAuthFilter` 只验签不查库，停用账号旧令牌仍有效 | `JwtAuthFilter.java:37-49` |
-| P1 | 登录零限流 + 默认口令 `123456` | `AuthController.java:18` / `AdminService.java:122` |
-| P1 | 上传实际上限 1MB（文档写 10MB），超限 500 | 缺 `spring.servlet.multipart.max-file-size` |
-| P1 | 管理端假分页（内存全量切片）+ `api.js` 写死 `size=200` | `AdminService.java:663-687` / `backend/web/js/api.js` |
+| **已修复 2026-11-19** | ~~`JwtAuthFilter` 只验签不查库~~ → 验签后再查一次主键：账号不存在 → 40101、`status != ACTIVE` → 40103，角色以库为准 | `security/JwtAuthFilter.java` |
+| **已修复 2026-11-19** | ~~登录零限流~~ → 同来源 5 分钟内失败 10 次锁 5 分钟（40105），成功登录清零。**默认口令 `123456` 保留**（演示基线，生产必须改） | `security/LoginAttemptService.java` |
+| **已修复 2026-11-19** | ~~上传实际上限 1MB~~ → `spring.servlet.multipart` 配 10MB；另加魔数校验，改名绕过失效 | `application.yml` / `storage/FileStorageService.java` |
+| **部分修复 2026-11-19** | 管理端仍是内存切片（未改 DB 分页）；`api.js` 的 `size=200 → 100`，超限时页头显示真实总数，不再静默截断 | `AdminService.java:663-687` |
+| P2 | 幂等键未实现：小程序会发 `Idempotency-Key` 头，后端没有对应处理 | `StudentCommandController` |
+| P2 | 无单元测试（`src/test` 不存在），只有 66 项接口探针 | — |
 
 详情与实测命令：`reviews/security-perf-audit-2026-10-23.md`。
 

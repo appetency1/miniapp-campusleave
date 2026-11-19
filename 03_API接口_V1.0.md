@@ -179,6 +179,13 @@ Token 有效期：7 天（毕设简化，不做 refresh token）
 | 44 | GET/POST/DELETE | /admin/teacher-classes | 管理员 | 辅导员-班级绑定 |
 | 45 | GET/PUT | /admin/configs | 管理员 | 系统配置 |
 | 46 | GET | /admin/stats | 管理员 | 全校统计 |
+| 47 | PUT | /student/profile | 学生 | 维护紧急联系人 |
+| 48 | GET | /teacher/badges | 教师 | 角标计数（轮询用） |
+| 49 | GET | /teacher/notifications | 教师 | 站内通知列表 |
+| 50 | GET | /teacher/notifications/unread-count | 教师 | 未读通知数 |
+| 51 | POST | /teacher/notifications/{id}/read | 教师 | 标记通知已读 |
+| 52 | GET | /admin/overview | 管理员 | 管理端概览 |
+| 53 | GET | /admin/applications | 管理员 | 全校申请列表 |
 
 ---
 
@@ -641,6 +648,19 @@ GET /api/v1/student/stats
 
 > 口径：续假不计入申请数；逾期数为当前 `effective_status = OVERDUE` 的数量。
 
+### 5.14 学生档案（紧急联系人）
+
+```text
+PUT /api/v1/student/profile
+权限：STUDENT
+请求：{ "emergencyContact": "李建国", "emergencyPhone": "13700000001" }
+响应：code=0
+```
+
+- 只能改自己的档案；字段传空串表示清空该项。
+- `emergencyContact` ≤ 50 字；`emergencyPhone` 需匹配 `^1[3-9]\d{9}$`。
+- **为什么由学生维护**：紧急联系人属于学生档案，教师的数据边界是"负责班级的请假数据"，不该能改档案；管理员只在开户时录初始值，家长换号必须学生自己能改。
+
 ---
 
 ## 6. 教师端接口
@@ -832,6 +852,38 @@ GET /api/v1/teacher/stats?classId=
 ```json
 { "totalApplications": 42, "approved": 35, "completed": 30, "currentOverdue": 2 }
 ```
+
+---
+
+### 6.15 角标计数（轮询用）
+
+```text
+GET /api/v1/teacher/badges
+权限：TEACHER
+```
+
+```json
+{ "pending": 2, "review": 1, "cancelled7d": 3, "unread": 1 }
+```
+
+> 后台每 **5 秒**轮询一次。**不复用 `/workbench`**：那个要先拉全部申请再算待办，轮询会把性能问题放大；这里只跑几个 count。
+> `cancelled7d` = 近 7 天学生主动取消的申请数（"老师批了假、学生又取消"的坏账来源）；`unread` = 教师未读通知数。
+
+### 6.16 站内通知
+
+```text
+GET  /api/v1/teacher/notifications?unreadOnly=false
+GET  /api/v1/teacher/notifications/unread-count
+POST /api/v1/teacher/notifications/{id}/read
+权限：TEACHER
+```
+
+列表项：`id / type / title / content / businessId / isRead / createdAt`，最多 30 条，不分页。
+
+- 目前只有一类：`APPLICATION_CANCELLED`（学生取消了已批准的请假）。
+- 写入时机：`StudentCommandService.cancel()`，接收人是该生所在班级的辅导员。
+- 标记已读只能操作自己的，靠 `receiver_id` 条件兜住越权。
+- **为什么教师不建消息中心**（04 D-04）：教师端已有角标与待办，再建一套消息体系会分裂；学生端才需要完整消息流。
 
 ---
 
